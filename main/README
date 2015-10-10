@@ -1,0 +1,1 @@
+在编译机器上，使用 configure --host=arm-hisiv200-linux-gnueabi，然后 make 即可
