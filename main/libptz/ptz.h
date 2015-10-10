@@ -18,6 +18,10 @@ int ptz_stop(ptz_t *ptz);
 int ptz_setpos(ptz_t *ptz, int x, int y, int sx, int sy);
 int ptz_getpos(ptz_t *ptz, int *x, int *y);
 
+int ptz_setzoom(ptz_t *ptz, int z);
+int ptz_getzoom(ptz_t *ptz, int *z);
+
+
 // ...
 
 

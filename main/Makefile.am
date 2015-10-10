@@ -7,3 +7,5 @@ teacher_detect_SOURCES=	teacher_track/teacher_track.c \
 						libptz/ptz.cpp \
 						libptz/tcp_util.cpp \
 						libkvconfig/kvconfig.cpp
+
+teacher_detect_SOURCES+= libteacher_detect/detect_dummy.cpp
