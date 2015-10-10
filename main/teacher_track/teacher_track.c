@@ -3,6 +3,7 @@
 #include "../libptz/ptz.h"
 #include "../libkvconfig/kvconfig.h"
 #include "../libteacher_detect/detect.h"
+#include "cJSON.h"
 
 int main(int argc, char **argv)
 {
