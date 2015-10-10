@@ -93,15 +93,15 @@ int main(int argc, char *argv[])
     stVbConf.astCommPool[1].u32BlkCnt = 48;
     strcpy(stVbConf.astCommPool[1].acMmzName,"ddr1");
 	
-	stVbConf.astCommPool[2].u32BlkSize = u32BlkSize;
-    stVbConf.astCommPool[2].u32BlkCnt = 48;
-    memset(stVbConf.astCommPool[2].acMmzName,0,
-        sizeof(stVbConf.astCommPool[2].acMmzName));
-	
-	
-    stVbConf.astCommPool[3].u32BlkSize = u32BlkSize;
-    stVbConf.astCommPool[3].u32BlkCnt = 48;
-    strcpy(stVbConf.astCommPool[3].acMmzName,"ddr1");
+//	stVbConf.astCommPool[2].u32BlkSize = u32BlkSize;
+//    stVbConf.astCommPool[2].u32BlkCnt = 48;
+//    memset(stVbConf.astCommPool[2].acMmzName,0,
+//        sizeof(stVbConf.astCommPool[2].acMmzName));
+//	
+//	
+//    stVbConf.astCommPool[3].u32BlkSize = u32BlkSize;
+//    stVbConf.astCommPool[3].u32BlkCnt = 48;
+//    strcpy(stVbConf.astCommPool[3].acMmzName,"ddr1");
 
 
     /******************************************
@@ -138,7 +138,7 @@ int main(int argc, char *argv[])
     } 
     printf("width=%d, height=%d\n", stSize.u32Width, stSize.u32Height); 
     s32Ret = SAMPLE_COMM_VDA_OdStart(VdaChn_Od, ViChn_Od, &stSize);
-    SAMPLE_COMM_VDA_OdStart(2, ViChn_Od, &stSize);
+//  SAMPLE_COMM_VDA_OdStart(2, ViChn_Od, &stSize);
     if (HI_SUCCESS != s32Ret)
     {
         SAMPLE_PRT("VDA OD Start failed!\n");
@@ -149,7 +149,7 @@ int main(int argc, char *argv[])
     getchar();
 
     SAMPLE_COMM_VDA_OdStop(VdaChn_Od, ViChn_Od);
-	SAMPLE_COMM_VDA_OdStop(2, ViChn_Od);
+//	SAMPLE_COMM_VDA_OdStop(2, ViChn_Od);
     SAMPLE_COMM_VI_Stop(enViMode);
 END0:
     SAMPLE_COMM_SYS_Exit();
