@@ -47,7 +47,7 @@ int send_recv(const sockaddr *addr, socklen_t addrlen, const std::string &data,
 			return -1;
 		}
 	
-		if (!FD_SET(fd, &ws)) {
+		if (!FD_ISSET(fd, &ws)) {
 			fprintf(stderr, "ERR: [libptz] ????\n");
 		}
 	}
@@ -66,7 +66,7 @@ int send_recv(const sockaddr *addr, socklen_t addrlen, const std::string &data,
 			return -1;
 		}
 
-		if (!FD_SET(fd, &rs)) {
+		if (!FD_ISSET(fd, &rs)) {
 			fprintf(stderr, "ERR: [libptz] ?????\n");
 		}
 

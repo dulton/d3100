@@ -19,4 +19,13 @@ AC_PROG_CXX
 
 # Checks for library functions.
 
-AC_OUTPUT([Makefile])
+# dummy mode check
+AM_CONDITIONAL([DUMMY], [test x$DUMMY = x1])
+
+# vars
+AC_SUBST([AM_CXXFLAGS])
+AC_SUBST([AM_LDFLAGS])
+
+AC_CONFIG_FILES([Makefile])
+
+AC_OUTPUT
