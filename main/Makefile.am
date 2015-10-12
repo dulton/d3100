@@ -1,7 +1,7 @@
 AUTOMAKE_OPTIONS=foreign
 
 
-bin_PROGRAMS= teacher_detect test_ptz test_kvconfig
+bin_PROGRAMS= teacher_detect test_ptz test_kvconfig test_detect_dummy
 
 teacher_detect_SOURCES=	teacher_track/teacher_track.c \
 						teacher_track/cJSON.c \
@@ -22,3 +22,7 @@ test_ptz_SOURCES= libptz/test/test_ptz.cpp \
 
 test_kvconfig_SOURCES= libkvconfig/test/test_kvc.cpp \
 					   libkvconfig/kvconfig.cpp
+
+test_detect_dummy_SOURCES= libteacher_detect/detect_dummy.cpp \
+						   libteacher_detect/test/test_detect_dummy.cpp
+

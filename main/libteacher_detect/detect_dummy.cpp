@@ -38,6 +38,8 @@ detect_t *det_open(const char *fname)
 		return 0;
 	}
 
+	fprintf(stdout, "start UDP port 11000\n");
+
 	fcntl(fd, F_SETFL, O_NONBLOCK | fcntl(fd, F_GETFL, 0));	// 设置非阻塞 sock
 
 	detect_t *d = new detect_t;
