@@ -10,5 +10,7 @@ teacher_detect_SOURCES=	teacher_track/teacher_track.c \
 if DUMMY
 teacher_detect_SOURCES+= libteacher_detect/detect_dummy.cpp
 else
+# @老刘，在这里添加你的教师探测代码
+teacher_detect_SOURCES+= notfound.cpp
 endif
 

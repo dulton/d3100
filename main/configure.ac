@@ -20,7 +20,14 @@ AC_PROG_CXX
 # Checks for library functions.
 
 # dummy mode check
-AM_CONDITIONAL([DUMMY], [test x$DUMMY = x1])
+AC_ARG_ENABLE([dummy],
+		[ --enable-dummy  enable DUMMY mode],
+		[case "${enableval}" in
+			yes) dummy=true ;;
+			no) dummy=false ;;
+		 esac],
+		[dummy=false])
+AM_CONDITIONAL([DUMMY], [test x$dummy = xtrue])
 
 # vars
 AC_SUBST([AM_CXXFLAGS])
