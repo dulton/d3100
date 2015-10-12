@@ -1,6 +1,6 @@
 # Hisilicon Hi3516 sample Makefile.param
 
-export HIWORK_PATH?=${HOME}/hi353x
+export HIWORK_PATH?=${HOME}/hi3531/hi353x
 export SDK_ROOT=${HIWORK_PATH}
 
 export ARCH=arm

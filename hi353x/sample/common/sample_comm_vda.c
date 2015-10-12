@@ -251,6 +251,7 @@ static HI_VOID Print_Time_Diff(struct timeval start);
 ******************************************************************************/
 HI_VOID *SAMPLE_COMM_VDA_OdGetResult(HI_VOID *pdata)
 {
+	FILE *fp;
 	struct timeval start;
     HI_S32 i;
     HI_S32 s32Ret;
@@ -279,6 +280,8 @@ HI_VOID *SAMPLE_COMM_VDA_OdGetResult(HI_VOID *pdata)
 	u32RgnNum = stVdaData.unData.stOdData.u32RgnNum;
 
 	fprintf(stdout, "u32RgnNum = %d\n", u32RgnNum);		
+	if ((fp = fopen("./log", "a+")) == NULL)
+		exit(-1);
     for(i=0; i<u32RgnNum; i++)
         {
             if(HI_TRUE == stVdaData.unData.stOdData.abRgnAlarm[i])
@@ -296,6 +299,7 @@ HI_VOID *SAMPLE_COMM_VDA_OdGetResult(HI_VOID *pdata)
         }
 		if (HI_TRUE == stVdaData.unData.stOdData.abRgnAlarm[0] && HI_TRUE == stVdaData.unData.stOdData.abRgnAlarm[1])
         	s32Ret = HI_MPI_VDA_ReleaseData(VdaChn,&stVdaData);
+			fputs("遮挡", fp);
         if(s32Ret != HI_SUCCESS)
         {
             SAMPLE_PRT("HI_MPI_VDA_ReleaseData failed with %#x!\n", s32Ret);
@@ -304,7 +308,7 @@ HI_VOID *SAMPLE_COMM_VDA_OdGetResult(HI_VOID *pdata)
 
         usleep(200*1000);
     }
-
+	fclose(fp);
     return HI_NULL;
 }
 
@@ -414,7 +418,7 @@ HI_S32 SAMPLE_COMM_VDA_OdStart(VDA_CHN VdaChn, VI_CHN ViChn, SIZE_S *pstSize)
     stVdaChnAttr.unAttr.stOdAttr.u32VdaIntvl   = 4;
     stVdaChnAttr.unAttr.stOdAttr.u32BgUpSrcWgt = 128;
     
-    stVdaChnAttr.unAttr.stOdAttr.u32RgnNum = 2;
+    stVdaChnAttr.unAttr.stOdAttr.u32RgnNum = 1;
     
     stVdaChnAttr.unAttr.stOdAttr.astOdRgnAttr[0].stRect.s32X = 0;
     stVdaChnAttr.unAttr.stOdAttr.astOdRgnAttr[0].stRect.s32Y = 0;
@@ -426,15 +430,15 @@ HI_S32 SAMPLE_COMM_VDA_OdStart(VDA_CHN VdaChn, VI_CHN ViChn, SIZE_S *pstSize)
     stVdaChnAttr.unAttr.stOdAttr.astOdRgnAttr[0].u32OccCntTh   = 6;
     stVdaChnAttr.unAttr.stOdAttr.astOdRgnAttr[0].u32UnOccCntTh = 2;
     
-	stVdaChnAttr.unAttr.stOdAttr.astOdRgnAttr[1].stRect.s32X = 0;
-    stVdaChnAttr.unAttr.stOdAttr.astOdRgnAttr[1].stRect.s32Y = 0;
-    stVdaChnAttr.unAttr.stOdAttr.astOdRgnAttr[1].stRect.u32Width  = pstSize->u32Width;
-    stVdaChnAttr.unAttr.stOdAttr.astOdRgnAttr[1].stRect.u32Height = pstSize->u32Height;
-
-    stVdaChnAttr.unAttr.stOdAttr.astOdRgnAttr[1].u32SadTh      = 100;
-    stVdaChnAttr.unAttr.stOdAttr.astOdRgnAttr[1].u32AreaTh     = 60;
-    stVdaChnAttr.unAttr.stOdAttr.astOdRgnAttr[1].u32OccCntTh   = 6;
-    stVdaChnAttr.unAttr.stOdAttr.astOdRgnAttr[1].u32UnOccCntTh = 2;
+//	stVdaChnAttr.unAttr.stOdAttr.astOdRgnAttr[1].stRect.s32X = 0;
+//    stVdaChnAttr.unAttr.stOdAttr.astOdRgnAttr[1].stRect.s32Y = 0;
+//    stVdaChnAttr.unAttr.stOdAttr.astOdRgnAttr[1].stRect.u32Width  = pstSize->u32Width;
+//    stVdaChnAttr.unAttr.stOdAttr.astOdRgnAttr[1].stRect.u32Height = pstSize->u32Height;
+//
+//    stVdaChnAttr.unAttr.stOdAttr.astOdRgnAttr[1].u32SadTh      = 100;
+//    stVdaChnAttr.unAttr.stOdAttr.astOdRgnAttr[1].u32AreaTh     = 60;
+//    stVdaChnAttr.unAttr.stOdAttr.astOdRgnAttr[1].u32OccCntTh   = 6;
+//    stVdaChnAttr.unAttr.stOdAttr.astOdRgnAttr[1].u32UnOccCntTh = 2;
 
     s32Ret = HI_MPI_VDA_CreateChn(VdaChn, &stVdaChnAttr);
     if(s32Ret != HI_SUCCESS)
