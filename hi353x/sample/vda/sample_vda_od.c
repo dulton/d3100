@@ -94,14 +94,14 @@ int main(int argc, char *argv[])
     strcpy(stVbConf.astCommPool[1].acMmzName,"ddr1");
 	
 //	stVbConf.astCommPool[2].u32BlkSize = u32BlkSize;
-//    stVbConf.astCommPool[2].u32BlkCnt = 48;
-//    memset(stVbConf.astCommPool[2].acMmzName,0,
-//        sizeof(stVbConf.astCommPool[2].acMmzName));
+//  stVbConf.astCommPool[2].u32BlkCnt = 48;
+//  memset(stVbConf.astCommPool[2].acMmzName,0,
+//  sizeof(stVbConf.astCommPool[2].acMmzName));
 //	
 //	
-//    stVbConf.astCommPool[3].u32BlkSize = u32BlkSize;
-//    stVbConf.astCommPool[3].u32BlkCnt = 48;
-//    strcpy(stVbConf.astCommPool[3].acMmzName,"ddr1");
+//  stVbConf.astCommPool[3].u32BlkSize = u32BlkSize;
+//  stVbConf.astCommPool[3].u32BlkCnt = 48;
+//  strcpy(stVbConf.astCommPool[3].acMmzName,"ddr1");
 
 
     /******************************************
