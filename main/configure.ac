@@ -19,4 +19,20 @@ AC_PROG_CXX
 
 # Checks for library functions.
 
-AC_OUTPUT([Makefile])
+# dummy mode check
+AC_ARG_ENABLE([dummy],
+		[ --enable-dummy  enable DUMMY mode],
+		[case "${enableval}" in
+			yes) dummy=true ;;
+			no) dummy=false ;;
+		 esac],
+		[dummy=false])
+AM_CONDITIONAL([DUMMY], [test x$dummy = xtrue])
+
+# vars
+AC_SUBST([AM_CXXFLAGS])
+AC_SUBST([AM_LDFLAGS])
+
+AC_CONFIG_FILES([Makefile])
+
+AC_OUTPUT
