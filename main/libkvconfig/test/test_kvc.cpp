@@ -16,17 +16,7 @@ int main()
 	const char *key2 = "test_cnt";
 	const char *val;
 
-	if (kvc_get(kvc, key1, 0, &val) < 0) {
-		fprintf(stderr, "ERR: get err\n");
-		return -1;
-	}
-	fprintf(stdout, "key='%s', val='%s'\n",
-			key1, val);
-
-	if (kvc_get(kvc, key2, "0", &val) < 0) {
-		fprintf(stderr, "ERR: get err\n");
-		return -1;
-	}
+	val = kvc_get(kvc, key2, "0");
 	fprintf(stdout, "key='%s', val='%s'\n",
 			key2, val);
 
@@ -34,10 +24,7 @@ int main()
 	int v = atoi(val);
 	v++;
 	sprintf(buf, "%d", v);
-	if (kvc_set(kvc, key2, buf) < 0) {
-		fprintf(stderr, "ERR: set err\n");
-		return -1;
-	}
+	kvc_set(kvc, key2, buf);
 
 	if (kvc_save(kvc, 0) < 0) {
 		fprintf(stderr, "ERR: save err\n");

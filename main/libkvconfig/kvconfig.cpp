@@ -22,21 +22,18 @@ public:
 		load_from_file(fname_session_);
 	}
 
-	int get(const char *key, const char *def, const char **val) const
+	const char *get(const char *key, const char *def) const
 	{
 		KVS::const_iterator itf = kvs_.find(key);
 		if (itf == kvs_.end())
-			*val = def;
+			return def;
 		else
-			*val = itf->second.c_str();
-
-		return 0;
+			return itf->second.c_str();
 	}
 
-	int set(const char *key, const char *val)
+	void set(const char *key, const char *val)
 	{
 		kvs_[key] = val;
-		return 0;
 	}
 
 	int save(const char *fname = 0) const
@@ -90,14 +87,14 @@ void kvc_close(kvconfig_t *kvc)
 	delete (KVConfig*)kvc;
 }
 
-int kvc_get(kvconfig_t *kvc, const char *key, const char *def, const char **val)
+const char *kvc_get(kvconfig_t *kvc, const char *key, const char *def)
 {
-	return ((KVConfig*)kvc)->get(key, def, val);
+	return ((KVConfig*)kvc)->get(key, def);
 }
 
-int kvc_set(kvconfig_t *kvc, const char *key, const char *val)
+void kvc_set(kvconfig_t *kvc, const char *key, const char *val)
 {
-	return ((KVConfig*)kvc)->set(key, val);
+	((KVConfig*)kvc)->set(key, val);
 }
 
 int kvc_save(kvconfig_t *kvc, const char *fname)
