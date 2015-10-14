@@ -4,10 +4,17 @@
 #include "../libptz/ptz.h"
 #include "../libkvconfig/kvconfig.h"
 #include "../libteacher_detect/detect.h"
+#include "udpsrv.h"
 #include "cJSON.h"
+
+#include "policy/p1.h"
 
 int main(int argc, char **argv)
 {
+	// TODO: 根据配置文件，启动相应的策略
+	p1 p;
+	p.run();
+
 	return 0;
 }
 

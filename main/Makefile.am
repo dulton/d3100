@@ -1,14 +1,16 @@
 AUTOMAKE_OPTIONS=foreign
 
 
-bin_PROGRAMS= teacher_detect test_ptz test_kvconfig test_detect_dummy 
+bin_PROGRAMS= teacher_detect test_ptz test_kvconfig test_detect_dummy test_udpsrv
 
-teacher_detect_SOURCES=	teacher_track/teacher_track.c \
+teacher_detect_SOURCES=	teacher_track/teacher_track.cpp \
 						teacher_track/cJSON.c \
 						teacher_track/fsm.cpp \
 						teacher_track/reg.cpp \
 						teacher_track/policy.cpp \
 						teacher_track/policy/p1.cpp \
+						teacher_track/udpsrv.cpp \
+						teacher_track/detector.cpp \
 						\
 						libptz/ptz.cpp \
 						libptz/tcp_util.cpp \
@@ -31,5 +33,6 @@ test_kvconfig_SOURCES= libkvconfig/test/test_kvc.cpp \
 test_detect_dummy_SOURCES= libteacher_detect/detect_dummy.cpp \
 						   libteacher_detect/test/test_detect_dummy.cpp
 
-test_fsm_SOURCES= teacher_track/fsm.c \
-				  teacher_track/test/test_fsm.cpp
+test_udpsrv_SOURCES= teacher_track/test/test_udpsrv.cpp \
+					 teacher_track/udpsrv.cpp \
+					 teacher_track/fsm.cpp teacher_track/cJSON.c

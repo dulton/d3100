@@ -12,7 +12,7 @@ void det_close(detect_t *det);
 /*
 	@param img: 图像
 	@return  ,json格式--   {"stamp":12345,"rect":[{"x":0,"y":0,"width":100,"height":100},
-	                                              {"x":0,"y":0,"width":100,"height":100}]}   
+	                                              {"x":0,"y":0,"width":100,"height":100}]} 
 	{
 		"stamp":12345,
 		"rect":

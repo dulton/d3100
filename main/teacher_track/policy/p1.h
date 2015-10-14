@@ -3,16 +3,18 @@
 #include "../fsm.h"
 #include "../../libptz/ptz.h"
 #include "../../libkvconfig/kvconfig.h"
-#include "../../libteacher_detect/detect.h"
+#include "../udpsrv.h"
 #include "../evt.h"
+#include "../detector.h"
 
 /// 这个相当于 fsm.h 中的 opaque
 class p1
 {
 	kvconfig_t *kvc_;	// 
 	ptz_t *ptz_;		// 仅仅一个教师云台
-	detect_t *det_;		// 探测模块
 	FSM *fsm_;
+	udpsrv_t *udp_;		// udp 接收 ...
+	detector_t *det_;	// 教师探测模块 ...
 
 public:
 	p1(const char *fname = "teacher_detect_trace.config");
@@ -22,7 +24,6 @@ public:
 
 	ptz_t *ptz() const { return ptz_; }
 	kvconfig_t *cfg() const { return kvc_; }
-	detect_t *detector() const { return det_; }
 
 private:
 	static void boot(void *opaque)

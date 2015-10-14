@@ -6,7 +6,6 @@ p1::p1(const char *fname)
 {
 	kvc_ = kvc_open(fname);
 	ptz_ = ptz_open(kvc_get(kvc_, "ptz_serial_name", "tcp://127.0.0.1:1001"));
-	det_ = det_open(fname);
 
 	// 构造状态转换表 ...
 	std::vector<FSMTransition*> trans;
@@ -19,14 +18,17 @@ p1::p1(const char *fname)
 	trans.push_back(new p1_quit(ST_P1_Inited));
 
 	fsm_ = new FSM(trans, this);
+	udp_ = us_open(fsm_);
+	det_ = detector_open(fsm_, fname);
 }
 
 p1::~p1()
 {
+	detector_close(det_);
+	us_close(udp_);
 	delete fsm_;
 	kvc_close(kvc_);
 	ptz_close(ptz_);
-	det_close(det_);
 }
 
 void p1::boot()
