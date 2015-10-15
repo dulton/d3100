@@ -7,7 +7,7 @@
 #include "../evt.h"
 #include "../detector.h"
 
-/// 这个相当于 fsm.h 中的 opaque
+/// 聚合了所有功能模块 ..
 class p1
 {
 	kvconfig_t *kvc_;	// 
@@ -70,6 +70,7 @@ protected:
 		}
 
 		if (e->code() == UdpEvent::UDP_Start) {
+			info("p1", "to search ....\n");
 			// 启动跟踪，
 			return ST_P1_Searching;
 		}
@@ -125,15 +126,29 @@ public:
 
 /** 云台已经归位，等待udp通知启动 ...
  */
-class p1_waiting: public p1_common_state
+class p1_waiting: public FSMState
 {
 	p1 *p_;
 
 public:
 	p1_waiting(p1 *p1)
-		: p1_common_state(ST_P1_Waiting, "waiting udp start")
+		: FSMState(ST_P1_Waiting, "waiting udp start")
 	{
 		p_ = p1;
+	}
+
+	// 仅仅关心启动和退出事件
+	virtual int when_udp(UdpEvent *e)
+	{
+		if (e->code() == UdpEvent::UDP_Start) {
+			return ST_P1_Searching; // 
+		}
+		else if (e->code() == UdpEvent::UDP_Quit) {
+			return ST_P1_End; // 将结束主程序
+		}
+		else {
+			return id();
+		}
 	}
 };
 

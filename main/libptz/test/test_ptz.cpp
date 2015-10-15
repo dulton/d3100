@@ -7,7 +7,7 @@ int main()
 {
 	/** 测试 ptz 模块 */
 	
-	const char *url = "tcp://172.16.1.10:10013/teacher";
+	const char *url = "tcp://127.0.0.1:10013/student";
 	ptz_t *ptz = ptz_open(url);
 	if (!ptz) {
 		fprintf(stderr, "ERR: can't open url %s\n", url);
@@ -33,6 +33,18 @@ int main()
 
 	if (ptz_setzoom(ptz, 0) < 0) {
 		fprintf(stderr, "ERR: setzoom err\n");
+		return -1;
+	}
+
+	if (ptz_left(ptz, 1) < 0) {
+		fprintf(stderr, "ERR: left err\n");
+		return -1;
+	}
+
+	usleep(3000 * 1000);
+
+	if (ptz_stop(ptz) < 0) {
+		fprintf(stderr, "ERR: stop err\n");
 		return -1;
 	}
 

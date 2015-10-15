@@ -4,6 +4,7 @@
 #include <string.h>
 #include "fsm.h"
 #include "cJSON.h"
+#include "utils.h"
 
 static double util_now()
 {
@@ -16,8 +17,10 @@ FSMEvent::FSMEvent(int id, const char *name)
 	: id_(id)
 	, name_(name)
 {
+	static Lock _lock;
 	static int _token = 0;
 
+	Autolock al(_lock);
 	token_ = ++_token;
 	stamp_ = util_now();
 }

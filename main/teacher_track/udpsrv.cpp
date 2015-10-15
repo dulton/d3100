@@ -106,6 +106,8 @@ udpsrv_t *us_open(FSM *fsm, int port, const char *bip)
 		return 0;
 	}
 
+	info("udpsrv", "start %s:%d\n", bip, port);
+
 	us->fsm = fsm;
 	return us;
 }

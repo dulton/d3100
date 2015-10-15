@@ -173,9 +173,8 @@ protected:
 class FSM
 {
 public:
-	FSM(const std::vector<FSMState*> &states, void *opaque)
+	FSM(const std::vector<FSMState*> &states)
 		: states_(states)
-		, opaque_(opaque)
 	{
 		pthread_mutex_init(&lock_, 0);
 	}
@@ -227,7 +226,6 @@ protected:
 
 private:
 	std::vector<FSMState*> states_;	// 所有注册的状态 ...
-	void *opaque_;
 
 	FSMState *find_state(int id) const
 	{

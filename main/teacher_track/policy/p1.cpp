@@ -16,7 +16,7 @@ p1::p1(const char *fname)
 	states.push_back(new p1_turnto_target(this));
 	states.push_back(new p1_tracking(this));
 
-	fsm_ = new FSM(states, this);
+	fsm_ = new FSM(states);
 	udp_ = us_open(fsm_);
 	det_ = detector_open(fsm_, fname);
 }

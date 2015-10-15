@@ -2,6 +2,10 @@ AUTOMAKE_OPTIONS=foreign
 
 bin_PROGRAMS= teacher_detect test_ptz test_kvconfig test_detect_dummy test_udpsrv
 
+if PTZSRV
+bin_PROGRAMS+= ptzsrv
+endif
+
 teacher_detect_SOURCES=	teacher_track/teacher_track.cpp \
 						teacher_track/cJSON.c \
 						teacher_track/fsm.cpp \
@@ -40,3 +44,7 @@ test_udpsrv_SOURCES= teacher_track/test/test_udpsrv.cpp \
 					 teacher_track/udpsrv.cpp \
 					 teacher_track/fsm.cpp teacher_track/cJSON.c \
 					 teacher_track/log.cpp
+
+ptzsrv_SOURCES= libptz/ptzsrv/ptzsrv.cpp teacher_track/cJSON.c
+ptzsrv_CFLAGS= $(CCGNU2_CFLAGS)
+ptzsrv_LDADD= $(CCGNU2_LIBS)
