@@ -10,3 +10,13 @@ install-sh
 missing
 *.o
 .gitignore
+.deps/
+config.h
+*.in
+*.session
+Makefile
+*.log
+*.exe
+stamp-h1
+*.swp
+*.status
