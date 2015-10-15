@@ -36,3 +36,6 @@
 
 int set_sock_nonblock(int fd);
 double now();
+
+#include "switch.h"
+

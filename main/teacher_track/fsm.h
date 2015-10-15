@@ -13,6 +13,7 @@
 #include <string>
 #include <algorithm>
 #include "runtime.h"
+#include "utils.h"
 #include "log.h"
 
 class FSMEvent
@@ -174,12 +175,10 @@ public:
 	FSM(const std::vector<FSMState*> &states)
 		: states_(states)
 	{
-		pthread_mutex_init(&lock_, 0);
 	}
 
 	virtual ~FSM()
 	{
-		pthread_mutex_destroy(&lock_);
 	}
 
 	void run(int state_start, int state_end, bool *quit);
@@ -191,6 +190,8 @@ public:
 	void push_event(FSMEvent *evt)
 	{
 		cancel_event(evt->token());
+
+		Autolock al(lock_);
 
 		if (evt->id() == EVT_Timeout) {
 			push_timeout((TimeoutEvent*)evt);
@@ -243,41 +244,33 @@ private:
 
 	void push_timeout(TimeoutEvent *e)
 	{
-		pthread_mutex_lock(&lock_);
 		double t = now() + e->wait_;	// 触发时间.
 		fifo_timeout_.push_back(std::pair<double, FSMEvent*>(t, e));
 		std::sort(fifo_timeout_.begin(), fifo_timeout_.end(), op_sort_by_stamp);
-		pthread_mutex_unlock(&lock_);
 	}
 
 	void push_detection_result(DetectionEvent *e)
 	{
 		/** XXX: 仅仅保留最后一个探测结果 ...
 		 */
-		pthread_mutex_lock(&lock_);
 		while (!fifo_detection_.empty()) {
 			FSMEvent *e = fifo_detection_.front();
 			delete e;
 			fifo_detection_.pop_front();
 		}
 		fifo_detection_.push_back(e);
-		pthread_mutex_unlock(&lock_);
 	}
 
 	void push_ptz_complete(PtzCompleteEvent *e)
 	{
-		pthread_mutex_lock(&lock_);
 		double t = now() + 2.0;		// FIXME: 云台总是使用2秒超时 ??.
 		fifo_ptz_complete_.push_back(std::pair<double, FSMEvent*>(t, e));
 		std::sort(fifo_ptz_complete_.begin(), fifo_ptz_complete_.end(), op_sort_by_stamp);
-		pthread_mutex_unlock(&lock_);
 	}
 
 	void push_udp_evt(UdpEvent *e)
 	{
-		pthread_mutex_lock(&lock_);
 		fifo_udp_.push_back(e);
-		pthread_mutex_unlock(&lock_);
 	}
 
 	/** 获取下一个事件，优先从 udp 队列中提取，然后检查超时完成，最后检查探测结果.
@@ -286,8 +279,8 @@ private:
 	FSMEvent *next_event(double curr)
 	{
 		FSMEvent *evt = 0;
-
-		pthread_mutex_lock(&lock_);
+		Autolock al(lock_);
+		
 		if (!fifo_udp_.empty()) {
 			evt = fifo_udp_.front();
 			fifo_udp_.pop_front();
@@ -308,7 +301,6 @@ private:
 			evt = fifo_detection_.front();
 			fifo_detection_.pop_front();
 		}
-		pthread_mutex_unlock(&lock_);
 
 		if (!evt)
 			usleep(50*1000);
@@ -321,6 +313,6 @@ private:
 	std::deque<DetectionEvent*> fifo_detection_;	// 探测结果 ...
 	std::deque<UdpEvent*> fifo_udp_;		// udp 通知 ...
 
-	pthread_mutex_t lock_;
+	Lock lock_;
 };
 

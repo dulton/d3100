@@ -142,7 +142,8 @@ void FSM::run(int state_start, int state_end, bool *quit)
 
 void FSM::cancel_event(int token)
 {
-	pthread_mutex_lock(&lock_);
+	Autolock al(lock_);
+
 	std::deque<std::pair<double, FSMEvent*> >::iterator it;
 	for (it = fifo_timeout_.begin(); it != fifo_timeout_.end(); ) {
 		if (it->second->token() == token) {
@@ -177,7 +178,5 @@ void FSM::cancel_event(int token)
 		}
 		else ++it3;
 	}
-
-	pthread_mutex_unlock(&lock_);
 }
 
