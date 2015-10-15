@@ -1,5 +1,7 @@
 AUTOMAKE_OPTIONS=foreign
 
+RUNTIME_CPP= teacher_track/runtime.cpp
+
 bin_PROGRAMS= teacher_detect test_ptz test_kvconfig test_detect_dummy test_udpsrv
 
 if PTZSRV
@@ -15,6 +17,7 @@ teacher_detect_SOURCES=	teacher_track/teacher_track.cpp \
 						teacher_track/udpsrv.cpp \
 						teacher_track/detector.cpp \
 						teacher_track/log.cpp \
+						${RUNTIME_CPP} \
 						\
 						libptz/ptz.cpp \
 						libptz/tcp_util.cpp \
@@ -31,6 +34,7 @@ endif
 
 test_ptz_SOURCES= libptz/test/test_ptz.cpp \
 				  libptz/ptz.cpp \
+				  ${RUNTIME_CPP} \
 				  teacher_track/log.cpp \
 				  libptz/tcp_util.cpp
 
@@ -38,13 +42,15 @@ test_kvconfig_SOURCES= libkvconfig/test/test_kvc.cpp \
 					   libkvconfig/kvconfig.cpp
 
 test_detect_dummy_SOURCES= libteacher_detect/detect_dummy.cpp \
+					       ${RUNTIME_CPP} \
 						   libteacher_detect/test/test_detect_dummy.cpp
 
 test_udpsrv_SOURCES= teacher_track/test/test_udpsrv.cpp \
 					 teacher_track/udpsrv.cpp \
 					 teacher_track/fsm.cpp teacher_track/cJSON.c \
+					 ${RUNTIME_CPP} \
 					 teacher_track/log.cpp
 
-ptzsrv_SOURCES= libptz/ptzsrv/ptzsrv.cpp teacher_track/cJSON.c
+ptzsrv_SOURCES= libptz/ptzsrv/ptzsrv.cpp teacher_track/cJSON.c  ${RUNTIME_CPP}
 ptzsrv_CFLAGS= $(CCGNU2_CFLAGS)
 ptzsrv_LDADD= $(CCGNU2_LIBS)

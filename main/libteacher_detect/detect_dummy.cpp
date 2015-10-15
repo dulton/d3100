@@ -1,23 +1,16 @@
-/** 模拟 teacher_detect 模块，简单的从网络接收数据，并作为 det_detect() 的返回
+/** 模拟 teacher_detect 模块，简单的从网络接收数据，并作为 det_detect() 的返回.
  */
 
 #include <stdio.h>
-#include <stdlib.h>
-#include <sys/socket.h>
-#include <sys/types.h>
-#include <arpa/inet.h>
-#include <netinet/in.h>
-#include <sys/select.h>
-#include <unistd.h>
 #include <string>
-#include <fcntl.h>
+#include "../teacher_track/runtime.h"
 #include "detect.h"
 
 const char *_empty_result = "{\"stamp\":12345,\"rect\":[]}"; 
 
 struct detect_t
 {
-	int fd;	// 用于接收udp数据
+	int fd;	// 用于接收udp数据.
 	std::string result;
 };
 
@@ -40,7 +33,7 @@ detect_t *det_open(const char *fname)
 
 	fprintf(stdout, "start UDP port 11000\n");
 
-	fcntl(fd, F_SETFL, O_NONBLOCK | fcntl(fd, F_GETFL, 0));	// 设置非阻塞 sock
+	set_sock_nonblock(fd);
 
 	detect_t *d = new detect_t;
 	d->result = _empty_result;
@@ -51,7 +44,7 @@ detect_t *det_open(const char *fname)
 
 void det_close(detect_t *det)
 {
-	close(det->fd);
+	closesocket(det->fd);
 	delete det;
 }
 
@@ -74,7 +67,7 @@ const char *det_detect(detect_t *det)
 			fprintf(stderr, "ERR: [detect] recvfrom ERR???\n");
 		}
 		else {
-			// 更新
+			// 更新.
 			det->result = std::string(buf, len);
 		}
 	}

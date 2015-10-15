@@ -1,8 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <pthread.h>
-#include <string>
-#include <unistd.h>
+#include "runtime.h"
 #include "detector.h"
 #include "../libteacher_detect/detect.h"
 
@@ -11,7 +9,7 @@ struct detector_t
 	int quit;
 	pthread_t th;
 	FSM *fsm;
-	detect_t *detimpl;	// 真正的实现
+	detect_t *detimpl;	// 真正的实现...
 };
 
 static void parse_and_handle(FSM *fsm, const char *str)
@@ -31,6 +29,7 @@ static void *thread_proc(void *arg)
 
 		usleep(1000*1000);	// FIXME: 将无法保证 ...
 	}
+	return 0;
 }
 
 detector_t *detector_open(FSM *fsm, const char *fname)

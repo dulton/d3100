@@ -1,6 +1,6 @@
 #pragma once
 
-/** 用于自动跟踪的fsm，根据策略实现 FSMState，状态变换由 FSMEvent 驱动
+/** 用于自动跟踪的fsm，根据策略实现 FSMState，状态变换由 FSMEvent 驱动.
 
 		目前预定义了 TimeoutEvent, PtzCompleteEvent, DetectionEvent, UdpEvent
 
@@ -10,11 +10,9 @@
 
 #include <vector>
 #include <deque>
-#include <pthread.h>
 #include <string>
-#include <sys/time.h>
-#include <unistd.h>
 #include <algorithm>
+#include "runtime.h"
 #include "log.h"
 
 class FSMEvent
@@ -37,7 +35,7 @@ protected:
 };
 
 
-/** 声明已知的事件类型，
+/** 声明已知的事件类型.
   	
   	TODO: 具体参数以后再加 ...
  */
@@ -55,7 +53,7 @@ public:
 	double wait_;
 };
 
-// 云台完成事件
+// 云台完成事件.
 //    new PtzCompleteEvent("teacher", "setpos");
 //	  ...
 #define EVT_PTZ_Completed -2
@@ -74,7 +72,7 @@ public:
 	const char *ptz_oper() const { return oper_.c_str(); }
 };
 
-// 探测结果事件
+// 探测结果事件.
 #define EVT_Detection -3
 class DetectionEvent : public FSMEvent
 {
@@ -103,7 +101,7 @@ private:
 	void parse_json(const char *json_str);
 };
 
-// 结束事件
+// 结束事件.
 #define EVT_Quit -4
 class QuitEvent: public FSMEvent
 {
@@ -113,7 +111,7 @@ public:
 	}
 };
 
-// UDP 命令
+// UDP 命令.
 #define EVT_Udp -5
 class UdpEvent: public FSMEvent
 {
@@ -187,7 +185,7 @@ public:
 	void run(int state_start, int state_end, bool *quit);
 
 public:
-	/** 由通知源调用，注意，将替换相同 token 的事件
+	/** 由通知源调用，注意，将替换相同 token 的事件.
 	  		
 	 */
 	void push_event(FSMEvent *evt)
@@ -246,7 +244,7 @@ private:
 	void push_timeout(TimeoutEvent *e)
 	{
 		pthread_mutex_lock(&lock_);
-		double t = now() + e->wait_;	// 触发时间
+		double t = now() + e->wait_;	// 触发时间.
 		fifo_timeout_.push_back(std::pair<double, FSMEvent*>(t, e));
 		std::sort(fifo_timeout_.begin(), fifo_timeout_.end(), op_sort_by_stamp);
 		pthread_mutex_unlock(&lock_);
@@ -269,7 +267,7 @@ private:
 	void push_ptz_complete(PtzCompleteEvent *e)
 	{
 		pthread_mutex_lock(&lock_);
-		double t = now() + 2.0;		// FIXME: 云台总是使用2秒超时 ???
+		double t = now() + 2.0;		// FIXME: 云台总是使用2秒超时 ??.
 		fifo_ptz_complete_.push_back(std::pair<double, FSMEvent*>(t, e));
 		std::sort(fifo_ptz_complete_.begin(), fifo_ptz_complete_.end(), op_sort_by_stamp);
 		pthread_mutex_unlock(&lock_);
@@ -282,7 +280,7 @@ private:
 		pthread_mutex_unlock(&lock_);
 	}
 
-	/** 获取下一个事件，优先从 udp 队列中提取，然后检查超时完成，最后检查探测结果
+	/** 获取下一个事件，优先从 udp 队列中提取，然后检查超时完成，最后检查探测结果.
 	  	如果没有事件，则简单的睡上 50 ms
 	 */
 	FSMEvent *next_event(double curr)
@@ -319,17 +317,10 @@ private:
 	}
 
 	std::deque<std::pair<double, FSMEvent*> > fifo_timeout_;	// 时间相关的队列 ...
-	std::deque<std::pair<double, FSMEvent*> > fifo_ptz_complete_;	// 云台完成
+	std::deque<std::pair<double, FSMEvent*> > fifo_ptz_complete_;	// 云台完成...
 	std::deque<DetectionEvent*> fifo_detection_;	// 探测结果 ...
 	std::deque<UdpEvent*> fifo_udp_;		// udp 通知 ...
 
 	pthread_mutex_t lock_;
-
-	static double now()
-	{
-		struct timeval tv;
-		gettimeofday(&tv, 0);
-		return tv.tv_sec + tv.tv_usec/1000000.0;
-	}
 };
 

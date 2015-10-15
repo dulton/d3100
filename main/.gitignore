@@ -22,3 +22,11 @@ stamp-h1
 *.status
 tags
 *.stackdump
+
+Debug/
+*.sdf
+*.suo
+ipch/
+*.filters
+*.user
+

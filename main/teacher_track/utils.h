@@ -1,6 +1,6 @@
 #pragma once
 
-#include <pthread.h>
+#include "runtime.h"
 
 class Lock
 {

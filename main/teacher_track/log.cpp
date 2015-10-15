@@ -2,14 +2,7 @@
 #include <stdarg.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/time.h>
-
-static double now()
-{
-	struct timeval tv;
-	gettimeofday(&tv, 0);
-	return tv.tv_sec + tv.tv_usec/1000000.0;
-}
+#include "runtime.h"
 
 static double _0 = now();
 
