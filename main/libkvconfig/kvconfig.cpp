@@ -7,8 +7,8 @@ typedef std::map<std::string, std::string> KVS;
 
 class KVConfig
 {
-	std::string fname_;	// 保存原始文件名字
-	std::string fname_session_;	// 对应的 .session 文件名字
+	std::string fname_;	// 保存原始文件名字.
+	std::string fname_session_;	// 对应的 .session 文件名字.
 
 	KVS kvs_;
 

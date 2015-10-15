@@ -13,18 +13,21 @@ int main()
 		fprintf(stderr, "ERR: can't open url %s\n", url);
 		return -1;
 	}
+	fprintf(stderr, "INFO: open '%s' ok\n", url);
 
 	int x, y;
 	if (ptz_getpos(ptz, &x, &y) < 0) {
 		fprintf(stderr, "ERR: getpos err\n");
 		return -1;
 	}
+	fprintf(stderr, "INFO: get_pos: (%d,%d)\n", x, y);
 
 	int z;
 	if (ptz_getzoom(ptz, &z) < 0) {
 		fprintf(stderr, "ERR: getzoom err\n");
 		return -1;
 	}
+	fprintf(stderr, "INFO: get_zoom: (%d)\n", z);
 
 	if (ptz_setpos(ptz, 0, 0, 32, 32) < 0) {
 		fprintf(stderr, "ERR: setpos errr\n");
