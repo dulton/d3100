@@ -21,7 +21,11 @@ int send_recv(const sockaddr *addr, socklen_t addrlen, const std::string &data,
 	set_sock_nonblock(fd);
 
 	if (connect(fd, addr, addrlen) == -1) {
+#ifdef WIN32
+		if (WSAGetLastError() != WSAEWOULDBLOCK) {
+#else
 		if (errno != EINPROGRESS) {
+#endif
 			fprintf(stderr, "ERR: [libptz] can't connect server, %d\n", errno);
 			closesocket(fd);
 			return -1;

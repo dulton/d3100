@@ -361,6 +361,7 @@ static void srv(int fd)
 		wj_req(s, url);
 	}
 	else if (ss[0] == "PtzCmd=SetZoom") {
+		fprintf(stderr, "   try to set zoom\n");
 		int z;
 		sscanf(ss[2].c_str(), "Zoom=%d", &z);
 		
