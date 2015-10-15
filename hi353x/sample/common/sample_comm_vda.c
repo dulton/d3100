@@ -282,7 +282,7 @@ HI_VOID *SAMPLE_COMM_VDA_OdGetResult(HI_VOID *pdata)
     HI_U32 u32RgnNum;
     VDA_OD_PARAM_S *pgs_stOdParam;
     //FILE *fp=stdout;
-
+	int num = 0;
     pgs_stOdParam = (VDA_OD_PARAM_S *)pdata;
 
     VdaChn    = pgs_stOdParam->VdaChn;
@@ -305,9 +305,10 @@ HI_VOID *SAMPLE_COMM_VDA_OdGetResult(HI_VOID *pdata)
         {
             if(HI_TRUE == stVdaData.unData.stOdData.abRgnAlarm[i])
             { 
-                printf("################VdaChn--%d,Rgn--%d,Occ!\n",VdaChn,i);
+				num++;
+                printf("################VdaChn--%d, no--%d, Rgn--%d,Occ!\n",VdaChn, num, i);
 			//	gettimeofday(&start, NULL);
-                Log("\n");
+       //         Log("\n");
 				s32Ret = HI_MPI_VDA_ResetOdRegion(VdaChn,i);
 		//		Print_Time_Diff(start);
                 if(s32Ret != HI_SUCCESS)
@@ -430,24 +431,54 @@ HI_S32 SAMPLE_COMM_VDA_OdStart(VDA_CHN VdaChn, VI_CHN ViChn, SIZE_S *pstSize)
     stVdaChnAttr.u32Height  = pstSize->u32Height;
 
     stVdaChnAttr.unAttr.stOdAttr.enVdaAlg      = VDA_ALG_BG;
-    stVdaChnAttr.unAttr.stOdAttr.enMbSize      = VDA_MB_8PIXEL;
+    stVdaChnAttr.unAttr.stOdAttr.enMbSize      = VDA_MB_16PIXEL;
     stVdaChnAttr.unAttr.stOdAttr.enMbSadBits   = VDA_MB_SAD_16BIT;
     stVdaChnAttr.unAttr.stOdAttr.enRefMode     = VDA_REF_MODE_DYNAMIC;
     stVdaChnAttr.unAttr.stOdAttr.u32VdaIntvl   = 4;
-    stVdaChnAttr.unAttr.stOdAttr.u32BgUpSrcWgt = 128;
+    stVdaChnAttr.unAttr.stOdAttr.u32BgUpSrcWgt = 1;
     
     stVdaChnAttr.unAttr.stOdAttr.u32RgnNum = 1;
     
     stVdaChnAttr.unAttr.stOdAttr.astOdRgnAttr[0].stRect.s32X = 0;
     stVdaChnAttr.unAttr.stOdAttr.astOdRgnAttr[0].stRect.s32Y = 0;
-    stVdaChnAttr.unAttr.stOdAttr.astOdRgnAttr[0].stRect.u32Width  = pstSize->u32Width;
-    stVdaChnAttr.unAttr.stOdAttr.astOdRgnAttr[0].stRect.u32Height = pstSize->u32Height;
+    stVdaChnAttr.unAttr.stOdAttr.astOdRgnAttr[0].stRect.u32Width  = 320;
+    stVdaChnAttr.unAttr.stOdAttr.astOdRgnAttr[0].stRect.u32Height = 64;
 
-    stVdaChnAttr.unAttr.stOdAttr.astOdRgnAttr[0].u32SadTh      = 25;
-    stVdaChnAttr.unAttr.stOdAttr.astOdRgnAttr[0].u32AreaTh     = 60;
+    stVdaChnAttr.unAttr.stOdAttr.astOdRgnAttr[0].u32SadTh      = 100;
+    stVdaChnAttr.unAttr.stOdAttr.astOdRgnAttr[0].u32AreaTh     = 40;
     stVdaChnAttr.unAttr.stOdAttr.astOdRgnAttr[0].u32OccCntTh   = 1;
-    stVdaChnAttr.unAttr.stOdAttr.astOdRgnAttr[0].u32UnOccCntTh = 2;
-    
+    stVdaChnAttr.unAttr.stOdAttr.astOdRgnAttr[0].u32UnOccCntTh = 0;
+	
+//    stVdaChnAttr.unAttr.stOdAttr.astOdRgnAttr[1].stRect.s32X = 320;
+//    stVdaChnAttr.unAttr.stOdAttr.astOdRgnAttr[1].stRect.s32Y = 0;
+//    stVdaChnAttr.unAttr.stOdAttr.astOdRgnAttr[1].stRect.u32Width  = 320;
+//    stVdaChnAttr.unAttr.stOdAttr.astOdRgnAttr[1].stRect.u32Height = 64;
+//
+//    stVdaChnAttr.unAttr.stOdAttr.astOdRgnAttr[1].u32SadTh      = 100;
+//    stVdaChnAttr.unAttr.stOdAttr.astOdRgnAttr[1].u32AreaTh     = 40;
+//    stVdaChnAttr.unAttr.stOdAttr.astOdRgnAttr[1].u32OccCntTh   = 1;
+//    stVdaChnAttr.unAttr.stOdAttr.astOdRgnAttr[1].u32UnOccCntTh = 0;
+
+//	stVdaChnAttr.unAttr.stOdAttr.astOdRgnAttr[2].stRect.s32X = 320;
+//    stVdaChnAttr.unAttr.stOdAttr.astOdRgnAttr[2].stRect.s32Y = 0;
+//    stVdaChnAttr.unAttr.stOdAttr.astOdRgnAttr[2].stRect.u32Width  = 160;
+//    stVdaChnAttr.unAttr.stOdAttr.astOdRgnAttr[2].stRect.u32Height = 64;
+//
+//    stVdaChnAttr.unAttr.stOdAttr.astOdRgnAttr[2].u32SadTh      = 100;
+//    stVdaChnAttr.unAttr.stOdAttr.astOdRgnAttr[2].u32AreaTh     = 40;
+//    stVdaChnAttr.unAttr.stOdAttr.astOdRgnAttr[2].u32OccCntTh   = 1;
+//    stVdaChnAttr.unAttr.stOdAttr.astOdRgnAttr[2].u32UnOccCntTh = 0;
+//
+//	stVdaChnAttr.unAttr.stOdAttr.astOdRgnAttr[3].stRect.s32X = 480;
+//    stVdaChnAttr.unAttr.stOdAttr.astOdRgnAttr[3].stRect.s32Y = 0;
+//    stVdaChnAttr.unAttr.stOdAttr.astOdRgnAttr[3].stRect.u32Width  = 160;
+//    stVdaChnAttr.unAttr.stOdAttr.astOdRgnAttr[3].stRect.u32Height = 64;
+//
+//    stVdaChnAttr.unAttr.stOdAttr.astOdRgnAttr[3].u32SadTh      = 100;
+//    stVdaChnAttr.unAttr.stOdAttr.astOdRgnAttr[3].u32AreaTh     = 40;
+//    stVdaChnAttr.unAttr.stOdAttr.astOdRgnAttr[3].u32OccCntTh   = 1;
+//    stVdaChnAttr.unAttr.stOdAttr.astOdRgnAttr[3].u32UnOccCntTh = 0;
+
 //	stVdaChnAttr.unAttr.stOdAttr.astOdRgnAttr[1].stRect.s32X = 0;
 //  stVdaChnAttr.unAttr.stOdAttr.astOdRgnAttr[1].stRect.s32Y = 0;
 //  stVdaChnAttr.unAttr.stOdAttr.astOdRgnAttr[1].stRect.u32Width  = pstSize->u32Width;
@@ -468,6 +499,15 @@ HI_S32 SAMPLE_COMM_VDA_OdStart(VDA_CHN VdaChn, VI_CHN ViChn, SIZE_S *pstSize)
     /********************************************
      step 2 : bind vda channel to vi channel
     ********************************************/
+	/* vda start rcv picture */
+    s32Ret = HI_MPI_VDA_StartRecvPic(VdaChn);
+    if(s32Ret != HI_SUCCESS)
+    {
+        SAMPLE_PRT("err!\n");
+        return(s32Ret);
+    }
+
+
     stSrcChn.enModId = HI_ID_VIU;
     stSrcChn.s32ChnId = ViChn;
 
@@ -483,12 +523,12 @@ HI_S32 SAMPLE_COMM_VDA_OdStart(VDA_CHN VdaChn, VI_CHN ViChn, SIZE_S *pstSize)
     }
 
     /* vda start rcv picture */
-    s32Ret = HI_MPI_VDA_StartRecvPic(VdaChn);
-    if(s32Ret != HI_SUCCESS)
-    {
-        SAMPLE_PRT("err!\n");
-        return(s32Ret);
-    }
+//    s32Ret = HI_MPI_VDA_StartRecvPic(VdaChn);
+//    if(s32Ret != HI_SUCCESS)
+//    {
+//        SAMPLE_PRT("err!\n");
+//        return(s32Ret);
+//    }
 
     gs_stOdParam.bThreadStart = HI_TRUE;
     gs_stOdParam.VdaChn   = VdaChn;
