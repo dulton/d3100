@@ -1,6 +1,11 @@
 #pragma once
 
-/** 一般每个策略需要实现自己的 FSMEvent, FSMTransition, FSM
+/** 用于自动跟踪的fsm，根据策略实现 FSMState，状态变换由 FSMEvent 驱动
+
+		目前预定义了 TimeoutEvent, PtzCompleteEvent, DetectionEvent, UdpEvent
+
+		实现一个策略，就是实现各种状态的 FSMState ...
+  	
  */
 
 #include <vector>
@@ -10,19 +15,25 @@
 #include <sys/time.h>
 #include <unistd.h>
 #include <algorithm>
+#include "log.h"
 
 class FSMEvent
 {
 public:
-	FSMEvent(int id);
+	FSMEvent(int id, const char *name);
 	virtual ~FSMEvent() {}
 
 	double stamp() const { return stamp_; }
 	int id() const { return id_; }
+	const char *name() { return name_.c_str(); }
+
+	/// 每个事件实例的唯一值，用于取消事件 ...
+	int token() const { return token_; }
 
 protected:
 	double stamp_;
-	int id_;
+	int id_, token_;
+	std::string name_;
 };
 
 
@@ -36,7 +47,7 @@ protected:
 class TimeoutEvent : public FSMEvent
 {
 public:
-	TimeoutEvent(double wait): FSMEvent(EVT_Timeout)
+	TimeoutEvent(double wait): FSMEvent(EVT_Timeout, "EV_Timeout")
 	{
 		wait_ = wait;
 	}
@@ -53,7 +64,8 @@ class PtzCompleteEvent: public FSMEvent
 	std::string who_, oper_;
 
 public:
-	PtzCompleteEvent(const char *who, const char *ptz_oper) : FSMEvent(EVT_PTZ_Completed)
+	PtzCompleteEvent(const char *who, const char *ptz_oper) 
+		: FSMEvent(EVT_PTZ_Completed, "EV_PtzComplete")
 	{
 		who_ = who, oper_ = ptz_oper;
 	}
@@ -73,15 +85,19 @@ public:
 		int x, y, width, height;
 	};
 
-	DetectionEvent(const char *who, const char *json_str): FSMEvent(EVT_Detection)
+	DetectionEvent(const char *who, const char *json_str)
+		: FSMEvent(EVT_Detection, "EV_Detection")
 	{
 		who_ = who;	
 		parse_json(json_str);
 	}
 
+	const char *who() const { return who_.c_str(); }
+	std::vector<Rect> targets() const { return targets_; }
+
+private:
 	std::string who_; 	// "teacher", "student", "bd", ...
 	std::vector<Rect> targets_;	// 解析后的目标 ...
-	double stamp_;		// 来自json
 
 private:
 	void parse_json(const char *json_str);
@@ -92,7 +108,7 @@ private:
 class QuitEvent: public FSMEvent
 {
 public:
-	QuitEvent(): FSMEvent(EVT_Quit)
+	QuitEvent(): FSMEvent(EVT_Quit, "EV_Quit")
 	{
 	}
 };
@@ -102,42 +118,63 @@ public:
 class UdpEvent: public FSMEvent
 {
 public:
-	UdpEvent(int udpcode): FSMEvent(EVT_Udp)
+	UdpEvent(int udpcode): FSMEvent(EVT_Udp, "EV_UDP")
 	{
 		udpcode_ = udpcode;
+		if (udpcode_ == UDP_VGA) {
+			token_ = -1;	// FIXME: VGA 通知仅仅最后一次触发时生效 ...
+		}
 	}
 
-	int udpcode_;
+	int code() const { return udpcode_; }
 
 	enum {
 		UDP_Start,
 		UDP_Stop,
 		UDP_VGA,
+
+		UDP_Quit,
 	};
+
+private:
+	int udpcode_;
 };
 
-class FSMTransition
+
+class FSMState
 {
 public:
-	FSMTransition(int state, int evt_id): state_(state), eid_(evt_id) {}
-	virtual ~FSMTransition() {}
+	FSMState(int id, const char *name)
+	{
+		id_ = id, name_ = name;
+	}
 
-	/// 必须实现的转换 ...
-	virtual int operator()(void *opaque, FSMEvent *evt) = 0;
+	int id() const { return id_; }
+	const char *name() const { return name_.c_str(); }
 
-	int state() const { return state_; }
-	int event_id() const { return eid_; }
+	/** 当进入该状态时调用 */
+	virtual void when_enter() { }
+
+	/** 当离开改状态时调用 */
+	virtual void when_leave() { }
+
+	virtual int when_timeout(TimeoutEvent *evt) { return id_; }
+	virtual int when_ptz_completed(PtzCompleteEvent *evt) { return id_; }
+	virtual int when_detection(DetectionEvent *evt) { return id_; }
+	virtual int when_udp(UdpEvent *udp) { return id_; }
+	virtual int when_custom_event(FSMEvent *evt) { return id_; }
 
 protected:
-	int state_, eid_;
+	int id_;
+	std::string name_;
 };
 
 
 class FSM
 {
 public:
-	FSM(const std::vector<FSMTransition*> &trans, void *opaque)
-		: trans_(trans)
+	FSM(const std::vector<FSMState*> &states, void *opaque)
+		: states_(states)
 		, opaque_(opaque)
 	{
 		pthread_mutex_init(&lock_, 0);
@@ -148,61 +185,55 @@ public:
 		pthread_mutex_destroy(&lock_);
 	}
 
-	void run(int state_start, int state_end, void (*first_oper)(void *opaque))
-	{
-		int curr_state = state_start;
-		if (first_oper) first_oper(opaque_);
-		while (curr_state != state_end) {
-			FSMEvent *evt = next_event(now());
-			if (evt) {
-				// !evt 说明此段时间内，没有事件 ...
-				FSMTransition *trans = find_trans(curr_state, evt->id());
-				if (trans)
-					curr_state = (*trans)(opaque_, evt);
-
-				delete evt;	// XXX:
-			}
-		}
-	}
+	void run(int state_start, int state_end, bool *quit);
 
 public:
-	/** 由通知源调用
+	/** 由通知源调用，注意，将替换相同 token 的事件
 	  		
 	 */
 	void push_event(FSMEvent *evt)
 	{
+		cancel_event(evt->token());
+
 		if (evt->id() == EVT_Timeout) {
 			push_timeout((TimeoutEvent*)evt);
+			info("fsm", "push_event: Timeout, delay=%.3f\n", ((TimeoutEvent*)evt)->wait_);
 		}
 		else if (evt->id() == EVT_PTZ_Completed) {
 			push_ptz_complete((PtzCompleteEvent*)evt);
+			info("fsm", "push_event: Ptz, who=%s, op=%s\n",
+					((PtzCompleteEvent*)evt)->who(), ((PtzCompleteEvent*)evt)->ptz_oper());
+
 		}
 		else if (evt->id() == EVT_Detection) {
 			push_detection_result((DetectionEvent*)evt);
+			//info("fsm", "push_event: Detection, cnt=%u\n",
+			//		((DetectionEvent*)evt)->targets_.size());
 		}
 		else if (evt->id() == EVT_Udp) {
 			push_udp_evt((UdpEvent*)evt);
+			info("fsm", "push_event: Udp, code=%d\n",
+					((UdpEvent*)evt)->code());
 		}
 		else {
-			push_unknown_event(evt);
+			// TODO: custom event
 		}
 	}
 
-protected:
-	virtual void push_unknown_event(FSMEvent *evt)
-	{
-	}
+	/** 取消已经投递的事件 */
+	void cancel_event(int token);
 
 protected:
-	std::vector<FSMTransition*> trans_;
-	void *opaque_;
 
 private:
-	FSMTransition *find_trans(int curr_state, int curr_evid) const
+	std::vector<FSMState*> states_;	// 所有注册的状态 ...
+	void *opaque_;
+
+	FSMState *find_state(int id) const
 	{
-		std::vector<FSMTransition*>::const_iterator it;
-		for (it = trans_.begin(); it != trans_.end(); ++it) {
-			if ((*it)->state() == curr_state && (*it)->event_id() == curr_evid)
+		for (std::vector<FSMState*>::const_iterator it = states_.begin();
+				it != states_.end(); ++it) {
+			if ((*it)->id() == id)
 				return *it;
 		}
 		return 0;

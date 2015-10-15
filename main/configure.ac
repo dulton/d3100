@@ -19,6 +19,22 @@ AC_PROG_CXX
 
 # Checks for library functions.
 
+AC_ARG_ENABLE([debug],
+		[ --enable-debug  enable debug],
+		[case "${enableval}" in
+			yes) debug=true ;;
+			no) debug=false ;;
+		 esac],
+		[debug=false])
+
+if test x$debug = xtrue; then
+	CXXFLAGS="-O0 -g"
+	CFLAGS="-O0 -g"
+	LDFLAGS="-g -O0"
+else
+	AM_CXXFLAGS="-O2"
+fi
+
 # dummy mode check
 AC_ARG_ENABLE([dummy],
 		[ --enable-dummy  enable DUMMY mode],
@@ -29,9 +45,10 @@ AC_ARG_ENABLE([dummy],
 		[dummy=false])
 AM_CONDITIONAL([DUMMY], [test x$dummy = xtrue])
 
+
 # vars
 AC_SUBST([AM_CXXFLAGS])
-AC_SUBST([AM_LDFLAGS])
+AC_SUBST([AM_CFLAGS])
 
 AC_CONFIG_FILES([Makefile])
 

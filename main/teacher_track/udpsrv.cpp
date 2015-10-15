@@ -8,6 +8,7 @@
 #include <netinet/in.h>
 #include <pthread.h>
 #include "udpsrv.h"
+#include "log.h"
 
 /** 使用一个独立的工作线程，bind 0.0.0.0:8642
   	解析收到的命令，生成 UdpEvent push 到 fsm 中
@@ -20,7 +21,7 @@ struct udpsrv_t
 	FSM *fsm;
 };
 
-static void parse_and_handle(FSM *fsm, char buf[], int len)
+static void parse_and_handle(FSM *fsm, unsigned char buf[], int len)
 {
 	FSMEvent *evt = 0;
 
@@ -34,8 +35,11 @@ static void parse_and_handle(FSM *fsm, char buf[], int len)
 		else if (buf[0] == 0xff && buf[1] == 0xff) {
 			evt = new UdpEvent(UdpEvent::UDP_VGA);
 		}
+		else if (buf[0] == 0 && buf[1] == 0) {
+			evt = new UdpEvent(UdpEvent::UDP_Quit); // XXX: for testing
+		}
 		else {
-			fprintf(stderr, "WARNING: [udpsrv] unknown udp cmd: '%02x %02x'\n",
+			warning("udpsrv", "unknown udp cmd: '%02x %02x'\n",
 					(unsigned char)buf[0], (unsigned char)buf[1]);
 		}
 	}
@@ -65,7 +69,7 @@ static void *thread_proc(void *arg)
 				sockaddr_in from;
 				socklen_t len = sizeof(from);
 				int rc = recvfrom(p->fd, buf, 1024, 0, (sockaddr*)&from, &len);
-				parse_and_handle(p->fsm, buf, rc);
+				parse_and_handle(p->fsm, (unsigned char*)buf, rc);
 			}
 		}
 	}
@@ -78,7 +82,7 @@ udpsrv_t *us_open(FSM *fsm, int port, const char *bip)
 
 	us->fd = socket(AF_INET, SOCK_DGRAM, 0);
 	if (us->fd < 0) {
-		fprintf(stderr, "ERR: [udpsrv] create socket err!\n");
+		error("udpsrv", "create socket err!\n");
 		delete us;
 		return 0;
 	}
@@ -88,8 +92,7 @@ udpsrv_t *us_open(FSM *fsm, int port, const char *bip)
 	sin.sin_port = htons(port);
 	sin.sin_addr.s_addr = inet_addr(bip);
 	if (bind(us->fd, (sockaddr*)&sin, sizeof(sin)) < 0) {
-		fprintf(stderr, "ERR: [udpsrv] bind %s:%d err\n",
-				bip, port);
+		error("udpsv", "bind %s:%d err\n", bip, port);
 		close(us->fd);
 		delete us;
 		return 0;
@@ -97,12 +100,13 @@ udpsrv_t *us_open(FSM *fsm, int port, const char *bip)
 
 	us->quit = 0;	// 用于结束工作线程
 	if (0 != pthread_create(&us->th, 0, thread_proc, us)) {
-		fprintf(stderr, "ERR: [udpsrv] create thread err\n");
+		error("udpsrv", "can't start work thread\n");
 		close(us->fd);
 		delete us;
 		return 0;
 	}
 
+	us->fsm = fsm;
 	return us;
 }
 

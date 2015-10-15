@@ -24,14 +24,15 @@ public:
 
 	ptz_t *ptz() const { return ptz_; }
 	kvconfig_t *cfg() const { return kvc_; }
+	FSM *fsm() const { return fsm_; }
 
-private:
-	static void boot(void *opaque)
+	void calc_target_pos(const DetectionEvent::Rect &rc, int *x, int *y)
 	{
-		((p1*)opaque)->boot();
+		// TODO: 根据目标矩形，计算需要转到的角度
+		*x = 100, *y = -5;
 	}
 
-	void boot(); // 启动函数，一般是个云台归位 ...
+private:
 };
 
 /// 下面声明一大堆状态，和状态转换函数 ....
@@ -39,88 +40,202 @@ private:
 enum
 {
 	ST_P1_Staring,	// 启动后，等待云台归位
-	ST_P1_Inited,	// 云台已经归位，开始等待探测结果
+	ST_P1_Waiting,	// 云台已经归位，开始等待udp启动通知
+
+	ST_P1_Searching,	// 开始等待目标
+	ST_P1_Turnto_Target, // 当找到目标后，转到云台指向目标
+	ST_P1_Tracking,		// 正在平滑跟踪 ...
+
+	ST_P1_Vga,		// vga，等待10秒后，返回上一个状态
 
 	ST_P1_End,		// 结束 ..
 };
 
-class p1_starting_timeout: public FSMTransition
+
+/** 一般情况下，udp 的处理是一样的 */
+class p1_common_state: public FSMState
 {
 public:
-	p1_starting_timeout(): FSMTransition(ST_P1_Staring, EVT_Timeout)
+	p1_common_state(int id, const char *name)
+		: FSMState(id, name)
 	{
 	}
 
-	virtual int operator()(void *opaque, FSMEvent *evt)
+protected:
+	virtual int when_udp(UdpEvent *e)
 	{
-		p1 *ctx = (p1*)opaque;
-
-		/// 说明云台转动已经到位，此处可以调用 get_pos 验证一下
-		int x0 = atoi(kvc_get(ctx->cfg(), "ptz_init_x", "0"));
-		int y0 = atoi(kvc_get(ctx->cfg(), "ptz_init_y", "0"));
-		int x, y;
-		ptz_getpos(ctx->ptz(), &x, &y);
-
-		if (x0 == x && y0 == y) {
-			// FIXME: 应该有误差的，只是为了说明意思 ...
-			return ST_P1_Inited;
+		if (e->code() == UdpEvent::UDP_Quit) {
+			warning("p1", "UDPQuit\n");
+			return ST_P1_End;
 		}
 
-		return state_;
-	}
-};
-
-class p1_quit: public FSMTransition
-{
-public:
-	p1_quit(int st): FSMTransition(st, EVT_Quit)
-	{
-	}
-
-	virtual int operator()(void *opaque, FSMEvent *evt)
-	{
-		// 只要返回 ST_P1_End，整个状态机将结束
-		return ST_P1_End;
-	}
-};
-
-class p1_inited_search_target: public FSMTransition
-{
-public:
-	p1_inited_search_target(): FSMTransition(ST_P1_Inited, EVT_Detection)
-	{
-	}
-
-	virtual int operator()(void *opaque, FSMEvent *evt)
-	{
-		p1 *ctx = (p1*)opaque;
-		DetectionEvent *det_result = (DetectionEvent*)evt;
-
-		/// TODO: 根据探测结果做出相应动作 ...
-
-		return state_;
-	}
-};
-
-class p1_inited_recv_udp: public FSMTransition
-{
-public:
-	p1_inited_recv_udp(): FSMTransition(ST_P1_Inited, EVT_Udp)
-	{
-	}
-
-	virtual int operator()(void *opaque, FSMEvent *evt)
-	{
-		p1 *ctx = (p1*)opaque;
-		UdpEvent *ue = (UdpEvent*)evt;
-
-		// TODO: 根据 udp code 决定下一步，如停止，如VGA， ....
-		switch (ue->udpcode_) {
-		case 0:		
-			break;
+		if (e->code() == UdpEvent::UDP_Start) {
+			// 启动跟踪，
+			return ST_P1_Searching;
 		}
 
-		return state_;
+		if (e->code() == UdpEvent::UDP_Stop) {
+			// 结束跟踪，
+			return ST_P1_Staring;
+		}
+
+		if (e->code() == UdpEvent::UDP_VGA) {
+			// 无条件到 VGA
+			return ST_P1_Vga;
+		}
+
+		return FSMState::when_udp(e);
+	}
+};
+
+
+/** 启动，等待云台归位
+ */
+class p1_starting: public FSMState
+{
+	p1 *p_;
+
+public:
+	p1_starting(p1 *p1)
+		: FSMState(ST_P1_Staring, "starting")
+	{
+		p_ = p1;
+	}
+
+	virtual void when_enter()
+	{
+		int x0 = atoi(kvc_get(p_->cfg(), "ptz_init_x", "0"));
+		int y0 = atoi(kvc_get(p_->cfg(), "ptz_init_y", "0"));
+		int z0 = atoi(kvc_get(p_->cfg(), "ptz_init_z", "5000"));
+
+		ptz_setpos(p_->ptz(), x0, y0, 36, 36);	// 快速归位
+		ptz_setzoom(p_->ptz(), z0);	// 初始倍率
+
+		// 给一个超时 ...
+		p_->fsm()->push_event(new PtzCompleteEvent("teacher", "set_zoom&pos"));
+	}
+
+	virtual int when_ptz_completed(PtzCompleteEvent *evt)
+	{
+		// TODO: 调用 get_pos/get_zoom 检查是否到位 ...
+		return ST_P1_Waiting;
+	}
+};
+
+
+/** 云台已经归位，等待udp通知启动 ...
+ */
+class p1_waiting: public p1_common_state
+{
+	p1 *p_;
+
+public:
+	p1_waiting(p1 *p1)
+		: p1_common_state(ST_P1_Waiting, "waiting udp start")
+	{
+		p_ = p1;
+	}
+};
+
+
+/** 尚未找到目标，等待探测结果 */
+class p1_searching: public p1_common_state
+{
+	p1 *p_;
+
+public:
+	p1_searching(p1 *p1)
+		: p1_common_state(ST_P1_Searching, "searching target")
+	{
+		p_ = p1;
+	}
+
+	virtual int when_detection(DetectionEvent *e)
+	{
+		std::vector<DetectionEvent::Rect> targets = e->targets();
+		if (targets.size() == 1) {
+			// 单个目标
+			// set_pos 到目标，然后等待转到完成 ...
+			int x, y;
+			p_->calc_target_pos(targets[0], &x, &y);
+			ptz_setpos(p_->ptz(), x, y, 36, 36);
+			p_->fsm()->push_event(new PtzCompleteEvent("teacher", "set_pos"));
+			
+			return ST_P1_Turnto_Target;
+		}
+		else {
+			return id();
+		}
+	}
+};
+
+class p1_turnto_target: public p1_common_state
+{
+	p1 *p_;
+	bool target_valid_;	// 目标是否有效？
+	DetectionEvent::Rect rc_;	// 如果有效，则为目标位置
+
+public:
+	p1_turnto_target(p1 *p1)
+		: p1_common_state(ST_P1_Turnto_Target, "turnto target")
+	{
+		p_ = p1;
+	}
+
+	virtual int when_detection(DetectionEvent *e)
+	{
+		// 继续处理探测结果
+		std::vector<DetectionEvent::Rect> rcs = e->targets();
+		if (rcs.size() == 1) {
+			target_valid_ = 1;
+			rc_ = rcs[0];
+		}
+		else {
+			target_valid_ = 0;
+		}
+
+		return id(); // FIXME: 这里不修改当前状态，而是等云台完成后再检查 target_valid_
+	}
+
+	virtual int when_ptz_completed(PtzCompleteEvent *e)
+	{
+		// TODO: 云台转到位置, 检查此时目标是否在视野范围内，如果不在，则重新搜索 ...
+		// 
+		return id();
+	}
+};
+
+
+/** 处理 VGA */
+class p1_vga: public p1_common_state
+{
+	p1 *p_;
+
+public:
+	p1_vga(p1 *p1)
+		: p1_common_state(ST_P1_Vga, "vga")
+	{
+		p_ = p1;
+	}
+};
+
+
+/** 稳定跟踪状态 */
+class p1_tracking: public p1_common_state
+{
+	p1 *p_;
+
+public:
+	p1_tracking(p1 *p1)
+		: p1_common_state(ST_P1_Tracking, "tracking")
+	{
+		p_ = p1;
+	}
+
+	virtual int when_detection(DetectionEvent *e)
+	{
+		// TODO: 根据探测结果，当前云台位置，判断是否目标丢失 ....
+		return id();
 	}
 };
 

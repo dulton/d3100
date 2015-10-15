@@ -20,3 +20,5 @@ Makefile
 stamp-h1
 *.swp
 *.status
+tags
+*.stackdump
