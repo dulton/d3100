@@ -413,6 +413,7 @@ static HI_VOID Print_Time_Diff(struct timeval start)
 ******************************************************************************/
 HI_S32 SAMPLE_COMM_VDA_OdStart(VDA_CHN VdaChn, VI_CHN ViChn, SIZE_S *pstSize)
 {
+	char c;
     VDA_CHN_ATTR_S stVdaChnAttr;
     MPP_CHN_S stSrcChn, stDestChn;
     HI_S32 s32Ret = HI_SUCCESS;
@@ -506,8 +507,17 @@ HI_S32 SAMPLE_COMM_VDA_OdStart(VDA_CHN VdaChn, VI_CHN ViChn, SIZE_S *pstSize)
         SAMPLE_PRT("err!\n");
         return(s32Ret);
     }
+	usleep(200);
+	c = getchar();
+	if (c == "v") {
+		s32Ret = HI_MPI_VDA_StartRecvPic(VdaChn);
+		if(s32Ret != HI_SUCCESS)
+		{
+			SAMPLE_PRT("err!\n");
+			return(s32Ret);
+		}	
 
-
+	}
     stSrcChn.enModId = HI_ID_VIU;
     stSrcChn.s32ChnId = ViChn;
 
