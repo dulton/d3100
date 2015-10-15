@@ -28,7 +28,7 @@ static int send_without_res(ptz_t *ptz, const char *str, const char *func_name)
 {
 	std::string result;
 	if (send_recv(ptz->addr(), ptz->len(), str, result, 1000) < 0) {
-		warning("ptz", "%s err, cmd='%s'\n", func_name, str);
+		error("ptz", "%s err, cmd='%s'\n", func_name, str);
 		return -1;
 	}
 	
@@ -40,7 +40,7 @@ static int send_with_res(ptz_t *ptz, const char *str, std::string &result,
 		const char *func_name)
 {
 	if (send_recv(ptz->addr(), ptz->len(), str, result, 1000) < 0) {
-		warning("libptz", "%s err, cmd='%s'\n", func_name, str);
+		error("libptz", "%s err, cmd='%s'\n", func_name, str);
 		return -1;
 	}
 	
@@ -133,7 +133,7 @@ int ptz_getpos(ptz_t *p, int *x, int *y)
 
 	// 返回格式为：X=-880&Y=-300
 	if (sscanf(result.c_str(), "X=%d&Y=%d", x, y) != 2) {
-		warning("libptz", "get_pos res err, '%s'\n", result.c_str());
+		error("libptz", "get_pos res err, '%s'\n", result.c_str());
 		return -1;
 	}
 
@@ -187,7 +187,7 @@ int ptz_getzoom(ptz_t *p, int *z)
 
 	// result 格式应该是 Zoom=2133
 	if (sscanf(result.c_str(), "Zoom=%d", z) != 1) {
-		warning("ptz", "libptz] get_zoom ret err, result='%s'\n",
+		error("ptz", "libptz] get_zoom ret err, result='%s'\n",
 				result.c_str());
 		return -1;
 	}

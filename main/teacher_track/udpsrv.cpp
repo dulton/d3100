@@ -77,7 +77,7 @@ udpsrv_t *us_open(FSM *fsm, int port, const char *bip)
 
 	us->fd = socket(AF_INET, SOCK_DGRAM, 0);
 	if (us->fd < 0) {
-		error("udpsrv", "create socket err!\n");
+		fatal("udpsrv", "create socket err!\n");
 		delete us;
 		return 0;
 	}
@@ -87,7 +87,7 @@ udpsrv_t *us_open(FSM *fsm, int port, const char *bip)
 	sin.sin_port = htons(port);
 	sin.sin_addr.s_addr = inet_addr(bip);
 	if (bind(us->fd, (sockaddr*)&sin, sizeof(sin)) < 0) {
-		error("udpsv", "bind %s:%d err\n", bip, port);
+		fatal("udpsv", "bind %s:%d err\n", bip, port);
 		closesocket(us->fd);
 		delete us;
 		return 0;
@@ -95,7 +95,7 @@ udpsrv_t *us_open(FSM *fsm, int port, const char *bip)
 
 	us->quit = 0;	// 用于结束工作线程.
 	if (0 != pthread_create(&us->th, 0, thread_proc, us)) {
-		error("udpsrv", "can't start work thread\n");
+		fatal("udpsrv", "can't start work thread\n");
 		closesocket(us->fd);
 		delete us;
 		return 0;

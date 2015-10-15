@@ -31,7 +31,7 @@ static void _log(int level, const char *mod, const char *info)
 
 void fatal(const char *mod, const char *fmt, ...)
 {
-	if (_level > 0) return;
+	if (_level < 0) return;
 	char buf[1024];
 	va_list args;
 
@@ -45,7 +45,7 @@ void fatal(const char *mod, const char *fmt, ...)
 
 void error(const char *mod, const char *fmt, ...)
 {
-	if (_level > 1) return;
+	if (_level < 1) return;
 	char buf[1024];
 	va_list args;
 
@@ -58,7 +58,7 @@ void error(const char *mod, const char *fmt, ...)
 
 void warning(const char *mod, const char *fmt, ...)
 {
-	if (_level > 2) return;
+	if (_level < 2) return;
 	char buf[1024];
 	va_list args;
 
@@ -71,7 +71,7 @@ void warning(const char *mod, const char *fmt, ...)
 
 void info(const char *mod, const char *fmt, ...)
 {
-	if (_level > 3) return;
+	if (_level < 3) return;
 	char buf[1024];
 	va_list args;
 
@@ -84,7 +84,7 @@ void info(const char *mod, const char *fmt, ...)
 
 void debug(const char *mod, const char *fmt, ...)
 {
-	if (_level > 4) return;
+	if (_level < 4) return;
 	char buf[1024];
 	va_list args;
 

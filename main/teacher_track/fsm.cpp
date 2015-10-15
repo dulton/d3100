@@ -88,8 +88,7 @@ void FSM::run(int state_start, int state_end, bool *quit)
 	while (!(*quit) && next_state != state_end) {
 		FSMState *state = find_state(next_state);
 		if (!state) {
-			error("fsm", "can't find FSMState of %d\n", state_start);
-			exit(-1);
+			fatal("fsm", "can't find FSMState of %d\n", state_start);
 		}
 
 		if (state != state0) {
@@ -104,7 +103,7 @@ void FSM::run(int state_start, int state_end, bool *quit)
 
 		FSMEvent *evt = next_event(now());
 		if (evt) {
-			info("fsm", "evt=%d, name=%s\n", evt->id(), evt->name());
+			debug("fsm", "evt=%d, name=%s\n", evt->id(), evt->name());
 			switch (evt->id()) {
 				case EVT_Timeout:
 					next_state = state->when_timeout((TimeoutEvent*)evt);
