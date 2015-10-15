@@ -80,8 +80,19 @@ void DetectionEvent::parse_json(const char *str)
 	}
 }
 
+static void dump_all_state(const std::vector<FSMState*> &states)
+{
+	debug("fsm", "There are %u STATE\n", states.size());
+	for (size_t i = 0; i < states.size(); i++) {
+		debug("fsm", "\t##%d: %s\n",
+				states[i]->id(), states[i]->name());
+	}
+}
+
 void FSM::run(int state_start, int state_end, bool *quit)
 {
+	dump_all_state(states_);
+
 	int next_state = state_start;
 	FSMState *state0 = 0;
 

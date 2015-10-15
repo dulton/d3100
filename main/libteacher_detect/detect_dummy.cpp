@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <string>
 #include "../teacher_track/runtime.h"
+#include "../teacher_track/log.h"
 #include "detect.h"
 
 const char *_empty_result = "{\"stamp\":12345,\"rect\":[]}"; 
@@ -21,7 +22,7 @@ detect_t *det_open(const char *fname)
 {
 	int fd = socket(AF_INET, SOCK_DGRAM, 0);
 	if (fd < 0) {
-		fprintf(stderr, "ERR: [detect] can't create socket?\n");
+		fatal("det dummy", "can't create socket?\n");
 		return 0;
 	}
 
@@ -30,11 +31,11 @@ detect_t *det_open(const char *fname)
 	sin.sin_port = htons(11000);
 	sin.sin_addr.s_addr = inet_addr("0.0.0.0");
 	if (bind(fd, (sockaddr*)&sin, sizeof(sin)) < 0) {
-		fprintf(stderr, "ERR: [detect] bind %d error!\n", PORT);
+		fatal("det dummy", "bind %d error!\n", PORT);
 		return 0;
 	}
 
-	fprintf(stdout, "start UDP port %d\n", PORT);
+	info("det dummy", "start UDP port %d\n", PORT);
 
 	// 加入组播，这样方便小杨发送探测消息 ..
 	struct ip_mreq req;
@@ -73,7 +74,7 @@ const char *det_detect(detect_t *det)
 
 		int len = recvfrom(det->fd, buf, sizeof(buf), 0, (sockaddr*)&from, &size);
 		if (len < 0) {
-			fprintf(stderr, "ERR: [detect] recvfrom ERR???\n");
+			error("det dummy", "recvfrom ERR???\n");
 		}
 		else {
 			// 更新.

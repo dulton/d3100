@@ -43,6 +43,7 @@ test_kvconfig_SOURCES= libkvconfig/test/test_kvc.cpp \
 
 test_detect_dummy_SOURCES= libteacher_detect/detect_dummy.cpp \
 					       ${RUNTIME_CPP} \
+						   teacher_track/log.cpp \
 						   libteacher_detect/test/test_detect_dummy.cpp
 
 test_udpsrv_SOURCES= teacher_track/test/test_udpsrv.cpp \

@@ -12,6 +12,7 @@
 int main(int argc, char **argv)
 {
 	// TODO: 根据配置文件，启动相应的策略.
+	set_log_level(4);
 	p1 p;
 	p.run();
 
