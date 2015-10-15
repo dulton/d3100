@@ -1,17 +1,12 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <sys/socket.h>
-#include <sys/types.h>
-#include <netinet/in.h>
-#include <sys/select.h>
-#include <fcntl.h>
 #include <errno.h>
-#include <unistd.h>
 #include <string>
+#include "../teacher_track/runtime.h"
 #include "tcp_util.h"
 
 
-/** 发送，并接收返回，根据超时
+/** 发送，并接收返回，根据超时.
   	每次创建一个 tcp socket
  */
 int send_recv(const sockaddr *addr, socklen_t addrlen, const std::string &data, 
@@ -23,17 +18,16 @@ int send_recv(const sockaddr *addr, socklen_t addrlen, const std::string &data,
 		return -1;
 	}
 
-	do {
-		// non block 
-		int flags = fcntl(fd, F_GETFL, 0);
-		flags |= O_NONBLOCK;
-		fcntl(fd, F_SETFL, flags);
-	} while (0);
+	set_sock_nonblock(fd);
 
 	if (connect(fd, addr, addrlen) == -1) {
+#ifdef WIN32
+		if (WSAGetLastError() != WSAEWOULDBLOCK) {
+#else
 		if (errno != EINPROGRESS) {
+#endif
 			fprintf(stderr, "ERR: [libptz] can't connect server, %d\n", errno);
-			close(fd);
+			closesocket(fd);
 			return -1;
 		}
 
@@ -43,7 +37,7 @@ int send_recv(const sockaddr *addr, socklen_t addrlen, const std::string &data,
 		timeval tv = { timeout / 1000, timeout % 1000 * 1000 };
 		if (select(fd+1, 0, &ws, 0, &tv) <= 0) {
 			fprintf(stderr, "ERR: [libptz] can't connect server, %d\n", errno);
-			close(fd);
+			closesocket(fd);
 			return -1;
 		}
 	
@@ -52,7 +46,7 @@ int send_recv(const sockaddr *addr, socklen_t addrlen, const std::string &data,
 		}
 	}
 
-	// FIXME: 一般 data 的长度比较小，不会溢出
+	// FIXME: 一般 data 的长度比较小，不会溢出.
 	send(fd, data.data(), data.size(), 0);
 
 	do {
@@ -62,7 +56,7 @@ int send_recv(const sockaddr *addr, socklen_t addrlen, const std::string &data,
 		timeval tv = { timeout / 1000, timeout % 1000 * 1000 };
 		if (select(fd+1, &rs, 0, 0, &tv) <= 0) {
 			fprintf(stderr, "ERR: [libptz] wait server res timeout!\n");
-			close(fd);
+			closesocket(fd);
 			return -1;
 		}
 
@@ -74,14 +68,14 @@ int send_recv(const sockaddr *addr, socklen_t addrlen, const std::string &data,
 		int rc = recv(fd, buf, sizeof(buf), 0);
 		if (rc < 0) {
 			fprintf(stderr, "ERR: [libptz] recv err?? %d\n", errno);
-			close(fd);
+			closesocket(fd);
 			return -1;
 		}
 
 		result = std::string(buf, rc);
 	} while (0);
 
-	close(fd);
+	closesocket(fd);
 
 	return 0;
 }

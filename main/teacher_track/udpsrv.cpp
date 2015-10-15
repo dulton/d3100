@@ -1,17 +1,11 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
-#include <sys/socket.h>
-#include <sys/types.h>
-#include <arpa/inet.h>
-#include <fcntl.h>
-#include <netinet/in.h>
-#include <pthread.h>
+#include "runtime.h"
 #include "udpsrv.h"
 #include "log.h"
 
 /** 使用一个独立的工作线程，bind 0.0.0.0:8642
-  	解析收到的命令，生成 UdpEvent push 到 fsm 中
+  	解析收到的命令，生成 UdpEvent push 到 fsm 中.
  */
 
 struct udpsrv_t
@@ -57,7 +51,7 @@ static void *thread_proc(void *arg)
 	FD_ZERO(&rds);
 	FD_SET(p->fd, &rds);
 
-	fcntl(p->fd, F_SETFL, O_NONBLOCK | fcntl(p->fd, F_GETFL, 0));
+	set_sock_nonblock(p->fd);
 
 	while (!p->quit) {
 		struct timeval tv = { 0, 100*1000 };
@@ -73,6 +67,7 @@ static void *thread_proc(void *arg)
 			}
 		}
 	}
+	return 0;
 }
 
 udpsrv_t *us_open(FSM *fsm, int port, const char *bip)
@@ -82,7 +77,7 @@ udpsrv_t *us_open(FSM *fsm, int port, const char *bip)
 
 	us->fd = socket(AF_INET, SOCK_DGRAM, 0);
 	if (us->fd < 0) {
-		error("udpsrv", "create socket err!\n");
+		fatal("udpsrv", "create socket err!\n");
 		delete us;
 		return 0;
 	}
@@ -92,19 +87,21 @@ udpsrv_t *us_open(FSM *fsm, int port, const char *bip)
 	sin.sin_port = htons(port);
 	sin.sin_addr.s_addr = inet_addr(bip);
 	if (bind(us->fd, (sockaddr*)&sin, sizeof(sin)) < 0) {
-		error("udpsv", "bind %s:%d err\n", bip, port);
-		close(us->fd);
+		fatal("udpsv", "bind %s:%d err\n", bip, port);
+		closesocket(us->fd);
 		delete us;
 		return 0;
 	}
 
-	us->quit = 0;	// 用于结束工作线程
+	us->quit = 0;	// 用于结束工作线程.
 	if (0 != pthread_create(&us->th, 0, thread_proc, us)) {
-		error("udpsrv", "can't start work thread\n");
-		close(us->fd);
+		fatal("udpsrv", "can't start work thread\n");
+		closesocket(us->fd);
 		delete us;
 		return 0;
 	}
+
+	info("udpsrv", "start %s:%d\n", bip, port);
 
 	us->fsm = fsm;
 	return us;
@@ -115,7 +112,7 @@ void us_close(udpsrv_t *us)
 	us->quit = 1;
 	void *r;
 	pthread_join(us->th, &r);
-	close(us->fd);
+	closesocket(us->fd);
 	delete us;
 }
 

@@ -1,23 +1,24 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <sys/time.h>
 #include <string.h>
+#include "runtime.h"
 #include "fsm.h"
 #include "cJSON.h"
+#include "utils.h"
 
 static double util_now()
 {
-	struct timeval tv;
-	gettimeofday(&tv, 0);
-	return tv.tv_sec + tv.tv_usec/1000000.0;
+	return now();
 }
 
 FSMEvent::FSMEvent(int id, const char *name)
 	: id_(id)
 	, name_(name)
 {
+	static Lock _lock;
 	static int _token = 0;
 
+	Autolock al(_lock);
 	token_ = ++_token;
 	stamp_ = util_now();
 }
@@ -79,16 +80,26 @@ void DetectionEvent::parse_json(const char *str)
 	}
 }
 
+static void dump_all_state(const std::vector<FSMState*> &states)
+{
+	debug("fsm", "There are %u STATE\n", states.size());
+	for (size_t i = 0; i < states.size(); i++) {
+		debug("fsm", "\t##%d: %s\n",
+				states[i]->id(), states[i]->name());
+	}
+}
+
 void FSM::run(int state_start, int state_end, bool *quit)
 {
+	dump_all_state(states_);
+
 	int next_state = state_start;
 	FSMState *state0 = 0;
 
 	while (!(*quit) && next_state != state_end) {
 		FSMState *state = find_state(next_state);
 		if (!state) {
-			error("fsm", "can't find FSMState of %d\n", state_start);
-			exit(-1);
+			fatal("fsm", "can't find FSMState of %d\n", state_start);
 		}
 
 		if (state != state0) {
@@ -103,7 +114,7 @@ void FSM::run(int state_start, int state_end, bool *quit)
 
 		FSMEvent *evt = next_event(now());
 		if (evt) {
-			info("fsm", "evt=%d, name=%s\n", evt->id(), evt->name());
+			debug("fsm", "evt=%d, name=%s\n", evt->id(), evt->name());
 			switch (evt->id()) {
 				case EVT_Timeout:
 					next_state = state->when_timeout((TimeoutEvent*)evt);
@@ -141,7 +152,8 @@ void FSM::run(int state_start, int state_end, bool *quit)
 
 void FSM::cancel_event(int token)
 {
-	pthread_mutex_lock(&lock_);
+	Autolock al(lock_);
+
 	std::deque<std::pair<double, FSMEvent*> >::iterator it;
 	for (it = fifo_timeout_.begin(); it != fifo_timeout_.end(); ) {
 		if (it->second->token() == token) {
@@ -176,7 +188,5 @@ void FSM::cancel_event(int token)
 		}
 		else ++it3;
 	}
-
-	pthread_mutex_unlock(&lock_);
 }
 

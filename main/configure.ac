@@ -46,6 +46,14 @@ AC_ARG_ENABLE([dummy],
 AM_CONDITIONAL([DUMMY], [test x$dummy = xtrue])
 
 
+# ptz srv
+ac_ptzsrv="false"
+PKG_CHECK_MODULES([CCGNU2], [libccgnu2, libccext2],
+		[ac_ptzsrv=true],
+		["Not found libccgnu2, not to build ptzsrv"])
+
+AM_CONDITIONAL([PTZSRV], [test x$ac_ptzsrv = xtrue])
+
 # vars
 AC_SUBST([AM_CXXFLAGS])
 AC_SUBST([AM_CFLAGS])

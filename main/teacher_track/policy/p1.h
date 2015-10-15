@@ -7,11 +7,11 @@
 #include "../evt.h"
 #include "../detector.h"
 
-/// 这个相当于 fsm.h 中的 opaque
+/// 聚合了所有功能模块 ..
 class p1
 {
 	kvconfig_t *kvc_;	// 
-	ptz_t *ptz_;		// 仅仅一个教师云台
+	ptz_t *ptz_;		// 仅仅一个教师云台.
 	FSM *fsm_;
 	udpsrv_t *udp_;		// udp 接收 ...
 	detector_t *det_;	// 教师探测模块 ...
@@ -28,7 +28,7 @@ public:
 
 	void calc_target_pos(const DetectionEvent::Rect &rc, int *x, int *y)
 	{
-		// TODO: 根据目标矩形，计算需要转到的角度
+		// TODO: 根据目标矩形，计算需要转到的角度.
 		*x = 100, *y = -5;
 	}
 
@@ -39,14 +39,14 @@ private:
 
 enum
 {
-	ST_P1_Staring,	// 启动后，等待云台归位
-	ST_P1_Waiting,	// 云台已经归位，开始等待udp启动通知
+	ST_P1_Staring,	// 启动后，等待云台归位.
+	ST_P1_Waiting,	// 云台已经归位，开始等待udp启动通知.
 
-	ST_P1_Searching,	// 开始等待目标
-	ST_P1_Turnto_Target, // 当找到目标后，转到云台指向目标
+	ST_P1_Searching,	// 开始等待目标.
+	ST_P1_Turnto_Target, // 当找到目标后，转到云台指向目标.
 	ST_P1_Tracking,		// 正在平滑跟踪 ...
 
-	ST_P1_Vga,		// vga，等待10秒后，返回上一个状态
+	ST_P1_Vga,		// vga，等待10秒后，返回上一个状态.
 
 	ST_P1_End,		// 结束 ..
 };
@@ -70,12 +70,13 @@ protected:
 		}
 
 		if (e->code() == UdpEvent::UDP_Start) {
-			// 启动跟踪，
+			info("p1", "to search ....\n");
+			// 启动跟踪.
 			return ST_P1_Searching;
 		}
 
 		if (e->code() == UdpEvent::UDP_Stop) {
-			// 结束跟踪，
+			// 结束跟踪.
 			return ST_P1_Staring;
 		}
 
@@ -89,7 +90,7 @@ protected:
 };
 
 
-/** 启动，等待云台归位
+/** 启动，等待云台归位.
  */
 class p1_starting: public FSMState
 {
@@ -108,8 +109,8 @@ public:
 		int y0 = atoi(kvc_get(p_->cfg(), "ptz_init_y", "0"));
 		int z0 = atoi(kvc_get(p_->cfg(), "ptz_init_z", "5000"));
 
-		ptz_setpos(p_->ptz(), x0, y0, 36, 36);	// 快速归位
-		ptz_setzoom(p_->ptz(), z0);	// 初始倍率
+		ptz_setpos(p_->ptz(), x0, y0, 36, 36);	// 快速归位.
+		ptz_setzoom(p_->ptz(), z0);	// 初始倍率.
 
 		// 给一个超时 ...
 		p_->fsm()->push_event(new PtzCompleteEvent("teacher", "set_zoom&pos"));
@@ -125,15 +126,29 @@ public:
 
 /** 云台已经归位，等待udp通知启动 ...
  */
-class p1_waiting: public p1_common_state
+class p1_waiting: public FSMState
 {
 	p1 *p_;
 
 public:
 	p1_waiting(p1 *p1)
-		: p1_common_state(ST_P1_Waiting, "waiting udp start")
+		: FSMState(ST_P1_Waiting, "waiting udp start")
 	{
 		p_ = p1;
+	}
+
+	// 仅仅关心启动和退出事件.
+	virtual int when_udp(UdpEvent *e)
+	{
+		if (e->code() == UdpEvent::UDP_Start) {
+			return ST_P1_Searching; // 
+		}
+		else if (e->code() == UdpEvent::UDP_Quit) {
+			return ST_P1_End; // 将结束主程序.
+		}
+		else {
+			return id();
+		}
 	}
 };
 
@@ -154,7 +169,7 @@ public:
 	{
 		std::vector<DetectionEvent::Rect> targets = e->targets();
 		if (targets.size() == 1) {
-			// 单个目标
+			// 单个目标.
 			// set_pos 到目标，然后等待转到完成 ...
 			int x, y;
 			p_->calc_target_pos(targets[0], &x, &y);
@@ -172,8 +187,8 @@ public:
 class p1_turnto_target: public p1_common_state
 {
 	p1 *p_;
-	bool target_valid_;	// 目标是否有效？
-	DetectionEvent::Rect rc_;	// 如果有效，则为目标位置
+	bool target_valid_;	// 目标是否有效.
+	DetectionEvent::Rect rc_;	// 如果有效，则为目标位置.
 
 public:
 	p1_turnto_target(p1 *p1)
@@ -184,7 +199,7 @@ public:
 
 	virtual int when_detection(DetectionEvent *e)
 	{
-		// 继续处理探测结果
+		// 继续处理探测结果.
 		std::vector<DetectionEvent::Rect> rcs = e->targets();
 		if (rcs.size() == 1) {
 			target_valid_ = 1;

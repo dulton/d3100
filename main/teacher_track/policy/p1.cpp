@@ -5,7 +5,7 @@
 p1::p1(const char *fname)
 {
 	kvc_ = kvc_open(fname);
-	ptz_ = ptz_open(kvc_get(kvc_, "ptz_serial_name", "tcp://127.0.0.1:1001/teacher"));
+	ptz_ = ptz_open(kvc_get(kvc_, "ptz_serial_name", "tcp://172.16.1.110:10013/student"));
 
 	// 构造状态转换表 ...
 	std::vector<FSMState*> states;
@@ -16,7 +16,7 @@ p1::p1(const char *fname)
 	states.push_back(new p1_turnto_target(this));
 	states.push_back(new p1_tracking(this));
 
-	fsm_ = new FSM(states, this);
+	fsm_ = new FSM(states);
 	udp_ = us_open(fsm_);
 	det_ = detector_open(fsm_, fname);
 }
