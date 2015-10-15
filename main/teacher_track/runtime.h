@@ -4,6 +4,7 @@
  */
 #ifdef WIN32
 #	include <WinSock2.h>
+#	include <Ws2tcpip.h>
 
 	typedef HANDLE pthread_t;
 	typedef CRITICAL_SECTION pthread_mutex_t;
