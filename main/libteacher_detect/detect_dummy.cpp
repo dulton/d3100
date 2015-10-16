@@ -65,10 +65,10 @@ const char *det_detect(detect_t *det)
 	FD_ZERO(&rs);
 	FD_SET(det->fd, &rs);
 
-	timeval tv = { 0, 100*100 }; // 100ms
+	struct timeval tv = { 0, 100*1000 }; // 100ms
 
 	if (select(det->fd+1, &rs, 0, 0, &tv) == 1 && FD_ISSET(det->fd, &rs)) {
-		char buf[64*1024];
+		char buf[1024];
 		sockaddr_in from;
 		socklen_t size = sizeof(from);
 

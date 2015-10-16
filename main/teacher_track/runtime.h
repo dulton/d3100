@@ -1,5 +1,9 @@
 #pragma once
 
+#ifdef HAVE_CONFIG_H
+#	include <config.h>
+#endif
+
 /** 提供运行时.
  */
 #ifdef WIN32
@@ -31,6 +35,7 @@
 #	include <fcntl.h>
 #	include <netinet/in.h>
 #	include <pthread.h>
+#	include <sys/time.h>
 #	define closesocket close
 #endif //
 

@@ -27,6 +27,7 @@ static void _log(int level, const char *mod, const char *info)
 	fprintf(stdout, "%s: %s: [%s]: %s", stamp_prefix(), 
 			_level_prefix[level], mod,
 			info);
+	fflush(stdout);
 }
 
 void fatal(const char *mod, const char *fmt, ...)

@@ -280,7 +280,7 @@ private:
 	FSMEvent *next_event(double curr)
 	{
 		FSMEvent *evt = 0;
-		Autolock al(lock_);
+		lock_.enter();
 		
 		if (!fifo_udp_.empty()) {
 			evt = fifo_udp_.front();
@@ -302,6 +302,7 @@ private:
 			evt = fifo_detection_.front();
 			fifo_detection_.pop_front();
 		}
+		lock_.leave();
 
 		if (!evt)
 			usleep(50*1000);

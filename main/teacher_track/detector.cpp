@@ -14,12 +14,16 @@ struct detector_t
 
 static void parse_and_handle(FSM *fsm, const char *str)
 {
-	fsm->push_event(new DetectionEvent("teacher", str));
+	FSMEvent *e = new DetectionEvent("teacher", str);
+	
+	fsm->push_event(e);
 }
 
 static void *thread_proc(void *arg)
 {
 	detector_t *p = (detector_t*)arg;
+
+	int cnt = 0;
 
 	while (!p->quit) {
 		const char *result = det_detect(p->detimpl);
@@ -36,12 +40,12 @@ detector_t *detector_open(FSM *fsm, const char *fname)
 {
 	detector_t *det = new detector_t;
 	if (!det) {
-		fprintf(stderr, "ERR: [detector] mem alloc err!\n");
+		fatal("detector", "new err ??\n");
 		return 0;
 	}
 	det->detimpl = det_open(fname);
 	if (!det->detimpl) {
-		fprintf(stderr, "ERR: [detector] det_open ERR\n");
+		fatal("detector", "det_open err\n");
 		delete det;
 		return 0;
 	}
@@ -50,7 +54,7 @@ detector_t *detector_open(FSM *fsm, const char *fname)
 	det->quit = 0;
 
 	if (0 != pthread_create(&det->th, 0, thread_proc, det)) {
-		fprintf(stderr, "ERR: [detector] create thread err\n");
+		fatal("detect", "can't create detection thread..\n");
 		delete det;
 		return 0;
 	}

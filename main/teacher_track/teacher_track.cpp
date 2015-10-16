@@ -6,7 +6,7 @@
 #include "../libteacher_detect/detect.h"
 #include "udpsrv.h"
 #include "cJSON.h"
-
+#include "runtime.h"
 #include "policy/p1.h"
 
 int main(int argc, char **argv)

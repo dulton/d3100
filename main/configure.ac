@@ -19,6 +19,10 @@ AC_PROG_CXX
 
 # Checks for library functions.
 
+AH_TEMPLATE([ZDEBUG], [to show more info ...])
+AH_TEMPLATE([ZDEBUG_LOCK], [to enable thread death lock debug])
+
+
 AC_ARG_ENABLE([debug],
 		[ --enable-debug  enable debug],
 		[case "${enableval}" in
@@ -31,9 +35,12 @@ if test x$debug = xtrue; then
 	CXXFLAGS="-O0 -g"
 	CFLAGS="-O0 -g"
 	LDFLAGS="-g -O0"
+	AC_DEFINE([ZDEBUG])
 else
 	AM_CXXFLAGS="-O2"
 fi
+
+LDFLAGS="-lpthread"
 
 # dummy mode check
 AC_ARG_ENABLE([dummy],
@@ -53,6 +60,13 @@ PKG_CHECK_MODULES([CCGNU2], [libccgnu2, libccext2],
 		["Not found libccgnu2, not to build ptzsrv"])
 
 AM_CONDITIONAL([PTZSRV], [test x$ac_ptzsrv = xtrue])
+
+case "$host" in
+arm*)
+	CXXFLAGS="$CXXFLAGS -march=armv7-a -mcpu=cortex-a9 -mfloat-abi=softfp -mfpu=vfpv3-d16"
+	CFLAGS="$CFLAGS -march=armv7-a -mcpu=cortex-a9 -mfloat-abi=softfp -mfpu=vfpv3-d16"
+	;;
+esac
 
 # vars
 AC_SUBST([AM_CXXFLAGS])
