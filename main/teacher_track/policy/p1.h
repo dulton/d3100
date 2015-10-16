@@ -38,6 +38,24 @@ public:
 		*x = 100, *y = -5;
 	}
 
+	double view_angle() const 
+	{
+		// TODO: 返回当前云台视角 ...
+		return 1.0;
+	}
+
+	double target_angle(const DetectionEvent::Rect &pos) const
+	{
+		// TODO: 返回目标需要的角度 ....
+		return 0.;
+	}
+
+	double ptz_angle() const
+	{
+		// TODO: 返回云台当前偏角 ...
+		return 0.;
+	}
+
 	// 当 now() > vga_back() 时，vga 返回上个状态.
 	double vga_back() const { return vga_back_; }
 	int vga_last_state() const { return vga_last_state_; }
@@ -248,7 +266,6 @@ public:
 
 	virtual int when_detection(DetectionEvent *e)
 	{
-		// 继续处理探测结果.
 		std::vector<DetectionEvent::Rect> rcs = e->targets();
 		if (rcs.size() == 1) {
 			target_valid_ = 1;
@@ -258,13 +275,14 @@ public:
 			target_valid_ = 0;
 		}
 
-		return id(); // FIXME: 这里不修改当前状态，而是等云台完成后再检查 target_valid_
+		return id(); // 这里不修改当前状态，而是等云台完成后再检查 target_valid_
 	}
 
 	virtual int when_ptz_completed(PtzCompleteEvent *e)
 	{
 		// TODO: 云台转到位置, 检查此时目标是否在视野范围内，如果不在，则重新搜索 ...
 		// 
+
 		return id();
 	}
 };
