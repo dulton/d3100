@@ -17,7 +17,10 @@ class p1
 	detector_t *det_;	// 教师探测模块 ...
 
 	double vga_wait_, vga_back_;	// 配置的 vga 等待时间 ..
-	int vga_last_state_; // 切换到vga之前的状态
+	int vga_last_state_; // 切换到vga之前的状态.
+
+	double ptz_wait_;	// 云台等待时间，缺省 2秒 .
+	int ptz_wait_next_state_;	// 云台等待结束后，返回哪个状态 ...
 
 public:
 	p1(const char *fname = "teacher_detect_trace.config");
@@ -35,13 +38,22 @@ public:
 		*x = 100, *y = -5;
 	}
 
-	// 当 now() > vga_back() 时，vga 返回上个状态
+	// 当 now() > vga_back() 时，vga 返回上个状态.
 	double vga_back() const { return vga_back_; }
 	int vga_last_state() const { return vga_last_state_; }
 	void set_vga(int last_state) // 触发 vga
 	{
 		vga_back_ = now() + vga_wait_;
 		vga_last_state_ = last_state;
+	}
+
+	// 返回云台等待时间.
+	double ptz_wait() const { return ptz_wait_; }
+	int ptz_wait_next_state() const { return ptz_wait_next_state_; }
+	void set_ptz_wait(int next_state, double wait = 2.0) 
+	{ 
+		ptz_wait_ = wait; 
+		ptz_wait_next_state_ = next_state;
 	}
 
 private:
@@ -52,6 +64,7 @@ private:
 enum
 {
 	ST_P1_Staring,	// 启动后，等待云台归位.
+	ST_P1_PtzWaiting,	// 等待云台执行完成 ..
 	ST_P1_Waiting,	// 云台已经归位，开始等待udp启动通知.
 
 	ST_P1_Searching,	// 开始等待目标.
@@ -95,10 +108,11 @@ protected:
 
 		if (e->code() == UdpEvent::UDP_VGA) {
 			// 无条件到 VGA
-			if (id() == ST_P1_Vga)
-				p_->set_vga(p_->vga_last_state());
-			else
-				p_->set_vga(id());
+			int last_state = id();
+			if (last_state == ST_P1_Vga) last_state = p_->vga_last_state();
+
+			p_->set_vga(last_state); // 保存上个非 VGA 状态 ...
+
 			return ST_P1_Vga;
 		}
 
@@ -107,6 +121,31 @@ protected:
 
 protected:
 	p1 *p_;
+};
+
+
+/** 等待云台执行完成状态，保存上个状态，等待结束后，返回上个状态 ..
+  	此段时间内，不处理其他 ...
+ */
+class p1_ptz_wait: public FSMState
+{
+	p1 *p_;
+	double ptz_back_;
+
+public:
+	p1_ptz_wait(p1 *p1)
+		: FSMState(ST_P1_PtzWaiting, "ptz wait")
+	{
+		p_ = p1;
+		ptz_back_ = now() + p_->ptz_wait();
+	}
+
+	virtual int when_timeout(double curr)
+	{
+		if (curr > ptz_back_)
+			return p_->ptz_wait_next_state();
+		return id();
+	}
 };
 
 
@@ -123,7 +162,7 @@ public:
 		p_ = p1;
 	}
 
-	virtual void when_enter()
+	virtual int when_timeout(double curr)
 	{
 		int x0 = atoi(kvc_get(p_->cfg(), "ptz_init_x", "0"));
 		int y0 = atoi(kvc_get(p_->cfg(), "ptz_init_y", "0"));
@@ -132,14 +171,9 @@ public:
 		ptz_setpos(p_->ptz(), x0, y0, 36, 36);	// 快速归位.
 		ptz_setzoom(p_->ptz(), z0);	// 初始倍率.
 
-		// 给一个超时 ...
-		p_->fsm()->push_event(new PtzCompleteEvent("teacher", "set_zoom&pos"));
-	}
+		p_->set_ptz_wait(ST_P1_Waiting, 2.0);
 
-	virtual int when_ptz_completed(PtzCompleteEvent *evt)
-	{
-		// TODO: 调用 get_pos/get_zoom 检查是否到位 ...
-		return ST_P1_Waiting;
+		return ST_P1_PtzWaiting;
 	}
 };
 

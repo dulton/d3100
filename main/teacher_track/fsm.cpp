@@ -106,8 +106,8 @@ void FSM::run(int state_start, int state_end, bool *quit)
 			info("fsm", "CHANGED: '%s'==>'%s'\n",
 					state0 ? state0->name() : "None", state->name());
 
-			if (state0) state0->when_leave();
-			state->when_enter();
+			if (state0) state0->when_leave(state->id());
+			state->when_enter(state0 ? state->id() : state->id());
 
 			state0 = state;
 		}

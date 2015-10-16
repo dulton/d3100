@@ -138,11 +138,11 @@ public:
 	int id() const { return id_; }
 	const char *name() const { return name_.c_str(); }
 
-	/** 当进入该状态时调用 */
-	virtual void when_enter() { }
+	/** 当进入该状态时调用，last_state_id 为上个状态，如果等于当前，则说明是第一个状态 */
+	virtual void when_enter(int last_state_id) { }
 
 	/** 当离开改状态时调用 */
-	virtual void when_leave() { }
+	virtual void when_leave(int next_state_id) { }
 
 	virtual int when_timeout(double curr_stamp) { return id_; }
 	virtual int when_ptz_completed(PtzCompleteEvent *evt) { return id_; }
