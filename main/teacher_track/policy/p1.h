@@ -16,6 +16,9 @@ class p1
 	udpsrv_t *udp_;		// udp 接收 ...
 	detector_t *det_;	// 教师探测模块 ...
 
+	double vga_wait_, vga_back_;	// 配置的 vga 等待时间 ..
+	int vga_last_state_; // 切换到vga之前的状态
+
 public:
 	p1(const char *fname = "teacher_detect_trace.config");
 	~p1();
@@ -30,6 +33,15 @@ public:
 	{
 		// TODO: 根据目标矩形，计算需要转到的角度.
 		*x = 100, *y = -5;
+	}
+
+	// 当 now() > vga_back() 时，vga 返回上个状态
+	double vga_back() const { return vga_back_; }
+	int vga_last_state() const { return vga_last_state_; }
+	void set_vga(int last_state) // 触发 vga
+	{
+		vga_back_ = now() + vga_wait_;
+		vga_last_state_ = last_state;
 	}
 
 private:
@@ -56,9 +68,10 @@ enum
 class p1_common_state: public FSMState
 {
 public:
-	p1_common_state(int id, const char *name)
+	p1_common_state(p1 *p, int id, const char *name)
 		: FSMState(id, name)
 	{
+		p_ = p;
 	}
 
 protected:
@@ -82,11 +95,15 @@ protected:
 
 		if (e->code() == UdpEvent::UDP_VGA) {
 			// 无条件到 VGA
+			p_->set_vga(id());
 			return ST_P1_Vga;
 		}
 
 		return FSMState::when_udp(e);
 	}
+
+protected:
+	p1 *p_;
 };
 
 
@@ -156,13 +173,10 @@ public:
 /** 尚未找到目标，等待探测结果 */
 class p1_searching: public p1_common_state
 {
-	p1 *p_;
-
 public:
 	p1_searching(p1 *p1)
-		: p1_common_state(ST_P1_Searching, "searching target")
+		: p1_common_state(p1, ST_P1_Searching, "searching target")
 	{
-		p_ = p1;
 	}
 
 	virtual int when_detection(DetectionEvent *e)
@@ -186,15 +200,13 @@ public:
 
 class p1_turnto_target: public p1_common_state
 {
-	p1 *p_;
 	bool target_valid_;	// 目标是否有效.
 	DetectionEvent::Rect rc_;	// 如果有效，则为目标位置.
 
 public:
 	p1_turnto_target(p1 *p1)
-		: p1_common_state(ST_P1_Turnto_Target, "turnto target")
+		: p1_common_state(p1, ST_P1_Turnto_Target, "turnto target")
 	{
-		p_ = p1;
 	}
 
 	virtual int when_detection(DetectionEvent *e)
@@ -224,13 +236,19 @@ public:
 /** 处理 VGA */
 class p1_vga: public p1_common_state
 {
-	p1 *p_;
-
 public:
 	p1_vga(p1 *p1)
-		: p1_common_state(ST_P1_Vga, "vga")
+		: p1_common_state(p1, ST_P1_Vga, "vga")
 	{
-		p_ = p1;
+	}
+
+	virtual int when_timeout(double curr)
+	{
+		if (curr > p_->vga_back()) {    // 检查是否vga 超时，超时则返回上一个状态 ..
+			return p_->vga_last_state();
+		}
+
+		return id();
 	}
 };
 
@@ -238,13 +256,10 @@ public:
 /** 稳定跟踪状态 */
 class p1_tracking: public p1_common_state
 {
-	p1 *p_;
-
 public:
 	p1_tracking(p1 *p1)
-		: p1_common_state(ST_P1_Tracking, "tracking")
+		: p1_common_state(p1, ST_P1_Tracking, "tracking")
 	{
-		p_ = p1;
 	}
 
 	virtual int when_detection(DetectionEvent *e)

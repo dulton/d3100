@@ -112,14 +112,12 @@ void FSM::run(int state_start, int state_end, bool *quit)
 			state0 = state;
 		}
 
-		FSMEvent *evt = next_event(now());
+		double curr = now();
+
+		FSMEvent *evt = next_event(curr);
 		if (evt) {
 			debug("fsm", "evt=%d, name=%s\n", evt->id(), evt->name());
 			switch (evt->id()) {
-				case EVT_Timeout:
-					next_state = state->when_timeout((TimeoutEvent*)evt);
-					break;
-
 				case EVT_PTZ_Completed:
 					next_state = state->when_ptz_completed((PtzCompleteEvent*)evt);
 					break;
@@ -139,6 +137,9 @@ void FSM::run(int state_start, int state_end, bool *quit)
 
 			delete evt;
 		}
+		else {
+			next_state = state->when_timeout(curr);  // 超时事件 ...
+		}
 	}
 
 	if (*quit) {
@@ -155,14 +156,6 @@ void FSM::cancel_event(int token)
 	Autolock al(lock_);
 
 	std::deque<std::pair<double, FSMEvent*> >::iterator it;
-	for (it = fifo_timeout_.begin(); it != fifo_timeout_.end(); ) {
-		if (it->second->token() == token) {
-			delete it->second;
-			it = fifo_timeout_.erase(it);
-		}
-		else ++it;
-	}
-
 	for (it = fifo_ptz_complete_.begin(); it != fifo_ptz_complete_.end(); ) {
 		if (it->second->token() == token) {
 			delete it->second;

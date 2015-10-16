@@ -2,7 +2,7 @@
 
 /** 用于自动跟踪的fsm，根据策略实现 FSMState，状态变换由 FSMEvent 驱动.
 
-		目前预定义了 TimeoutEvent, PtzCompleteEvent, DetectionEvent, UdpEvent
+		目前预定义了 PtzCompleteEvent, DetectionEvent, UdpEvent
 
 		实现一个策略，就是实现各种状态的 FSMState ...
   	
@@ -40,19 +40,6 @@ protected:
   	
   	TODO: 具体参数以后再加 ...
  */
-
-// 超时事件
-#define EVT_Timeout -1
-class TimeoutEvent : public FSMEvent
-{
-public:
-	TimeoutEvent(double wait): FSMEvent(EVT_Timeout, "EV_Timeout")
-	{
-		wait_ = wait;
-	}
-
-	double wait_;
-};
 
 // 云台完成事件.
 //    new PtzCompleteEvent("teacher", "setpos");
@@ -157,7 +144,7 @@ public:
 	/** 当离开改状态时调用 */
 	virtual void when_leave() { }
 
-	virtual int when_timeout(TimeoutEvent *evt) { return id_; }
+	virtual int when_timeout(double curr_stamp) { return id_; }
 	virtual int when_ptz_completed(PtzCompleteEvent *evt) { return id_; }
 	virtual int when_detection(DetectionEvent *evt) { return id_; }
 	virtual int when_udp(UdpEvent *udp) { return id_; }
@@ -193,15 +180,10 @@ public:
 
 		Autolock al(lock_);
 
-		if (evt->id() == EVT_Timeout) {
-			push_timeout((TimeoutEvent*)evt);
-			info("fsm", "push_event: Timeout, delay=%.3f\n", ((TimeoutEvent*)evt)->wait_);
-		}
-		else if (evt->id() == EVT_PTZ_Completed) {
+		if (evt->id() == EVT_PTZ_Completed) {
 			push_ptz_complete((PtzCompleteEvent*)evt);
 			info("fsm", "push_event: Ptz, who=%s, op=%s\n",
 					((PtzCompleteEvent*)evt)->who(), ((PtzCompleteEvent*)evt)->ptz_oper());
-
 		}
 		else if (evt->id() == EVT_Detection) {
 			push_detection_result((DetectionEvent*)evt);
@@ -242,13 +224,6 @@ private:
 		return e1.first < e2.first;
 	}
 
-	void push_timeout(TimeoutEvent *e)
-	{
-		double t = now() + e->wait_;	// 触发时间.
-		fifo_timeout_.push_back(std::pair<double, FSMEvent*>(t, e));
-		std::sort(fifo_timeout_.begin(), fifo_timeout_.end(), op_sort_by_stamp);
-	}
-
 	void push_detection_result(DetectionEvent *e)
 	{
 		/** XXX: 仅仅保留最后一个探测结果 ...
@@ -286,12 +261,6 @@ private:
 			evt = fifo_udp_.front();
 			fifo_udp_.pop_front();
 		}
-		else if (!fifo_timeout_.empty()) {
-			if (curr >= fifo_timeout_.front().first) {
-				evt = fifo_timeout_.front().second;
-				fifo_timeout_.pop_front();
-			}
-		}
 		else if (!fifo_ptz_complete_.empty()) {
 			if (curr >= fifo_ptz_complete_.front().first) {
 				evt = fifo_ptz_complete_.front().second;
@@ -310,7 +279,6 @@ private:
 		return evt;
 	}
 
-	std::deque<std::pair<double, FSMEvent*> > fifo_timeout_;	// 时间相关的队列 ...
 	std::deque<std::pair<double, FSMEvent*> > fifo_ptz_complete_;	// 云台完成...
 	std::deque<DetectionEvent*> fifo_detection_;	// 探测结果 ...
 	std::deque<UdpEvent*> fifo_udp_;		// udp 通知 ...

@@ -7,6 +7,8 @@ p1::p1(const char *fname)
 	kvc_ = kvc_open(fname);
 	ptz_ = ptz_open(kvc_get(kvc_, "ptz_serial_name", "tcp://172.16.1.110:10013/student"));
 
+	vga_wait_ = atof(kvc_get(kvc_, "vga_wait", "10.0"));
+
 	// 构造状态转换表 ...
 	std::vector<FSMState*> states;
 	states.push_back(new p1_starting(this));
