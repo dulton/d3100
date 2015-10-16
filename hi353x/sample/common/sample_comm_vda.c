@@ -413,7 +413,7 @@ static HI_VOID Print_Time_Diff(struct timeval start)
 ******************************************************************************/
 HI_S32 SAMPLE_COMM_VDA_OdStart(VDA_CHN VdaChn, VI_CHN ViChn, SIZE_S *pstSize)
 {
-	char c;
+	char c = 'v';
     VDA_CHN_ATTR_S stVdaChnAttr;
     MPP_CHN_S stSrcChn, stDestChn;
     HI_S32 s32Ret = HI_SUCCESS;
@@ -436,7 +436,7 @@ HI_S32 SAMPLE_COMM_VDA_OdStart(VDA_CHN VdaChn, VI_CHN ViChn, SIZE_S *pstSize)
     stVdaChnAttr.unAttr.stOdAttr.enMbSadBits   = VDA_MB_SAD_16BIT;
     stVdaChnAttr.unAttr.stOdAttr.enRefMode     = VDA_REF_MODE_DYNAMIC;
     stVdaChnAttr.unAttr.stOdAttr.u32VdaIntvl   = 4;
-    stVdaChnAttr.unAttr.stOdAttr.u32BgUpSrcWgt = 1;
+    stVdaChnAttr.unAttr.stOdAttr.u32BgUpSrcWgt = 128;
     
     stVdaChnAttr.unAttr.stOdAttr.u32RgnNum = 1;
     
@@ -500,24 +500,16 @@ HI_S32 SAMPLE_COMM_VDA_OdStart(VDA_CHN VdaChn, VI_CHN ViChn, SIZE_S *pstSize)
     /********************************************
      step 2 : bind vda channel to vi channel
     ********************************************/
+		
 	/* vda start rcv picture */
-    s32Ret = HI_MPI_VDA_StartRecvPic(VdaChn);
-    if(s32Ret != HI_SUCCESS)
-    {
-        SAMPLE_PRT("err!\n");
-        return(s32Ret);
-    }
-	usleep(200);
-	c = getchar();
-	if (c == "v") {
-		s32Ret = HI_MPI_VDA_StartRecvPic(VdaChn);
-		if(s32Ret != HI_SUCCESS)
-		{
-			SAMPLE_PRT("err!\n");
-			return(s32Ret);
-		}	
+//    s32Ret = HI_MPI_VDA_StartRecvPic(VdaChn);
+//
+//    if(s32Ret != HI_SUCCESS)
+//    {
+//        SAMPLE_PRT("err!\n");
+//        return(s32Ret);
+//    }
 
-	}
     stSrcChn.enModId = HI_ID_VIU;
     stSrcChn.s32ChnId = ViChn;
 
@@ -531,18 +523,33 @@ HI_S32 SAMPLE_COMM_VDA_OdStart(VDA_CHN VdaChn, VI_CHN ViChn, SIZE_S *pstSize)
         SAMPLE_PRT("err!\n");
         return s32Ret;
     }
+		
+	
+	/* vda start rcv picture */
+    s32Ret = HI_MPI_VDA_StartRecvPic(VdaChn);
+    if(s32Ret != HI_SUCCESS)
+    {
+        SAMPLE_PRT("err!\n");
+        return(s32Ret);
+    }
+	getchar();
 
-    /* vda start rcv picture */
-//    s32Ret = HI_MPI_VDA_StartRecvPic(VdaChn);
+	s32Ret = HI_MPI_VDA_StopRecvPic(VdaChn);
+    if(s32Ret != HI_SUCCESS)
+    {
+        SAMPLE_PRT("err!\n");
+        return(s32Ret);
+    }
+	getchar();
+
+//	s32Ret = HI_MPI_VDA_StartRecvPic(VdaChn);
 //    if(s32Ret != HI_SUCCESS)
 //    {
 //        SAMPLE_PRT("err!\n");
 //        return(s32Ret);
 //    }
-
     gs_stOdParam.bThreadStart = HI_TRUE;
     gs_stOdParam.VdaChn   = VdaChn;
-
     pthread_create(&gs_VdaPid[SAMPLE_VDA_OD_CHN], 0, SAMPLE_COMM_VDA_OdGetResult, (HI_VOID *)&gs_stOdParam);
 
     return HI_SUCCESS;
