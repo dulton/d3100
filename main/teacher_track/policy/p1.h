@@ -95,7 +95,10 @@ protected:
 
 		if (e->code() == UdpEvent::UDP_VGA) {
 			// 无条件到 VGA
-			p_->set_vga(id());
+			if (id() == ST_P1_Vga)
+				p_->set_vga(p_->vga_last_state());
+			else
+				p_->set_vga(id());
 			return ST_P1_Vga;
 		}
 

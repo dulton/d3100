@@ -116,7 +116,7 @@ void FSM::run(int state_start, int state_end, bool *quit)
 
 		FSMEvent *evt = next_event(curr);
 		if (evt) {
-			debug("fsm", "evt=%d, name=%s\n", evt->id(), evt->name());
+			debug("fsm", "[%s]: evt=%d, name=%s\n", state->name(), evt->id(), evt->name());
 			switch (evt->id()) {
 				case EVT_PTZ_Completed:
 					next_state = state->when_ptz_completed((PtzCompleteEvent*)evt);
