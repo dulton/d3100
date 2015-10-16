@@ -7,7 +7,7 @@
 #include "../teacher_track/log.h"
 #include "detect.h"
 
-const char *_empty_result = "{\"stamp\":12345,\"rect\":[]}"; 
+const char *_empty_result = "{\"stamp\":0000,\"rect\":[]}"; 
 
 #define MULTICAST_ADDR "239.119.119.1"
 #define PORT 11000
@@ -39,9 +39,11 @@ detect_t *det_open(const char *fname)
 
 	// 加入组播，这样方便小杨发送探测消息 ..
 	struct ip_mreq req;
-	req.imr_interface.s_addr = inet_addr("0.0.0.0");
+	req.imr_interface.s_addr = INADDR_ANY;//inet_addr("172.16.1.110");
 	req.imr_multiaddr.s_addr = inet_addr(MULTICAST_ADDR);
 	setsockopt(fd, IPPROTO_IP, IP_ADD_MEMBERSHIP, (const char*)&req, sizeof(req));
+
+	info("det dummy", "join multicast addr %s\n", MULTICAST_ADDR);
 
 	set_sock_nonblock(fd);
 
