@@ -6,7 +6,11 @@
 p1::p1(const char *fname)
 {
 	kvc_ = kvc_open(fname);
-	ptz_ = ptz_open(kvc_get(kvc_, "ptz_serial_name", "tcp://172.16.1.110:10013/student"));
+	const char *ptz_url = kvc_get(kvc_, "ptz_serial_name", "tcp://172.16.1.110:10013/student");
+	ptz_ = ptz_open(ptz_url);
+	if (!ptz_) {
+		fatal("p1", "can't open ptz of '%s'\n", ptz_url);
+	}
 
 	vga_wait_ = atof(kvc_get(kvc_, "vga_wait", "10.0"));
 	ptz_wait_ = atof(kvc_get(kvc_, "ptz_wait", "2.0"));
@@ -26,6 +30,9 @@ p1::p1(const char *fname)
 	fsm_ = new FSM(states);
 	udp_ = us_open(fsm_);
 	det_ = detector_open(fsm_, fname);
+	if (!det_) {
+		fatal("p1", "can't load detection mod!!!\n");
+	}
 }
 
 p1::~p1()
