@@ -29,7 +29,7 @@ detect_t *det_open(const char *fname)
 	sockaddr_in sin;
 	sin.sin_family = AF_INET;
 	sin.sin_port = htons(11000);
-	sin.sin_addr.s_addr = inet_addr("0.0.0.0");
+	sin.sin_addr.s_addr = INADDR_ANY;
 	if (bind(fd, (sockaddr*)&sin, sizeof(sin)) < 0) {
 		fatal("det dummy", "bind %d error!\n", PORT);
 		return 0;
@@ -39,7 +39,7 @@ detect_t *det_open(const char *fname)
 
 	// 加入组播，这样方便小杨发送探测消息 ..
 	struct ip_mreq req;
-	req.imr_interface.s_addr = INADDR_ANY;//inet_addr("172.16.1.110");
+	req.imr_interface.s_addr = inet_addr("172.16.1.110");
 	req.imr_multiaddr.s_addr = inet_addr(MULTICAST_ADDR);
 	setsockopt(fd, IPPROTO_IP, IP_ADD_MEMBERSHIP, (const char*)&req, sizeof(req));
 
