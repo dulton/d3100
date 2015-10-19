@@ -365,7 +365,7 @@ static void srv(int fd)
 		int z;
 		sscanf(ss[2].c_str(), "Zoom=%d", &z);
 		
-		snprintf(url, sizeof(url), "http://%s:10003/ptz/%s/set_zoom?z=%d", z);
+		snprintf(url, sizeof(url), "http://%s:10003/ptz/%s/set_zoom?z=%d", IP, who, z);
 		wj_req(s, url);
 	}
 	else if (ss[0] == "PtzCmd=GetPos") {
