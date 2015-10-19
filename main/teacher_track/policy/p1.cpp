@@ -15,6 +15,10 @@ p1::p1(const char *fname)
 	vga_wait_ = atof(kvc_get(kvc_, "vga_wait", "10.0"));
 	ptz_wait_ = atof(kvc_get(kvc_, "ptz_wait", "2.0"));
 
+	view_angle_0_ = atof(kvc_get(kvc_, "cam_trace_view_angle_hori", "55.0"));
+	min_angle_ratio_ = atof(kvc_get(kvc_, "cam_trace_min_hangle", "0.075"));
+
+
 	load_speeds(kvc_get(kvc_, "ptz_speeds", "0,1,3,6,10"), speeds_);
 
 	// 构造状态转换表 ...

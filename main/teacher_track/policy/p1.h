@@ -23,6 +23,8 @@ class p1
 	int ptz_wait_next_state_;	// 云台等待结束后，返回哪个状态 ...
 
 	std::vector<int> speeds_;	// 0,1,2,4,7...
+	double min_angle_ratio_;	// 0.075
+	double view_angle_0_;		// 1倍时，镜头水平夹角 .
 
 public:
 	p1(const char *fname = "teacher_detect_trace.config");
