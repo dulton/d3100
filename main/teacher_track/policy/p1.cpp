@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <sstream>
 #include "p1.h"
 
 p1::p1(const char *fname)
@@ -9,6 +10,8 @@ p1::p1(const char *fname)
 
 	vga_wait_ = atof(kvc_get(kvc_, "vga_wait", "10.0"));
 	ptz_wait_ = atof(kvc_get(kvc_, "ptz_wait", "2.0"));
+
+	load_speeds(kvc_get(kvc_, "ptz_speeds", "0,1,3,6,10"), speeds_);
 
 	// 构造状态转换表 ...
 	std::vector<FSMState*> states;
@@ -38,5 +41,24 @@ void p1::run()
 {
 	bool quit = false;
 	fsm_->run(ST_P1_Staring, ST_P1_End, &quit);
+}
+
+void p1::load_speeds(const char *s, std::vector<int> &speeds)
+{
+	std::stringstream ss(s);
+	std::string item;
+	while (std::getline(ss, item, ',')) {
+		speeds.push_back(std::atoi(item.c_str()));
+	}
+
+	std::sort(speeds.begin(), speeds.end());
+
+	if (speeds.empty()) {
+		speeds.push_back(0);
+		speeds.push_back(1);
+		speeds.push_back(3);
+		speeds.push_back(6);
+		speeds.push_back(10);
+	}
 }
 

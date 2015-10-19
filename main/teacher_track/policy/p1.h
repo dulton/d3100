@@ -22,6 +22,8 @@ class p1
 	double ptz_wait_;	// 云台等待时间，缺省 2秒 .
 	int ptz_wait_next_state_;	// 云台等待结束后，返回哪个状态 ...
 
+	std::vector<int> speeds_;	// 0,1,2,4,7...
+
 public:
 	p1(const char *fname = "teacher_detect_trace.config");
 	~p1();
@@ -74,7 +76,33 @@ public:
 		ptz_wait_next_state_ = next_state;
 	}
 
+	// 返回目标是否在视野中，如果在，同时返回偏角 ..
+	bool isin_field(const DetectionEvent::Rect &pos, double &angle)
+	{
+		double ha = view_angle() / 2;
+		double ta = target_angle(pos);
+		double pa = ptz_angle();
+
+		angle = ta - pa;
+		return pa - ha <= ta && ta <= ta + ha;
+	}
+
+	// 根据偏角，返回转动速度 ..
+	int ptz_speed(double angle)
+	{
+		double ha = view_angle()/2;
+		double sa = ha / speeds_.size();	// 每段角度 ..
+		int idx = angle / sa;
+
+		/** XXX: 正常情况下（目标在视野中时），不会出现idx溢出，但 
+		  		还是加个保证吧 ... */
+		if (idx >= speeds_.size()) idx = idx = speeds_.size()-1;
+
+		return speeds_[idx];
+	}
+
 private:
+	void load_speeds(const char *conf_str, std::vector<int> &speeds);
 };
 
 /// 下面声明一大堆状态，和状态转换函数 ....
@@ -244,7 +272,6 @@ public:
 			p_->calc_target_pos(targets[0], &x, &y);
 			ptz_setpos(p_->ptz(), x, y, 36, 36);
 			p_->fsm()->push_event(new PtzCompleteEvent("teacher", "set_pos"));
-			
 			return ST_P1_Turnto_Target;
 		}
 		else {
@@ -280,10 +307,25 @@ public:
 
 	virtual int when_ptz_completed(PtzCompleteEvent *e)
 	{
-		// TODO: 云台转到位置, 检查此时目标是否在视野范围内，如果不在，则重新搜索 ...
+		// 云台转到位置, 检查此时目标是否在视野范围内，如果不在，则重新搜索 ...
 		// 
-
-		return id();
+		double angle;
+		if (!target_valid_) {
+			// 目标丢失 ..
+			return ST_P1_Searching;
+		}
+		else if (p_->isin_field(rc_, angle)) {
+			// 目标在视野中，进入稳定跟踪状态 ..
+			return ST_P1_Tracking;
+		}
+		else {
+			// 目标已经离开视野，则 set_pos .
+			int x, y;
+			p_->calc_target_pos(rc_, &x, &y);
+			ptz_setpos(p_->ptz(), x, y, 36, 36);
+			p_->fsm()->push_event(new PtzCompleteEvent("teacher", "set_pos"));
+			return ST_P1_Turnto_Target;
+		}
 	}
 };
 
@@ -319,8 +361,24 @@ public:
 
 	virtual int when_detection(DetectionEvent *e)
 	{
-		// TODO: 根据探测结果，当前云台位置，判断是否目标丢失 ....
-		return id();
+		// 根据探测结果，当前云台位置，判断是否目标丢失 ....
+		double angle;
+		std::vector<DetectionEvent::Rect> rcs = e->targets();
+		if (rcs.size() != 1) {
+			return ST_P1_Searching;
+		}
+		else {
+			// 若在视野中，根据 angle 决定如何左右转 ..
+			int speed = p_->ptz_speed(abs(angle));
+			if (speed == 0)
+				ptz_stop(p_->ptz());
+			else {
+				if (angle < 0) ptz_left(p_->ptz(), speed);
+				else ptz_right(p_->ptz(), speed);
+			}
+
+			return id();
+		}
 	}
 };
 

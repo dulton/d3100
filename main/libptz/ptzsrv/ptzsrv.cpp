@@ -288,7 +288,7 @@ static void build_object(const cJSON *json, std::map<std::string, TypedObject> &
 	}
 }
 
-void split(const std::string &s, char delim, std::vector<std::string> &elems) {
+static void split(const std::string &s, char delim, std::vector<std::string> &elems) {
 	std::stringstream ss(s);
 	std::string item;
 	while (std::getline(ss, item, delim)) {
