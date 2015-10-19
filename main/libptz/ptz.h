@@ -32,6 +32,10 @@ int ptz_preset_call(ptz_t *ptz, int id);
 /// x,y 为鼠标点击位置，在图像的相对位置 [0.0, 1.0)
 int ptz_ext_mouse_track(ptz_t *ptz, float x, float y);
 
+// 返回当前倍率 ...，如果失败，总是返回 1.0
+double ptz_ext_zoom2scales(ptz_t *ptz, int z);
+int ptz_ext_scals2zoom(ptz_t *ptz, double s);
+
 // ...
 
 

@@ -21,6 +21,7 @@ teacher_detect_SOURCES=	teacher_track/teacher_track.cpp \
 						teacher_track/switch.cpp \
 						libptz/ptz.cpp \
 						libptz/tcp_util.cpp \
+						libptz/polyfit.cpp \
 						libkvconfig/kvconfig.cpp
 
 
@@ -34,6 +35,7 @@ endif
 
 test_ptz_SOURCES= libptz/test/test_ptz.cpp \
 				  libptz/ptz.cpp \
+				  libptz/polyfit.cpp \
 				  ${RUNTIME_CPP} \
 				  teacher_track/log.cpp \
 				  libptz/tcp_util.cpp
