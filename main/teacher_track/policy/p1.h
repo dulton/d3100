@@ -7,8 +7,14 @@
 #include "../evt.h"
 #include "../detector.h"
 
+#ifdef WIN32
+#	define _USE_MATH_DEFINES
+#endif //
 
-#define M_PI 3.14
+#include <math.h>
+
+
+//#define M_PI 3.14
 typedef struct Cal_Angle
 {
 	double angle_left;//转动到标定区左侧所需角度（弧度）.

@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <sstream>
+#include <string.h>
 #include "p1.h"
 
 p1::p1(const char *fname)
