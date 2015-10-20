@@ -39,7 +39,7 @@ detect_t *det_open(const char *fname)
 
 	// 加入组播，这样方便小杨发送探测消息 ..
 	struct ip_mreq req;
-	req.imr_interface.s_addr = inet_addr("172.16.1.110");
+	req.imr_interface.s_addr = inet_addr("172.16.1.108");
 	req.imr_multiaddr.s_addr = inet_addr(MULTICAST_ADDR);
 	setsockopt(fd, IPPROTO_IP, IP_ADD_MEMBERSHIP, (const char*)&req, sizeof(req));
 
@@ -81,6 +81,7 @@ const char *det_detect(detect_t *det)
 		else {
 			// 更新.
 			det->result = std::string(buf, len);
+			//fprintf(stderr, "======%s\n", det->result.c_str());
 		}
 	}
 

@@ -69,7 +69,7 @@ public:
 	kvconfig_t *cfg() const { return kvc_; }
 	FSM *fsm() const { return fsm_; }
 
-	bool calc_target_pos(const DetectionEvent::Rect &rc, int *x, int *y)
+	bool calc_target_pos(const DetectionEvent::Rect rc, int *x, int *y)
 	{
 		//根据目标矩形，计算需要转动的角度.
 		double t_x_angle = target_angle(rc);//目标偏离左边偏角;
@@ -80,6 +80,7 @@ public:
 		}
 
 		double need_x_angle = t_x_angle - p_x_angle;//云台需要转动的角度;
+		printf("need_x_angle = %f, t_x_angle = %f, p_x_angle = %f&&&&&&&&&\n",need_x_angle, t_x_angle, p_x_angle);
 	    *x =  (need_x_angle * 180) / (min_angle_ratio_ * M_PI);//云台需要转动的转数;
 		*y = cal_angle_.ptz_init_y;
 	}
@@ -99,7 +100,7 @@ public:
 		return true;
 	}
 
-	double target_angle(const DetectionEvent::Rect &pos) const
+	double target_angle(const DetectionEvent::Rect pos) const
 	{
 		//返回目标偏离“左边”偏角 ....
 		double ang_left = (fabs)(cal_angle_.angle_left - cal_angle_.angle_init);
@@ -110,6 +111,10 @@ public:
 
 		double m_l_angle = atan((left_len - ((pos.x + pos.width / 2.0) - cal_angle_.p_left)) / mid_len);
 		double angle = ang_left - m_l_angle;
+
+		double mid_x = pos.x + pos.width / 2;
+
+		printf("pos.x = %d, pos.y = %d, pos.width = %d, pos.height = %d&&&&&&&\n", pos.x, pos.y, pos.width, pos.height);
 
 		return angle;
 	}
@@ -122,9 +127,10 @@ public:
 		{
 			return false;
 		}
+		printf("get_pos_x = %d, get_pos_y = %d&&&&&&&&&\n", x, y);
 		/** FIXME: 有可能出现 h 小于 ptz_left_ 的情况，这个主要是因为云台的“齿数”未必精确 */
 		if (x < cal_angle_.ptz_left_x) x = cal_angle_.ptz_left_x;
-		left_angle = (x - cal_angle_.ptz_left_x) * min_angle_ratio_ * M_PI / 180.0;	// 转换为弧度
+		left_angle = (x - cal_angle_.ptz_left_x) * min_angle_ratio_ * M_PI / 180.0;	// 转换为弧度;
 
 		return true;		
 	}
@@ -148,7 +154,7 @@ public:
 	}
 
 	// 返回目标是否在视野中，如果在，同时返回偏角 ..
-	bool isin_field(const DetectionEvent::Rect &pos, double &angle)
+	bool isin_field(const DetectionEvent::Rect pos, double &angle)
 	{
 		double ha_t;
 		if(!view_angle(ha_t))
@@ -181,7 +187,7 @@ public:
 		double sa = ha / speeds_.size();	// 每段角度 ..
 		int idx = angle / sa;
 
-		/** XXX: 正常情况下（目标在视野中时），不会出现idx溢出，但 
+		/** XXX: 正常情况下（目标在视野中时），不会出现idx溢出，但; 
 		  		还是加个保证吧 ... */
 		if (idx >= speeds_.size()) idx = idx = speeds_.size()-1;
 
@@ -333,6 +339,11 @@ public:
 		p_ = p1;
 	}
 
+	virtual int when_timeout(double curr)
+	{
+		return ST_P1_Searching;
+	}
+
 	// 仅仅关心启动和退出事件.
 	virtual int when_udp(UdpEvent *e)
 	{
@@ -366,9 +377,14 @@ public:
 			// set_pos 到目标，然后等待转到完成 ...
 			int x, y;
 			//无法计算转动角度继续搜索状态...
+			printf("searching:targets[0].x = %d, targets[0].width = %d&&&&&&\n", targets[0].x, targets[0].width);
 			if(!p_->calc_target_pos(targets[0], &x, &y))
 			{
 				return id();
+			}
+			if(x < -110 || x >= 170)
+			{
+				printf(" x = %d***********************\n", x);
 			}
 			ptz_setpos(p_->ptz(), x, y, 36, 36);
 			p_->fsm()->push_event(new PtzCompleteEvent("teacher", "set_pos"));
@@ -394,6 +410,7 @@ public:
 	virtual int when_detection(DetectionEvent *e)
 	{
 		std::vector<DetectionEvent::Rect> rcs = e->targets();
+		printf("turn_to_targ:targets[0].x=%d, targets[0].width=%d&&&&&&\n", rcs[0].x, rcs[0].width);
 		if (rcs.size() == 1) {
 			target_valid_ = 1;
 			rc_ = rcs[0];
@@ -415,6 +432,7 @@ public:
 			return ST_P1_Searching;
 		}
 		else if (p_->isin_field(rc_, angle)) {
+			printf("turn_to_targ(isin_field):targets[0].x=%d, targets[0].width=%d&&&&&&\n", rc_.x, rc_.width);
 			// 目标在视野中，进入稳定跟踪状态 ..
 			return ST_P1_Tracking;
 		}
@@ -422,9 +440,14 @@ public:
 			// 目标已经离开视野，则 set_pos .
 			int x, y;	
 			//如果无法计算目标位置，继续返回搜索状态???????......
+			printf("turn_to_targ(calc_target_pos):targets[0].x=%d, targets[0].width=%d&&&&&&\n", rc_.x, rc_.width);
 			if(!p_->calc_target_pos(rc_, &x, &y))
 			{
 				return ST_P1_Searching;
+			}
+			if(x < -110 || x >= 170)
+			{
+				printf(" x = %d***********************\n", x);
 			}
 			ptz_setpos(p_->ptz(), x, y, 36, 36);
 			p_->fsm()->push_event(new PtzCompleteEvent("teacher", "set_pos"));

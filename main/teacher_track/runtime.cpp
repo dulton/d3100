@@ -12,6 +12,7 @@ struct ThreadStartParam
 static unsigned int __stdcall thread_proc(void *arg)
 {
 	ThreadStartParam *tsp = (ThreadStartParam*)arg;
+	tsp->proc(tsp->opaque);
 	return 0;
 }
 

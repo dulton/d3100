@@ -31,7 +31,7 @@ static void *thread_proc(void *arg)
 			parse_and_handle(p->fsm, result);
 		}
 
-		usleep(1000*1000);	// FIXME: 将无法保证 ...
+//		usleep(1000*1000);	// FIXME: 将无法保证 ...
 	}
 	return 0;
 }

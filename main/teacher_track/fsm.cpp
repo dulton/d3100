@@ -36,7 +36,10 @@ static std::vector<DetectionEvent::Rect> _parse_rects(cJSON *j)
 
 		while (r) {
 			if (!strcmp("x", r->string))
+			{
 				rc.x = r->valueint;
+			}
+				
 			if (!strcmp("y", r->string))
 				rc.y = r->valueint;
 			if (!strcmp("width", r->string))

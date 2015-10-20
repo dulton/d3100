@@ -229,7 +229,7 @@ private:
 		/** XXX: 仅仅保留最后一个探测结果 ...
 		 */
 		while (!fifo_detection_.empty()) {
-			warning("fsm", "remove old detection result!\n");
+			//warning("fsm", "remove old detection result!\n");
 			FSMEvent *e = fifo_detection_.front();
 			delete e;
 			fifo_detection_.pop_front();
