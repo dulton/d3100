@@ -72,15 +72,25 @@ public:
 		{
 			return false;
 		}
+
 		double need_x_angle = t_x_angle - p_x_angle;//云台需要转动的角度;
 	    *x =  (need_x_angle * 180) / (min_angle_ratio_ * M_PI);//云台需要转动的转数;
 		*y = cal_angle_.ptz_init_y;
 	}
 
-	double view_angle() const 
+	bool view_angle(double &v_angle) const 
 	{
-		// TODO: 返回当前云台视角 ...
-		return 1.0;
+		//返回当前云台视角(弧度) ...
+		int zoom;
+		if(ptz_getzoom(ptz_, &zoom) < 0)
+		{
+			return false;
+		}
+
+		double scale = ptz_ext_zoom2scales(ptz_, zoom);
+		v_angle = view_angle_0_ / scale * (M_PI / 180.0);	
+
+		return true;
 	}
 
 	double target_angle(const DetectionEvent::Rect &pos) const
@@ -94,6 +104,7 @@ public:
 
 		double m_l_angle = atan((left_len - ((pos.x + pos.width / 2.0) - cal_angle_.p_left)) / mid_len);
 		double angle = ang_left - m_l_angle;
+
 		return angle;
 	}
 
@@ -108,6 +119,7 @@ public:
 		/** FIXME: 有可能出现 h 小于 ptz_left_ 的情况，这个主要是因为云台的“齿数”未必精确 */
 		if (x < cal_angle_.ptz_left_x) x = cal_angle_.ptz_left_x;
 		left_angle = (x - cal_angle_.ptz_left_x) * min_angle_ratio_ * M_PI / 180.0;	// 转换为弧度
+
 		return true;		
 	}
 
@@ -132,22 +144,34 @@ public:
 	// 返回目标是否在视野中，如果在，同时返回偏角 ..
 	bool isin_field(const DetectionEvent::Rect &pos, double &angle)
 	{
-		double ha = view_angle() / 2;
-		double ta = target_angle(pos);
+		double ha_t;
+		if(!view_angle(ha_t))
+		{
+			return false;
+		}
+		double ha = ha_t / 2.0;
+
 		double pa;
 		if(!ptz_angle(pa))
 		{
 			angle = 0.0;//无法获取位置不要转动;
 			return false;
-		}		
+		}
+
+		double ta = target_angle(pos);
 		angle = ta - pa;
 		return pa - ha <= ta && ta <= ta + ha;
 	}
 
 	// 根据偏角，返回转动速度 ..
-	int ptz_speed(double angle)
+	bool ptz_speed(double angle, int &speed)
 	{
-		double ha = view_angle()/2;
+		double ha_t;
+		if(!view_angle(ha_t))
+		{
+			return false;
+		}
+		double ha = ha_t / 2.0;
 		double sa = ha / speeds_.size();	// 每段角度 ..
 		int idx = angle / sa;
 
@@ -155,7 +179,9 @@ public:
 		  		还是加个保证吧 ... */
 		if (idx >= speeds_.size()) idx = idx = speeds_.size()-1;
 
-		return speeds_[idx];
+		speed = speeds_[idx];
+
+		return true;
 	}
 
 private:
@@ -441,14 +467,18 @@ public:
 		}
 		else {
 			// 若在视野中，根据 angle 决定如何左右转 ..
-			int speed = p_->ptz_speed(abs(angle));
+			int speed;
+			//若无法获取转动速度该返回哪个状态呢????????.....
+			if(!p_->ptz_speed(abs(angle), speed))
+			{
+				return ST_P1_Searching;
+			}
 			if (speed == 0)
 				ptz_stop(p_->ptz());
 			else {
 				if (angle < 0) ptz_left(p_->ptz(), speed);
 				else ptz_right(p_->ptz(), speed);
 			}
-
 			return id();
 		}
 	}
