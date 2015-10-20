@@ -7,6 +7,29 @@
 #include "../evt.h"
 #include "../detector.h"
 
+
+#define M_PI 3.14
+typedef struct Cal_Angle
+{
+	double angle_left;//转动到标定区左侧所需角度（弧度）.
+	int ptz_left_x;//转动到标定区左侧所需角度（转数）.
+
+	double angle_right;//转动到标定区右侧所需角度（弧度）.
+	int ptz_right_x;
+
+	//初始角向右偏为正值.
+	//初始角向左偏为负值.
+	double angle_init;//跟踪摄像机的初始角（弧度）.
+	int ptz_init_x;
+	int ptz_init_y;
+
+	double p_left;//标定区左侧x轴坐标.
+	double p_right;//标定区右侧x轴坐标.
+	//double p;//探测点的x轴坐标.
+
+}Cal_Angle;
+
+
 /// 聚合了所有功能模块 ..
 class p1
 {
@@ -26,6 +49,8 @@ class p1
 	double min_angle_ratio_;	// 0.075
 	double view_angle_0_;		// 1倍时，镜头水平夹角 .
 
+	Cal_Angle cal_angle_;
+
 public:
 	p1(const char *fname = "teacher_detect_trace.config");
 	~p1();
@@ -36,10 +61,18 @@ public:
 	kvconfig_t *cfg() const { return kvc_; }
 	FSM *fsm() const { return fsm_; }
 
-	void calc_target_pos(const DetectionEvent::Rect &rc, int *x, int *y)
+	bool calc_target_pos(const DetectionEvent::Rect &rc, int *x, int *y)
 	{
-		// TODO: 根据目标矩形，计算需要转到的角度.
-		*x = 100, *y = -5;
+		//根据目标矩形，计算需要转动的角度.
+		double t_x_angle = target_angle(rc);//目标偏离左边偏角;
+		double p_x_angle;
+		if(!ptz_angle(p_x_angle))//云台偏离左边偏角;
+		{
+			return false;
+		}
+		double need_x_angle = t_x_angle - p_x_angle;//云台需要转动的角度;
+	    *x =  (need_x_angle * 180) / (min_angle_ratio_ * M_PI);//云台需要转动的转数;
+		*y = cal_angle_.ptz_init_y;
 	}
 
 	double view_angle() const 
@@ -50,14 +83,30 @@ public:
 
 	double target_angle(const DetectionEvent::Rect &pos) const
 	{
-		// TODO: 返回目标需要的角度 ....
-		return 0.;
+		//返回目标偏离“左边”偏角 ....
+		double ang_left = (fabs)(cal_angle_.angle_left - cal_angle_.angle_init);
+		double ang_right = (fabs)(cal_angle_.angle_right - cal_angle_.angle_init);
+
+		double mid_len = (fabs)(cal_angle_.p_right - cal_angle_.p_left) / (tan(ang_left) + tan(ang_right));
+		double left_len = mid_len * tan(ang_left);
+
+		double m_l_angle = atan((left_len - ((pos.x + pos.width / 2.0) - cal_angle_.p_left)) / mid_len);
+		double angle = ang_left - m_l_angle;
+		return angle;
 	}
 
-	double ptz_angle() const
+	bool ptz_angle(double &left_angle)
 	{
-		// TODO: 返回云台当前偏角 ...
-		return 0.;
+		//返回云台当前偏离“左边”偏角 ...
+		int x, y;
+		if(ptz_getpos(ptz_, &x, &y)<0)
+		{
+			return false;
+		}
+		/** FIXME: 有可能出现 h 小于 ptz_left_ 的情况，这个主要是因为云台的“齿数”未必精确 */
+		if (x < cal_angle_.ptz_left_x) x = cal_angle_.ptz_left_x;
+		left_angle = (x - cal_angle_.ptz_left_x) * min_angle_ratio_ * M_PI / 180.0;	// 转换为弧度
+		return true;		
 	}
 
 	// 当 now() > vga_back() 时，vga 返回上个状态.
@@ -83,8 +132,12 @@ public:
 	{
 		double ha = view_angle() / 2;
 		double ta = target_angle(pos);
-		double pa = ptz_angle();
-
+		double pa;
+		if(!ptz_angle(pa))
+		{
+			angle = 0.0;//无法获取位置不要转动;
+			return false;
+		}		
 		angle = ta - pa;
 		return pa - ha <= ta && ta <= ta + ha;
 	}
@@ -105,6 +158,13 @@ public:
 
 private:
 	void load_speeds(const char *conf_str, std::vector<int> &speeds);
+
+	//读取标定区左右边界x坐标;
+	void load_calibration_edge(Cal_Angle &cal_angle);
+
+	//读取初始化标定参数;
+	void load_cal_angle(Cal_Angle &cal_angle);
+
 };
 
 /// 下面声明一大堆状态，和状态转换函数 ....
@@ -271,7 +331,11 @@ public:
 			// 单个目标.
 			// set_pos 到目标，然后等待转到完成 ...
 			int x, y;
-			p_->calc_target_pos(targets[0], &x, &y);
+			//无法计算转动角度继续搜索状态...
+			if(!p_->calc_target_pos(targets[0], &x, &y))
+			{
+				return id();
+			}
 			ptz_setpos(p_->ptz(), x, y, 36, 36);
 			p_->fsm()->push_event(new PtzCompleteEvent("teacher", "set_pos"));
 			return ST_P1_Turnto_Target;
@@ -322,8 +386,12 @@ public:
 		}
 		else {
 			// 目标已经离开视野，则 set_pos .
-			int x, y;
-			p_->calc_target_pos(rc_, &x, &y);
+			int x, y;	
+			//如果无法计算目标位置，继续返回搜索状态???????......
+			if(!p_->calc_target_pos(rc_, &x, &y))
+			{
+				return ST_P1_Searching;
+			}
 			ptz_setpos(p_->ptz(), x, y, 36, 36);
 			p_->fsm()->push_event(new PtzCompleteEvent("teacher", "set_pos"));
 			return ST_P1_Turnto_Target;

@@ -18,6 +18,7 @@ p1::p1(const char *fname)
 	view_angle_0_ = atof(kvc_get(kvc_, "cam_trace_view_angle_hori", "55.0"));
 	min_angle_ratio_ = atof(kvc_get(kvc_, "cam_trace_min_hangle", "0.075"));
 
+	load_cal_angle(cal_angle_);
 
 	load_speeds(kvc_get(kvc_, "ptz_speeds", "0,1,3,6,10"), speeds_);
 
@@ -71,5 +72,48 @@ void p1::load_speeds(const char *s, std::vector<int> &speeds)
 		speeds.push_back(6);
 		speeds.push_back(10);
 	}
+}
+
+void p1::load_calibration_edge(Cal_Angle &cal_angle)
+{
+	char key[64];
+	snprintf(key, sizeof(key), "calibration_data");
+	const char *pts = kvc_get(kvc_, key, 0);
+
+	cal_angle.p_left = cal_angle.p_right = atoi(kvc_get(kvc_,"video_width", "480")) / 2;
+
+	if (pts) {
+		char *data = strdup(pts);
+		char *p = strtok(data, ";");
+		while (p) {
+			// 每个Point 使"x,y" 格式
+			int x, y;
+			if (sscanf(p, "%d,%d", &x, &y) == 2) {
+				if (x < cal_angle.p_left) cal_angle.p_left = x;
+				if (x > cal_angle.p_right) cal_angle.p_right = x;
+			}
+
+			p = strtok(0, ";");
+		}
+		free(data);
+	}
+}
+
+void p1::load_cal_angle(Cal_Angle &cal_angle)
+{
+	cal_angle.ptz_init_x = atoi(kvc_get(kvc_, "ptz_init_x", "0"));
+	cal_angle.angle_init = cal_angle.ptz_init_x * min_angle_ratio_ * M_PI / 180.0;
+
+	cal_angle.ptz_init_y = atoi(kvc_get(kvc_, "ptz_init_y", "0"));
+	cal_angle.angle_init = cal_angle.ptz_init_y * min_angle_ratio_ * M_PI / 180.0;
+
+	cal_angle.ptz_left_x = atoi(kvc_get(kvc_, "ptz_init_left", "0"));
+	cal_angle.angle_left = cal_angle.ptz_left_x * min_angle_ratio_ * M_PI / 180.0;
+
+	cal_angle.ptz_right_x = atoi(kvc_get(kvc_, "ptz_init_right", "0"));
+	cal_angle.angle_right = cal_angle.ptz_right_x * min_angle_ratio_ * M_PI / 180.0;
+
+	load_calibration_edge(cal_angle);
+
 }
 
