@@ -1,8 +1,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string>
-#include <string>
+#include <vector>
+#include <string.h>
+#include <math.h>
 #include "tcp_util.h"
+#include "polyfit.h"
 #include "ptz.h"
 #include "../teacher_track/log.h"
 
@@ -20,9 +23,53 @@ struct ptz_t
 	{
 		return sizeof(server_addr);
 	}
+
+	bool zoom_changed;	// 为了减少 get_zoom 的调用 ..
+	int zoom;	
+
+	double z2s_eqf[6], s2z_eqf[6];	// 倍率拟合系数 ..
 };
 
-// to impl ptz.h interface
+static void fit(double z2s_eqf[6], double s2z_eqf[6])
+{
+	const char *_vz = "1,0;2,5638;3,8529;4,10336;5,11445;6,12384;7,13011;"
+		"8,13637;9,14119;10,14505;11,14914;12,15179;13,15493;14,15733;15,15950;16,16119;17,16288;18,16384";
+
+	std::vector<double> vs, vz;
+	char *factors = strdup(_vz);
+	char *p = strtok(factors, ";");
+	while (p) {
+		int s, z;
+		if (sscanf(p, "%d,%d", &s, &z) == 2) {
+			vs.push_back(s*1.0);
+			vz.push_back(z*1.0);
+		}
+
+		p = strtok(0, ";");
+	}
+	free(factors);
+
+	double *s = (double*)malloc(sizeof(double)*vs.size());
+	double *z = (double*)malloc(sizeof(double)*vz.size());
+
+	for (size_t i = 0; i < vs.size(); i++) {
+		s[i] = vs[i];
+		z[i] = vz[i];
+	}
+
+	polyfit(vs.size(), z, s, 5, z2s_eqf);
+	polyfit(vs.size(), s, z, 5, s2z_eqf);
+}
+
+/// zoom to scales
+static double solv(double z, double eqf[6])
+{
+	double s = 0.0;
+	for (int i = 0; i < 6; i++) {
+		s += eqf[i] * pow(z, i);
+	}
+	return s;
+}
 
 static int send_without_res(ptz_t *ptz, const char *str, const char *func_name)
 {
@@ -64,6 +111,9 @@ ptz_t *ptz_open(const char *url)
 	ptz->server_addr.sin_port = htons(port);
 	ptz->server_addr.sin_addr.s_addr = inet_addr(ip);
 	ptz->who = who;
+	ptz->zoom_changed = true;
+
+	fit(ptz->z2s_eqf, ptz->s2z_eqf);
 
 	return ptz;
 }
@@ -172,11 +222,17 @@ int ptz_setzoom(ptz_t *p, int z)
 	snprintf(buf, sizeof(buf), "PtzCmd=SetZoom&Who=%s&Zoom=%d",
 			p->who.c_str(), z);
 
+	p->zoom_changed = true;
 	return send_without_res(p, buf, __func__);
 }
 
 int ptz_getzoom(ptz_t *p, int *z)
 {
+	if (!p->zoom_changed) {
+		*z = p->zoom;
+		return 0;
+	}
+
 	char buf[128];
 	snprintf(buf, sizeof(buf), "PtzCmd=GetZoom&Who=%s", p->who.c_str());
 
@@ -191,6 +247,8 @@ int ptz_getzoom(ptz_t *p, int *z)
 				result.c_str());
 		return -1;
 	}
+
+	p->zoom_changed = false;
 
 	return 0;
 }
@@ -211,6 +269,7 @@ int ptz_preset_clr(ptz_t *p, int id)
 
 int ptz_preset_call(ptz_t *p, int id)
 {
+	p->zoom_changed = true;
 	return preset_func(p, id, "PresetCall");
 }
 
@@ -226,5 +285,15 @@ int ptz_ext_mouse_track(ptz_t *p, float x, float y)
 			p->who.c_str(), x, y);
 
 	return send_without_res(p, buf, __func__);
+}
+
+double ptz_ext_zoom2scales(ptz_t *p, int z)
+{
+	return solv(z, p->z2s_eqf);
+}
+
+int ptz_ext_scals2zoom(ptz_t *p, double s)
+{
+	return (int)solv(s, p->s2z_eqf);
 }
 

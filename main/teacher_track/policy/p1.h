@@ -42,6 +42,8 @@ class p1
 	double vga_wait_, vga_back_;	// 配置的 vga 等待时间 ..
 	int vga_last_state_; // 切换到vga之前的状态.
 
+	double ptz_scales_;	// 镜头倍率 ..
+
 	double ptz_wait_;	// 云台等待时间，缺省 2秒 .
 	int ptz_wait_next_state_;	// 云台等待结束后，返回哪个状态 ...
 
