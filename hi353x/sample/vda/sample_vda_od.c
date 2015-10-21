@@ -79,7 +79,7 @@ int main(int argc, char *argv[])
     u32BlkSize = SAMPLE_COMM_SYS_CalcPicVbBlkSize(gs_enNorm,\
                 PIC_HD1080, SAMPLE_PIXEL_FORMAT, SAMPLE_SYS_ALIGN_WIDTH);
     fprintf(stdout, "u32BlkSize = %d\n", u32BlkSize);
-    stVbConf.u32MaxPoolCnt = 128;
+    stVbConf.u32MaxPoolCnt = VB_MAX_POOLS;
 
     /*ddr0 video buffer*/
     
