@@ -261,11 +261,9 @@ private:
 			evt = fifo_udp_.front();
 			fifo_udp_.pop_front();
 		}
-		else if (!fifo_ptz_complete_.empty()) {
-			if (curr >= fifo_ptz_complete_.front().first) {
-				evt = fifo_ptz_complete_.front().second;
-				fifo_ptz_complete_.pop_front();
-			}
+		else if (!fifo_ptz_complete_.empty() && curr >= fifo_ptz_complete_.front().first) {
+			evt = fifo_ptz_complete_.front().second;
+			fifo_ptz_complete_.pop_front();
 		}
 		else if (!fifo_detection_.empty()) {
 			evt = fifo_detection_.front();

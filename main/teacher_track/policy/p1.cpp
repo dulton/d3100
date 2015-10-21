@@ -21,7 +21,7 @@ p1::p1(const char *fname)
 
 	load_cal_angle(cal_angle_);
 
-	load_speeds(kvc_get(kvc_, "ptz_speeds", "0,1,3,6,10"), speeds_);
+	load_speeds(kvc_get(kvc_, "ptz_speeds", "0,1,3,7,10"), speeds_);
 
 	// 构造状态转换表 ...
 	std::vector<FSMState*> states;

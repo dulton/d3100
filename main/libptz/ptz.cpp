@@ -249,7 +249,7 @@ int ptz_getzoom(ptz_t *p, int *z)
 	}
 
 	p->zoom_changed = false;
-
+	p->zoom = *z;
 	return 0;
 }
 

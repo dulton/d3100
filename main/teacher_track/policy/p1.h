@@ -14,7 +14,6 @@
 #include <math.h>
 
 
-//#define M_PI 3.14
 typedef struct Cal_Angle
 {
 	double angle_left;//转动到标定区左侧所需角度（弧度）.
@@ -80,7 +79,7 @@ public:
 		}
 
 		double need_x_angle = t_x_angle - p_x_angle;//云台需要转动的角度;
-		printf("need_x_angle = %f, t_x_angle = %f, p_x_angle = %f&&&&&&&&&\n",need_x_angle, t_x_angle, p_x_angle);
+		//printf("need_x_angle = %f, t_x_angle = %f, p_x_angle = %f&&&&&&&&&\n",need_x_angle, t_x_angle, p_x_angle);
 	    *x =  (need_x_angle * 180) / (min_angle_ratio_ * M_PI);//云台需要转动的转数;
 		*y = cal_angle_.ptz_init_y;
 	}
@@ -93,8 +92,9 @@ public:
 		{
 			return false;
 		}
-
-		double scale = ptz_ext_zoom2scales(ptz_, zoom);
+		printf("zoom = %d\n", zoom);
+		//double scale = ptz_ext_zoom2scales(ptz_, zoom);
+		double scale = 1.0;
 		v_angle = view_angle_0_ / scale * (M_PI / 180.0);	
 
 		return true;
@@ -102,7 +102,7 @@ public:
 
 	double target_angle(const DetectionEvent::Rect pos) const
 	{
-		//返回目标偏离“左边”偏角 ....
+		//返回目标偏离“左边”偏角(弧度) ....
 		double ang_left = (fabs)(cal_angle_.angle_left - cal_angle_.angle_init);
 		double ang_right = (fabs)(cal_angle_.angle_right - cal_angle_.angle_init);
 
@@ -114,20 +114,20 @@ public:
 
 		double mid_x = pos.x + pos.width / 2;
 
-		printf("pos.x = %d, pos.y = %d, pos.width = %d, pos.height = %d&&&&&&&\n", pos.x, pos.y, pos.width, pos.height);
+		//printf("pos.x = %d, pos.y = %d, pos.width = %d, pos.height = %d&&&&&&&\n", pos.x, pos.y, pos.width, pos.height);
 
 		return angle;
 	}
 
 	bool ptz_angle(double &left_angle)
 	{
-		//返回云台当前偏离“左边”偏角 ...
+		//返回云台当前偏离“左边”偏角(弧度) ...
 		int x, y;
 		if(ptz_getpos(ptz_, &x, &y)<0)
 		{
 			return false;
 		}
-		printf("get_pos_x = %d, get_pos_y = %d&&&&&&&&&\n", x, y);
+		//printf("get_pos_x = %d, get_pos_y = %d&&&&&&&&&\n", x, y);
 		/** FIXME: 有可能出现 h 小于 ptz_left_ 的情况，这个主要是因为云台的“齿数”未必精确 */
 		if (x < cal_angle_.ptz_left_x) x = cal_angle_.ptz_left_x;
 		left_angle = (x - cal_angle_.ptz_left_x) * min_angle_ratio_ * M_PI / 180.0;	// 转换为弧度;
@@ -153,7 +153,8 @@ public:
 		ptz_wait_next_state_ = next_state;
 	}
 
-	// 返回目标是否在视野中，如果在，同时返回偏角 ..
+	// 返回目标是否在视野中，如果在，同时返回偏角...
+	//返回值angle:云台当前位置和应该指向的目标位置直接的夹角(弧度) ...
 	bool isin_field(const DetectionEvent::Rect pos, double &angle)
 	{
 		double ha_t;
@@ -169,7 +170,7 @@ public:
 			angle = 0.0;//无法获取位置不要转动;
 			return false;
 		}
-
+		ptz_angle(pa);
 		double ta = target_angle(pos);
 		angle = ta - pa;
 		return pa - ha <= ta && ta <= ta + ha;
@@ -382,10 +383,6 @@ public:
 			{
 				return id();
 			}
-			if(x < -110 || x >= 170)
-			{
-				printf(" x = %d***********************\n", x);
-			}
 			ptz_setpos(p_->ptz(), x, y, 36, 36);
 			p_->fsm()->push_event(new PtzCompleteEvent("teacher", "set_pos"));
 			return ST_P1_Turnto_Target;
@@ -398,56 +395,57 @@ public:
 
 class p1_turnto_target: public p1_common_state
 {
-	bool target_valid_;	// 目标是否有效.
-	DetectionEvent::Rect rc_;	// 如果有效，则为目标位置.
+	bool target_valid_;// 目标是否有效.
+	DetectionEvent::Rect rc_;// 如果有效，则为目标位置.
 
 public:
 	p1_turnto_target(p1 *p1)
 		: p1_common_state(p1, ST_P1_Turnto_Target, "turnto target")
 	{
+		target_valid_ = 0;
 	}
 
 	virtual int when_detection(DetectionEvent *e)
 	{
 		std::vector<DetectionEvent::Rect> rcs = e->targets();
-		printf("turn_to_targ:targets[0].x=%d, targets[0].width=%d&&&&&&\n", rcs[0].x, rcs[0].width);
-		if (rcs.size() == 1) {
+		if (rcs.size() == 1) 
+		{
+			printf("turn_to_targ:targets[0].x=%d, targets[0].width=%d&&&&&&\n", rcs[0].x, rcs[0].width);
 			target_valid_ = 1;
 			rc_ = rcs[0];
 		}
-		else {
+		else 
+		{
 			target_valid_ = 0;
 		}
 
-		return id(); // 这里不修改当前状态，而是等云台完成后再检查 target_valid_
+		return id();// 这里不修改当前状态，而是等云台完成后再检查 target_valid_
 	}
 
 	virtual int when_ptz_completed(PtzCompleteEvent *e)
 	{
 		// 云台转到位置, 检查此时目标是否在视野范围内，如果不在，则重新搜索 ...
-		// 
 		double angle;
-		if (!target_valid_) {
-			// 目标丢失 ..
+		if (!target_valid_) 
+		{
+			// 目标丢失 ...
 			return ST_P1_Searching;
 		}
-		else if (p_->isin_field(rc_, angle)) {
-			printf("turn_to_targ(isin_field):targets[0].x=%d, targets[0].width=%d&&&&&&\n", rc_.x, rc_.width);
-			// 目标在视野中，进入稳定跟踪状态 ..
+		else if (p_->isin_field(rc_, angle)) 
+		{
+			printf("turn_to_targ(isin_field) **************\n");
+			// 目标在视野中，进入稳定跟踪状态 ...
 			return ST_P1_Tracking;
 		}
-		else {
-			// 目标已经离开视野，则 set_pos .
+		else 
+		{
+			printf("turn_to_targ(notin_field) **************\n");
+			// 目标已经离开视野，则 set_pos ...
 			int x, y;	
-			//如果无法计算目标位置，继续返回搜索状态???????......
-			printf("turn_to_targ(calc_target_pos):targets[0].x=%d, targets[0].width=%d&&&&&&\n", rc_.x, rc_.width);
+			// 如果无法计算目标位置，继续返回搜索状态???....
 			if(!p_->calc_target_pos(rc_, &x, &y))
 			{
 				return ST_P1_Searching;
-			}
-			if(x < -110 || x >= 170)
-			{
-				printf(" x = %d***********************\n", x);
 			}
 			ptz_setpos(p_->ptz(), x, y, 36, 36);
 			p_->fsm()->push_event(new PtzCompleteEvent("teacher", "set_pos"));
@@ -455,27 +453,6 @@ public:
 		}
 	}
 };
-
-
-/** 处理 VGA */
-class p1_vga: public p1_common_state
-{
-public:
-	p1_vga(p1 *p1)
-		: p1_common_state(p1, ST_P1_Vga, "vga")
-	{
-	}
-
-	virtual int when_timeout(double curr)
-	{
-		if (curr > p_->vga_back()) {    // 检查是否vga 超时，超时则返回上一个状态 ..
-			return p_->vga_last_state();
-		}
-
-		return id();
-	}
-};
-
 
 /** 稳定跟踪状态 */
 class p1_tracking: public p1_common_state
@@ -488,28 +465,73 @@ public:
 
 	virtual int when_detection(DetectionEvent *e)
 	{
-		// 根据探测结果，当前云台位置，判断是否目标丢失 ....
+		// 根据探测结果，当前云台位置，判断是否目标丢失 ...
 		double angle;
 		std::vector<DetectionEvent::Rect> rcs = e->targets();
-		if (rcs.size() != 1) {
-			return ST_P1_Searching;
+		if (rcs.size() != 1) 
+		{
+			printf("p1_tracking(no rcs) **************\n");
+			ptz_stop(p_->ptz());//??? ...
+			return ST_P1_Searching;			
 		}
-		else {
+		else 
+		{
 			// 若在视野中，根据 angle 决定如何左右转 ..
 			int speed;
-			//若无法获取转动速度该返回哪个状态呢????????.....
-			if(!p_->ptz_speed(abs(angle), speed))
+			if (p_->isin_field(rcs[0], angle)) 
 			{
-				return ST_P1_Searching;
+				//若云台返回失败无法获取转动速度该返回哪个状态呢???...
+				if(!p_->ptz_speed(abs(angle), speed))
+				{
+					return id();
+				}
+				if (speed == 0)
+				{
+					printf("p1_tracking(isin_field) speed=0 **************\n");
+					ptz_stop(p_->ptz());
+				}				
+				else 
+				{
+					printf("p1_tracking(isin_field) angle=%f,speed=%d **************\n", angle, speed);
+					if (angle < 0) ptz_left(p_->ptz(), speed);
+					else ptz_right(p_->ptz(), speed);
+				}
+				return id();
 			}
-			if (speed == 0)
-				ptz_stop(p_->ptz());
-			else {
-				if (angle < 0) ptz_left(p_->ptz(), speed);
-				else ptz_right(p_->ptz(), speed);
+			else//目标不在视野中或云台返回失败... 
+			{
+				int x, y;
+				ptz_stop(p_->ptz());//???????...
+				if(!p_->calc_target_pos(rcs[0], &x, &y))
+				{
+					printf("p1_tracking(not isin_field searching) **************\n");
+					return ST_P1_Searching;
+				}
+
+				printf("p1_tracking(push event) **************\n");
+				ptz_setpos(p_->ptz(), x, y, 36, 36);
+				p_->fsm()->push_event(new PtzCompleteEvent("teacher", "set_pos"));
+				return ST_P1_Turnto_Target;
 			}
-			return id();
 		}
 	}
 };
 
+/** 处理 VGA */
+class p1_vga: public p1_common_state
+{
+public:
+	p1_vga(p1 *p1)
+		: p1_common_state(p1, ST_P1_Vga, "vga")
+	{
+	}
+
+	virtual int when_timeout(double curr)
+	{
+		if (curr > p_->vga_back()) 
+		{    // 检查是否vga 超时，超时则返回上一个状态 ..
+			return p_->vga_last_state();
+		}
+		return id();
+	}
+};
