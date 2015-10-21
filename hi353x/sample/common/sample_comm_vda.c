@@ -408,6 +408,33 @@ static HI_VOID Print_Time_Diff(struct timeval start)
 	diff =  1000000 * (current.tv_sec - start.tv_sec) + current.tv_usec - start.tv_usec;
 	printf("#######use time %dus\n", diff);
 }
+/*get file length*/
+// choice stat if file is large
+
+unsigned long get_file_length(FILE *fp)
+{
+	unsigned long length = -1;
+	if (NULL == fp)
+		return length;
+	fseek(fp, 0L, SEEK_END);
+	length = ftell(fp);
+	rewind(fp);
+	return length;
+}
+
+HI_VOID Send_Picture(VDA_CHN VdaChn, const char * filename)
+{
+	FILE *fp;
+	VIDEO_FRAME_INFO_S stVFrameInfo;
+	if ((fp = fopen(filename, "rb")) != NULL) {
+		SAMPLE_COMM_VI_GetVFrameFromYUV(fp, 960, 540, 960, &stVFrameInfo);
+		fclose(fp);
+	}
+	else
+		printf("###read file fail\n");
+	HI_MPI_VDA_UserSendPic(VdaChn, &stVFrameInfo, HI_TRUE, 0);
+}
+
 /******************************************************************************
 * funciton : start vda OD mode
 ******************************************************************************/
@@ -502,14 +529,14 @@ HI_S32 SAMPLE_COMM_VDA_OdStart(VDA_CHN VdaChn, VI_CHN ViChn, SIZE_S *pstSize)
     ********************************************/
 		
 	/* vda start rcv picture */
-//    s32Ret = HI_MPI_VDA_StartRecvPic(VdaChn);
-//
-//    if(s32Ret != HI_SUCCESS)
-//    {
-//        SAMPLE_PRT("err!\n");
-//        return(s32Ret);
-//    }
+    s32Ret = HI_MPI_VDA_StartRecvPic(VdaChn);
 
+    if(s32Ret != HI_SUCCESS)
+    {
+        SAMPLE_PRT("err!\n");
+        return(s32Ret);
+    }
+	Send_Picture(VdaChn, "./save003.yuv");	
     stSrcChn.enModId = HI_ID_VIU;
     stSrcChn.s32ChnId = ViChn;
 
@@ -525,23 +552,6 @@ HI_S32 SAMPLE_COMM_VDA_OdStart(VDA_CHN VdaChn, VI_CHN ViChn, SIZE_S *pstSize)
     }
 		
 	
-	/* vda start rcv picture */
-    s32Ret = HI_MPI_VDA_StartRecvPic(VdaChn);
-    if(s32Ret != HI_SUCCESS)
-    {
-        SAMPLE_PRT("err!\n");
-        return(s32Ret);
-    }
-	getchar();
-
-	s32Ret = HI_MPI_VDA_StopRecvPic(VdaChn);
-    if(s32Ret != HI_SUCCESS)
-    {
-        SAMPLE_PRT("err!\n");
-        return(s32Ret);
-    }
-	getchar();
-
 //	s32Ret = HI_MPI_VDA_StartRecvPic(VdaChn);
 //    if(s32Ret != HI_SUCCESS)
 //    {

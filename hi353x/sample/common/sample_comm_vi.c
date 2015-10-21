@@ -1251,6 +1251,7 @@ HI_S32 SAMPLE_COMM_VI_GetVFrameFromYUV(FILE *pYUVFile, HI_U32 u32Width, HI_U32 u
     }
 
     pstVFrameInfo->u32PoolId = HI_MPI_VB_Handle2PoolId(VbBlk);
+	printf("#### poolId = %d\n", pstVFrameInfo->u32PoolId);
     if (VB_INVALID_POOLID == pstVFrameInfo->u32PoolId)
     {
         return -1;
@@ -1271,7 +1272,7 @@ HI_S32 SAMPLE_COMM_VI_GetVFrameFromYUV(FILE *pYUVFile, HI_U32 u32Width, HI_U32 u
     pstVFrameInfo->stVFrame.u32Stride[1] = u32CStride;
     pstVFrameInfo->stVFrame.u32Stride[2] = u32CStride;
     pstVFrameInfo->stVFrame.enPixelFormat = PIXEL_FORMAT_YUV_SEMIPLANAR_420;
-    pstVFrameInfo->stVFrame.u32Field = VIDEO_FIELD_INTERLACED;/* Intelaced D1,otherwise VIDEO_FIELD_FRAME */
+    pstVFrameInfo->stVFrame.u32Field = VIDEO_FIELD_FRAME;/* Intelaced D1,otherwise VIDEO_FIELD_FRAME */
 
     /* read Y U V data from file to the addr ----------------------------------------------*/
     SAMPLE_COMM_VI_ReadFrame(pYUVFile, pstVFrameInfo->stVFrame.pVirAddr[0],
@@ -1286,6 +1287,8 @@ HI_S32 SAMPLE_COMM_VI_GetVFrameFromYUV(FILE *pYUVFile, HI_U32 u32Width, HI_U32 u
       pstVFrameInfo->stVFrame.u32Width, pstVFrameInfo->stVFrame.u32Height);
 
     HI_MPI_SYS_Munmap(pVirAddr, u32Size);
+	HI_MPI_VB_ReleaseBlock(VbBlk);
+    
     return 0;
 }
 
