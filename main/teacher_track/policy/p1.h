@@ -68,41 +68,45 @@ public:
 	kvconfig_t *cfg() const { return kvc_; }
 	FSM *fsm() const { return fsm_; }
 
+	// 根据目标矩形，计算需要转动的转数 ...
 	bool calc_target_pos(const DetectionEvent::Rect rc, int *x, int *y)
-	{
-		//根据目标矩形，计算需要转动的角度.
-		double t_x_angle = target_angle(rc);//目标偏离左边偏角;
+	{	
+		// 目标偏离左边偏角(弧度);
+		double t_x_angle = target_angle(rc);
+
+		// 云台偏离左边偏角(弧度);
 		double p_x_angle;
-		if(!ptz_angle(p_x_angle))//云台偏离左边偏角;
+		if(!ptz_angle(p_x_angle))
 		{
 			return false;
 		}
 
-		double need_x_angle = t_x_angle - p_x_angle;//云台需要转动的角度;
-		//printf("need_x_angle = %f, t_x_angle = %f, p_x_angle = %f&&&&&&&&&\n",need_x_angle, t_x_angle, p_x_angle);
-	    *x =  (need_x_angle * 180) / (min_angle_ratio_ * M_PI);//云台需要转动的转数;
+		//云台需要转动的角度(弧度);
+		double need_x_angle = t_x_angle - p_x_angle;
+		
+		//云台需要转动的转数;
+	    *x =  (need_x_angle * 180) / (min_angle_ratio_ * M_PI);
 		*y = cal_angle_.ptz_init_y;
 	}
 
+	// 返回当前云台视角(弧度) ...
 	bool view_angle(double &v_angle) const 
 	{
-		//返回当前云台视角(弧度) ...
 		int zoom;
 		if(ptz_getzoom(ptz_, &zoom) < 0)
 		{
 			return false;
 		}
-		printf("zoom = %d\n", zoom);
-		//double scale = ptz_ext_zoom2scales(ptz_, zoom);
-		double scale = 1.0;
+		double scale = ptz_ext_zoom2scales(ptz_, zoom);//????????? ...
+		//double scale = 1.0;
 		v_angle = view_angle_0_ / scale * (M_PI / 180.0);	
 
 		return true;
 	}
 
+	// 返回目标偏离“左边”偏角(弧度) ...
 	double target_angle(const DetectionEvent::Rect pos) const
-	{
-		//返回目标偏离“左边”偏角(弧度) ....
+	{		
 		double ang_left = (fabs)(cal_angle_.angle_left - cal_angle_.angle_init);
 		double ang_right = (fabs)(cal_angle_.angle_right - cal_angle_.angle_init);
 
@@ -114,37 +118,49 @@ public:
 
 		double mid_x = pos.x + pos.width / 2;
 
-		//printf("pos.x = %d, pos.y = %d, pos.width = %d, pos.height = %d&&&&&&&\n", pos.x, pos.y, pos.width, pos.height);
-
 		return angle;
 	}
 
+	// 返回云台当前偏离“左边”偏角(弧度) ...
 	bool ptz_angle(double &left_angle)
 	{
-		//返回云台当前偏离“左边”偏角(弧度) ...
 		int x, y;
-		if(ptz_getpos(ptz_, &x, &y)<0)
+		if(ptz_getpos(ptz_, &x, &y) < 0)
 		{
 			return false;
 		}
-		//printf("get_pos_x = %d, get_pos_y = %d&&&&&&&&&\n", x, y);
+	
 		/** FIXME: 有可能出现 h 小于 ptz_left_ 的情况，这个主要是因为云台的“齿数”未必精确 */
 		if (x < cal_angle_.ptz_left_x) x = cal_angle_.ptz_left_x;
+
 		left_angle = (x - cal_angle_.ptz_left_x) * min_angle_ratio_ * M_PI / 180.0;	// 转换为弧度;
 
 		return true;		
 	}
 
-	// 当 now() > vga_back() 时，vga 返回上个状态.
+	// vga 超时, 当 now() > vga_back() 时，vga 返回上个状态...
 	double vga_back() const { return vga_back_; }
+
 	int vga_last_state() const { return vga_last_state_; }
-	void set_vga(int last_state) // 触发 vga
+
+	// 触发 vga
+	void set_vga(int last_state) 
 	{
 		vga_back_ = now() + vga_wait_;
 		vga_last_state_ = last_state;
 	}
 
-	// 返回云台等待时间.
+	// 教师无目标超时云台复位 ...
+	bool is_reset_; // 是否已复位, 初始化为false ...
+	double reset_wait_; // 勿忘从配置文件中读取 ...
+	double reset_back_;
+	void set_cam_reset(double reset_wait)
+	{
+		is_reset_ = false;
+		reset_back_ = now() + reset_wait;
+	}
+
+	// 返回云台等待时间...
 	double ptz_wait() const { return ptz_wait_; }
 	int ptz_wait_next_state() const { return ptz_wait_next_state_; }
 	void set_ptz_wait(int next_state, double wait = 2.0) 
@@ -154,7 +170,7 @@ public:
 	}
 
 	// 返回目标是否在视野中，如果在，同时返回偏角...
-	//返回值angle:云台当前位置和应该指向的目标位置直接的夹角(弧度) ...
+	// 返回值angle:云台当前位置和目标之间夹角(弧度) ...
 	bool isin_field(const DetectionEvent::Rect pos, double &angle)
 	{
 		double ha_t;
@@ -167,16 +183,17 @@ public:
 		double pa;
 		if(!ptz_angle(pa))
 		{
-			angle = 0.0;//无法获取位置不要转动;
+			angle = 0.0;// 无法获取位置不要转动;
 			return false;
 		}
 		ptz_angle(pa);
+
 		double ta = target_angle(pos);
 		angle = ta - pa;
 		return pa - ha <= ta && ta <= ta + ha;
 	}
 
-	// 根据偏角，返回转动速度 ..
+	// 根据目标和云台之间偏角，返回转动速度 ...
 	bool ptz_speed(double angle, int &speed)
 	{
 		double ha_t;
@@ -185,10 +202,10 @@ public:
 			return false;
 		}
 		double ha = ha_t / 2.0;
-		double sa = ha / speeds_.size();	// 每段角度 ..
+		double sa = ha / speeds_.size();// 每段角度 ...
 		int idx = angle / sa;
 
-		/** XXX: 正常情况下（目标在视野中时），不会出现idx溢出，但; 
+		/* XXX: 正常情况下（目标在视野中时），不会出现idx溢出，但; 
 		  		还是加个保证吧 ... */
 		if (idx >= speeds_.size()) idx = idx = speeds_.size()-1;
 
@@ -200,29 +217,31 @@ public:
 private:
 	void load_speeds(const char *conf_str, std::vector<int> &speeds);
 
-	//读取标定区左右边界x坐标;
+	// 读取标定区左右边界x坐标...
 	void load_calibration_edge(Cal_Angle &cal_angle);
 
-	//读取初始化标定参数;
+	// 读取初始化标定参数...
 	void load_cal_angle(Cal_Angle &cal_angle);
 
 };
 
-/// 下面声明一大堆状态，和状态转换函数 ....
 
+// 下面声明一大堆状态，和状态转换函数 ...
 enum
 {
-	ST_P1_Staring,	// 启动后，等待云台归位.
-	ST_P1_PtzWaiting,	// 等待云台执行完成 ..
-	ST_P1_Waiting,	// 云台已经归位，开始等待udp启动通知.
+	ST_P1_Staring,	    // 启动后，等待云台归位.
+	ST_P1_PtzWaiting,	// 等待云台执行完成 .
+	ST_P1_Waiting,	    // 云台已经归位，开始等待udp启动通知.
 
 	ST_P1_Searching,	// 开始等待目标.
-	ST_P1_Turnto_Target, // 当找到目标后，转到云台指向目标.
-	ST_P1_Tracking,		// 正在平滑跟踪 ...
+	ST_P1_Turnto_Target,// 当找到目标后，转到云台指向目标.
+	ST_P1_Tracking,		// 正在平滑跟踪 .
 
-	ST_P1_Vga,		// vga，等待10秒后，返回上一个状态.
+	ST_P1_Turnto_Stufull,// 教师丢失目标一定时间转换到学生全景.
 
-	ST_P1_End,		// 结束 ..
+	ST_P1_Vga,		    // vga，等待10秒后，返回上一个状态.
+
+	ST_P1_End,		    // 结束 .
 };
 
 
@@ -273,33 +292,7 @@ protected:
 };
 
 
-/** 等待云台执行完成状态，保存上个状态，等待结束后，返回上个状态 ..
-  	此段时间内，不处理其他 ...
- */
-class p1_ptz_wait: public FSMState
-{
-	p1 *p_;
-	double ptz_back_;
-
-public:
-	p1_ptz_wait(p1 *p1)
-		: FSMState(ST_P1_PtzWaiting, "ptz wait")
-	{
-		p_ = p1;
-		ptz_back_ = now() + p_->ptz_wait();
-	}
-
-	virtual int when_timeout(double curr)
-	{
-		if (curr > ptz_back_)
-			return p_->ptz_wait_next_state();
-		return id();
-	}
-};
-
-
-/** 启动，等待云台归位.
- */
+/** 启动，等待云台归位...*/
 class p1_starting: public FSMState
 {
 	p1 *p_;
@@ -327,8 +320,31 @@ public:
 };
 
 
-/** 云台已经归位，等待udp通知启动 ...
- */
+/** 等待云台执行完成状态，保存上个状态，等待结束后，返回上个状态 ..
+  	此段时间内，不处理其他 ...*/
+class p1_ptz_wait: public FSMState
+{
+	p1 *p_;
+	double ptz_back_;
+
+public:
+	p1_ptz_wait(p1 *p1)
+		: FSMState(ST_P1_PtzWaiting, "ptz wait")
+	{
+		p_ = p1;
+		ptz_back_ = now() + p_->ptz_wait();
+	}
+
+	virtual int when_timeout(double curr)
+	{
+		if (curr > ptz_back_)
+			return p_->ptz_wait_next_state();
+		return id();
+	}
+};
+
+
+/** 云台已经归位，等待udp通知启动 ...*/
 class p1_waiting: public FSMState
 {
 	p1 *p_;
@@ -342,14 +358,14 @@ public:
 
 	virtual int when_timeout(double curr)
 	{
-		return ST_P1_Searching;
+		return ST_P1_Searching;//为了便于测试，改动过;
 	}
 
 	// 仅仅关心启动和退出事件.
 	virtual int when_udp(UdpEvent *e)
 	{
 		if (e->code() == UdpEvent::UDP_Start) {
-			return ST_P1_Searching; // 
+			return ST_P1_Searching; 
 		}
 		else if (e->code() == UdpEvent::UDP_Quit) {
 			return ST_P1_End; // 将结束主程序.
@@ -361,7 +377,7 @@ public:
 };
 
 
-/** 尚未找到目标，等待探测结果 */
+/** 尚未找到目标，等待探测结果 ... */
 class p1_searching: public p1_common_state
 {
 public:
@@ -373,7 +389,9 @@ public:
 	virtual int when_detection(DetectionEvent *e)
 	{
 		std::vector<DetectionEvent::Rect> targets = e->targets();
-		if (targets.size() == 1) {
+
+		if (targets.size() == 1) 
+		{
 			// 单个目标.
 			// set_pos 到目标，然后等待转到完成 ...
 			int x, y;
@@ -383,16 +401,65 @@ public:
 			{
 				return id();
 			}
+
 			ptz_setpos(p_->ptz(), x, y, 36, 36);
 			p_->fsm()->push_event(new PtzCompleteEvent("teacher", "set_pos"));
 			return ST_P1_Turnto_Target;
 		}
-		else {
+		else 
+		{
+			MovieScene ms = MS_SF;
+			ms_switch_to(ms);
+			//无目标云台复位计时开始...
+			p_->is_reset_ = false;
+			p_->set_cam_reset(p_->reset_wait_);
+			return ST_P1_Turnto_Stufull;
+		}
+	}
+};
+
+
+/** 教师无目标后转换到学生全景 ...*/
+class p1_turnto_stufull:public p1_common_state
+{
+public:
+	p1_turnto_stufull(p1 *p1)
+		: p1_common_state(p1, ST_P1_Turnto_Stufull, "turnto student full")
+	{
+
+	}
+	virtual int when_detection(DetectionEvent *e)
+	{
+		std::vector<DetectionEvent::Rect> targets = e->targets();
+
+		if(targets.size()  == 1)
+		{
+			return ST_P1_Searching;
+		}
+		else
+		{
+			// 教师无目标超时云台归位吗...
+			if(!p_->is_reset_)
+			{
+				double curr = now();
+				if(curr > p_->reset_back_)
+				{
+					int x0 = atoi(kvc_get(p_->cfg(), "ptz_init_x", "0"));
+					int y0 = atoi(kvc_get(p_->cfg(), "ptz_init_y", "0"));
+					int z0 = atoi(kvc_get(p_->cfg(), "ptz_init_z", "5000"));
+
+					ptz_setpos(p_->ptz(), x0, y0, 36, 36);	// 快速归位.
+					ptz_setzoom(p_->ptz(), z0);	// 初始倍率.
+					p_->is_reset_ = true; // 云台已归位，下次无需再次归位.
+				}
+			}		
 			return id();
 		}
 	}
 };
 
+
+/** 找到目标，转向目标 */
 class p1_turnto_target: public p1_common_state
 {
 	bool target_valid_;// 目标是否有效.
@@ -429,6 +496,7 @@ public:
 		if (!target_valid_) 
 		{
 			// 目标丢失 ...
+			ptz_stop(p_->ptz());//应该是可加可不加...
 			return ST_P1_Searching;
 		}
 		else if (p_->isin_field(rc_, angle)) 
@@ -453,6 +521,7 @@ public:
 		}
 	}
 };
+
 
 /** 稳定跟踪状态 */
 class p1_tracking: public p1_common_state
@@ -500,10 +569,10 @@ public:
 			}
 			else//目标不在视野中或云台返回失败... 
 			{
-				int x, y;
-				ptz_stop(p_->ptz());//???????...
+				int x, y;				
 				if(!p_->calc_target_pos(rcs[0], &x, &y))
 				{
+					ptz_stop(p_->ptz());//???????...
 					printf("p1_tracking(not isin_field searching) **************\n");
 					return ST_P1_Searching;
 				}
@@ -517,7 +586,8 @@ public:
 	}
 };
 
-/** 处理 VGA */
+
+/** 处理 VGA ...*/
 class p1_vga: public p1_common_state
 {
 public:
@@ -529,7 +599,7 @@ public:
 	virtual int when_timeout(double curr)
 	{
 		if (curr > p_->vga_back()) 
-		{    // 检查是否vga 超时，超时则返回上一个状态 ..
+		{    // 检查是否vga 超时，超时则返回上一个状态 ...
 			return p_->vga_last_state();
 		}
 		return id();
