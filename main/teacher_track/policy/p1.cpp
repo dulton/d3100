@@ -13,15 +13,16 @@ p1::p1(const char *fname)
 		fatal("p1", "can't open ptz of '%s'\n", ptz_url);
 	}
 
-	vga_wait_ = atof(kvc_get(kvc_, "vga_wait", "10.0"));
-	ptz_wait_ = atof(kvc_get(kvc_, "ptz_wait", "2.0"));
+	vga_wait_ = atof(kvc_get(kvc_, "vga_wait", "10.0"));    // vga超时时间...
+	ptz_wait_ = atof(kvc_get(kvc_, "ptz_wait", "2.0"));     // 云台转动时间...
+	reset_wait_ = atof(kvc_get(kvc_, "reset_wait", "5.0")); // 老师云台无目标复位时间...
 
 	view_angle_0_ = atof(kvc_get(kvc_, "cam_trace_view_angle_hori", "55.0"));
 	min_angle_ratio_ = atof(kvc_get(kvc_, "cam_trace_min_hangle", "0.075"));
 
 	load_cal_angle(cal_angle_);
 
-	load_speeds(kvc_get(kvc_, "ptz_speeds", "0,1,3,6,10"), speeds_);
+	load_speeds(kvc_get(kvc_, "ptz_speeds", "0,1,3,7,10"), speeds_);
 
 	// 构造状态转换表 ...
 	std::vector<FSMState*> states;

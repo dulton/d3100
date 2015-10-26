@@ -36,13 +36,13 @@ protected:
 };
 
 
-/** 声明已知的事件类型.
+/** 声明已知的事件类型...
   	
   	TODO: 具体参数以后再加 ...
  */
 
 // 云台完成事件.
-//    new PtzCompleteEvent("teacher", "setpos");
+// new PtzCompleteEvent("teacher", "setpos");
 //	  ...
 #define EVT_PTZ_Completed -2
 class PtzCompleteEvent: public FSMEvent
@@ -141,7 +141,7 @@ public:
 	/** 当进入该状态时调用，last_state_id 为上个状态，如果等于当前，则说明是第一个状态 */
 	virtual void when_enter(int last_state_id) { }
 
-	/** 当离开改状态时调用 */
+	/** 当离开该状态时调用 */
 	virtual void when_leave(int next_state_id) { }
 
 	virtual int when_timeout(double curr_stamp) { return id_; }
@@ -261,11 +261,9 @@ private:
 			evt = fifo_udp_.front();
 			fifo_udp_.pop_front();
 		}
-		else if (!fifo_ptz_complete_.empty()) {
-			if (curr >= fifo_ptz_complete_.front().first) {
-				evt = fifo_ptz_complete_.front().second;
-				fifo_ptz_complete_.pop_front();
-			}
+		else if (!fifo_ptz_complete_.empty() && curr >= fifo_ptz_complete_.front().first) {
+			evt = fifo_ptz_complete_.front().second;
+			fifo_ptz_complete_.pop_front();
 		}
 		else if (!fifo_detection_.empty()) {
 			evt = fifo_detection_.front();
