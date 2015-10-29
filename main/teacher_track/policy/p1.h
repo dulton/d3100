@@ -69,24 +69,17 @@ public:
 	FSM *fsm() const { return fsm_; }
 
 	// 根据目标矩形，计算需要转动的转数 ...
-	bool calc_target_pos(const DetectionEvent::Rect rc, int *x, int *y)
+	void calc_target_pos(const DetectionEvent::Rect rc, int *x, int *y)
 	{	
 		// 目标偏离左边偏角(弧度);
 		double t_x_angle = target_angle(rc);
-
-		// 云台偏离左边偏角(弧度);
-		double p_x_angle;
-		if(!ptz_angle(p_x_angle))
-		{
-			return false;
-		}
-
-		//云台需要转动的角度(弧度);
-		double need_x_angle = t_x_angle - p_x_angle;
 		
-		//云台需要转动的转数;
+		// 云台需要转动的角度(弧度);
+		double need_x_angle = t_x_angle + cal_angle_.angle_left;
+
+		// 云台需要转动的转数;
 	    *x =  (need_x_angle * 180) / (min_angle_ratio_ * M_PI);
-		*y = cal_angle_.ptz_init_y;
+		*y = 0;
 	}
 
 	// 返回当前云台视角(弧度) ...
@@ -97,8 +90,7 @@ public:
 		{
 			return false;
 		}
-		double scale = ptz_ext_zoom2scales(ptz_, zoom);//????????? ...
-		//double scale = 1.0;
+		double scale = ptz_ext_zoom2scales(ptz_, zoom);
 		v_angle = view_angle_0_ / scale * (M_PI / 180.0);	
 
 		return true;
@@ -186,10 +178,11 @@ public:
 			angle = 0.0;// 无法获取位置不要转动;
 			return false;
 		}
-		ptz_angle(pa);
+		ptz_angle(pa);	
 
 		double ta = target_angle(pos);
 		angle = ta - pa;
+	
 		return pa - ha <= ta && ta <= ta + ha;
 	}
 
@@ -397,14 +390,38 @@ public:
 			int x, y;
 			//无法计算转动角度继续搜索状态...
 			printf("searching:targets[0].x = %d, targets[0].width = %d&&&&&&\n", targets[0].x, targets[0].width);
-			if(!p_->calc_target_pos(targets[0], &x, &y))
-			{
-				return id();
-			}
+			p_->calc_target_pos(targets[0], &x, &y);
 
-			ptz_setpos(p_->ptz(), x, y, 36, 36);
+			ptz_setpos(p_->ptz(), x, y, 20, 20);
+
 			p_->fsm()->push_event(new PtzCompleteEvent("teacher", "set_pos"));
 			return ST_P1_Turnto_Target;
+			//===========================
+			//该状态也要考虑目标远近采用不同的速度...
+			//如果都采用大速度的话会出现转过的现象...
+			//int x, y;
+			//p_->calc_target_pos(targets[0], &x, &y);
+
+			//double angle;
+			//p_->isin_field(targets[0], angle); 	
+
+			//int speed;
+			//if(!p_->ptz_speed(abs(angle), speed))//不在视野内的话speed用最大值;
+			//{
+			//	return id();
+			//}
+			//if (speed == 0)
+			//{
+			//	ptz_stop(p_->ptz());
+			//}				
+			//else 
+			//{
+			//	ptz_setpos(p_->ptz(), x, y, speed, speed);
+			//}
+
+			//p_->fsm()->push_event(new PtzCompleteEvent("teacher", "set_pos"));
+
+			//return ST_P1_Turnto_Target;
 		}
 		else 
 		{
@@ -449,7 +466,7 @@ public:
 					int z0 = atoi(kvc_get(p_->cfg(), "ptz_init_z", "5000"));
 
 					ptz_setpos(p_->ptz(), x0, y0, 36, 36);	// 快速归位.
-					ptz_setzoom(p_->ptz(), z0);	// 初始倍率.
+					//ptz_setzoom(p_->ptz(), z0);	// 初始倍率.
 					p_->is_reset_ = true; // 云台已归位，下次无需再次归位.
 				}
 			}		
@@ -477,7 +494,6 @@ public:
 		std::vector<DetectionEvent::Rect> rcs = e->targets();
 		if (rcs.size() == 1) 
 		{
-			printf("turn_to_targ:targets[0].x=%d, targets[0].width=%d&&&&&&\n", rcs[0].x, rcs[0].width);
 			target_valid_ = 1;
 			rc_ = rcs[0];
 		}
@@ -511,11 +527,8 @@ public:
 			// 目标已经离开视野，则 set_pos ...
 			int x, y;	
 			// 如果无法计算目标位置，继续返回搜索状态???....
-			if(!p_->calc_target_pos(rc_, &x, &y))
-			{
-				return ST_P1_Searching;
-			}
-			ptz_setpos(p_->ptz(), x, y, 36, 36);
+			p_->calc_target_pos(rc_, &x, &y);
+			ptz_setpos(p_->ptz(), x, y, 20, 20);
 			p_->fsm()->push_event(new PtzCompleteEvent("teacher", "set_pos"));
 			return ST_P1_Turnto_Target;
 		}
@@ -567,18 +580,12 @@ public:
 				}
 				return id();
 			}
-			else//目标不在视野中或云台返回失败... 
+			else//目标不在视野中... 
 			{
 				int x, y;				
-				if(!p_->calc_target_pos(rcs[0], &x, &y))
-				{
-					ptz_stop(p_->ptz());//???????...
-					printf("p1_tracking(not isin_field searching) **************\n");
-					return ST_P1_Searching;
-				}
+				p_->calc_target_pos(rcs[0], &x, &y);
+				ptz_setpos(p_->ptz(), x, y, 20, 20);
 
-				printf("p1_tracking(push event) **************\n");
-				ptz_setpos(p_->ptz(), x, y, 36, 36);
 				p_->fsm()->push_event(new PtzCompleteEvent("teacher", "set_pos"));
 				return ST_P1_Turnto_Target;
 			}
@@ -599,7 +606,8 @@ public:
 	virtual int when_timeout(double curr)
 	{
 		if (curr > p_->vga_back()) 
-		{    // 检查是否vga 超时，超时则返回上一个状态 ...
+		{    
+			// 检查是否vga 超时，超时则返回上一个状态 ...
 			return p_->vga_last_state();
 		}
 		return id();

@@ -30,6 +30,7 @@ p1::p1(const char *fname)
 	states.push_back(new p1_waiting(this));
 	states.push_back(new p1_vga(this));
 	states.push_back(new p1_searching(this));
+	states.push_back(new p1_turnto_stufull(this));
 	states.push_back(new p1_turnto_target(this));
 	states.push_back(new p1_tracking(this));
 	states.push_back(new p1_ptz_wait(this));
@@ -71,7 +72,7 @@ void p1::load_speeds(const char *s, std::vector<int> &speeds)
 		speeds.push_back(0);
 		speeds.push_back(1);
 		speeds.push_back(3);
-		speeds.push_back(6);
+		speeds.push_back(7);
 		speeds.push_back(10);
 	}
 }
