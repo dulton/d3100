@@ -1,8 +1,11 @@
 #pragma once
-#ifdef __cplusplus
-extern "C" {
-#endif
-#include "hi_comm_vb.h"
+
+#include <pthread.h>
+#include <string>
+
+//#ifdef __cplusplus
+//extern "C" {
+//#endif
 
 #define SYS_ALIGN_WIDTH 16
 #define PRT_ERR(fmt...) \
@@ -16,8 +19,6 @@ extern "C" {
 #define VI_SUBCHN_2_W 720
 #define VI_SUBCHN_2_H  640
 
-#include <pthread.h>
-#include <string>
 
 typedef struct point_t
 {
@@ -41,7 +42,7 @@ typedef struct detect_t
 
 
 
-type def enum vi_mode_e
+typedef enum vi_mode_e
 {
 	VI_MODE_16_Cif,
 	VI_MODE_4_720P,
@@ -86,6 +87,6 @@ void  comm_vda_odstop(int  vda_chn, int  vi_chn);
 int comm_vi_stop(VI_MODE_E vi_mode);
 
 void comm_sys_exit(void);
-#ifdef __cplusplus
-}
-#endif
+//#ifdef __cplusplus
+//}
+//#endif

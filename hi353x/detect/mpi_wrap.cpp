@@ -15,12 +15,6 @@
 
 #define VDA_OD_CHN 1
 
-typedef struct hiVDA_OD_PARAM_S
-{
-    HI_BOOL bThreadStart;
-    VDA_CHN VdaChn;
-}VDA_OD_PARAM_S;
-
 static int now()
 {
 	struct timeval current;
