@@ -5,7 +5,7 @@
 #include <string>	
 #include <sstream>
 /* 获取目标 转换成 json字符串 */	
-std::string get_aims_str(bool *arms, point *centers, int stamp)
+static std::string get_aims_str(bool *arms, point *centers, int stamp)
 {
 	int i;
 	std::stringstream ss;
