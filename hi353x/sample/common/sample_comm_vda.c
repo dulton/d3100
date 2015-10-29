@@ -408,6 +408,13 @@ static HI_VOID Print_Time_Diff(struct timeval start)
 	diff =  1000000 * (current.tv_sec - start.tv_sec) + current.tv_usec - start.tv_usec;
 	printf("#######use time %dus\n", diff);
 }
+
+static int now()
+{
+	struct timeval current;
+	gettimeofday(&current, NULL);
+	return current.tv_sec*1000*1000 + current.tv_usec;
+}
 /*get file length*/
 // choice stat if file is large
 

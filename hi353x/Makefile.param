@@ -42,31 +42,6 @@ ifeq ($(HIARCH),hi3531)
 	export ARCH_DIR?=hi3531
 endif
 
-ifeq ($(HIARCH),hi3532)
-	export HICHIP?=0x35320100
-	export ARCH_DIR?=hi3531
-endif
-
-ifeq ($(HIARCH),hi3521)
-	export HICHIP?=0x35210100
-	export ARCH_DIR?=hi3521
-endif
-
-ifeq ($(HIARCH),hi3520A)
-	export HICHIP?=0x3520A100
-	export ARCH_DIR?=hi3521
-endif
-
-ifeq ($(HIARCH),hi3520D)
-	export HICHIP?=0x3520D100
-	export ARCH_DIR?=hi3520D
-endif
-
-ifeq ($(HIARCH),hi3518)
-	export HICHIP?=0x35180100
-	export ARCH_DIR?=hi3518
-endif
-
 # use C01 to indicate uclibc, C02 to  indicate glibc, C00 to indicate FPGA.
 ifeq ($(LIBC),glibc)
 	export CVER?=.C02

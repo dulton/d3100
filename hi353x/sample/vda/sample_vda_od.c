@@ -149,7 +149,6 @@ int main(int argc, char *argv[])
     getchar();
 
     SAMPLE_COMM_VDA_OdStop(VdaChn_Od, ViChn_Od);
-//	SAMPLE_COMM_VDA_OdStop(2, ViChn_Od);
     SAMPLE_COMM_VI_Stop(enViMode);
 END0:
     SAMPLE_COMM_SYS_Exit();

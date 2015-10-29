@@ -9,9 +9,26 @@ typedef struct hiVDA_OD_PARAM_S
     VDA_CHN VdaChn;
 }VDA_OD_PARAM_S;
 
-static pthread_t gs_VdaPid[2];
-static VDA_OD_PARAM_S gs_stOdParam;
+static int now()
+{
+	struct timeval current;
+	gettimeofday(&current, NULL);
+	return current.tv_sec*1000*1000 + current.tv_usec;
+}
 
+void comm_set_commvb_paras(VB_CONF_S *vb_conf)
+{
+	// XXXX:写死还是通过配置文件？
+	vb_conf.u32MaxPoolCnt = 256;
+	vb_conf.astCommPool[0].u32BlkSize = 1920 * 1080;
+	vb_conf.astCommPool[0].u32BlkCnt = 8;
+	vb_conf.astCommPool[0].acMmzName[0] = '\0';
+
+	vb_conf.astCommPool[1].u32BlkSize = 1920 * 1080;
+	vb_conf.astCommPool[1].u32BlkSize = 8;
+	strcpy(vb_conf.astCommPool[1].acMmzName, "ddr1");
+
+}
 
 int comm_sys_init(VB_CONF_S *pvb_conf)
 {
@@ -129,29 +146,29 @@ int comm_vi_start(VI_MODE_E vi_mode, VIDEO_NORM_E norm)
     VI_DEV ViDev;
     VI_CHN ViChn, vichn_sub;
     HI_S32 i;
-    HI_S32 s32Ret;
+    HI_S32 ret;
     VI_PARAM_S stViParam;
     SIZE_S stMainTargetSize;
     SIZE_S stSubTargetSize;
     RECT_S stCapRect;
     
     /*** get parameter from Sample_Vi_Mode ***/
-    s32Ret = comm_vi_mode2param(vi_mode, &stViParam);
-    if (HI_SUCCESS !=s32Ret)
+    ret = comm_vi_mode2param(vi_mode, &stViParam);
+    if (HI_SUCCESS !=ret)
     {
         PRT_ERR("vi get param failed!\n");
         return HI_FAILURE;
     }
-    s32Ret = comm_vi_mode2size(vi_mode, norm, &stCapRect, &stMainTargetSize);
-    if (HI_SUCCESS !=s32Ret)
+    ret = comm_vi_mode2size(vi_mode, norm, &stCapRect, &stMainTargetSize);
+    if (HI_SUCCESS !=ret)
     {
         PRT_ERR("vi get size failed!\n");
         return HI_FAILURE;
     }
     
     /*** Start AD ***/
-    s32Ret = comm_vi_adstart(vi_mode, norm);
-    if (HI_SUCCESS !=s32Ret)
+    ret = comm_vi_adstart(vi_mode, norm);
+    if (HI_SUCCESS !=ret)
     {
         PRT_ERR("Start AD failed!\n");
         return HI_FAILURE;
@@ -161,10 +178,10 @@ int comm_vi_start(VI_MODE_E vi_mode, VIDEO_NORM_E norm)
     for(i=0; i<stViParam.s32ViDevCnt; i++)
     {
         ViDev = i * stViParam.s32ViDevInterval;
-        s32Ret = comm_vi_startdev(ViDev, vi_mode);
-        if (HI_SUCCESS != s32Ret)
+        ret = comm_vi_startdev(ViDev, vi_mode);
+        if (HI_SUCCESS != ret)
         {
-            PRT_ERR("comm_vi_startdev failed with %#x\n", s32Ret);
+            PRT_ERR("comm_vi_startdev failed with %#x\n", ret);
             return HI_FAILURE;
         }
     }
@@ -174,10 +191,10 @@ int comm_vi_start(VI_MODE_E vi_mode, VIDEO_NORM_E norm)
     {
         ViChn = i * stViParam.s32ViChnInterval;
         
-        s32Ret = comm_vi_startchn(ViChn, &stCapRect, &stMainTargetSize, vi_mode, VI_CHN_SET_NORMAL);
-        if (HI_SUCCESS != s32Ret)
+        ret = comm_vi_startchn(ViChn, &stCapRect, &stMainTargetSize, vi_mode, VI_CHN_SET_NORMAL);
+        if (HI_SUCCESS != ret)
         {
-            PRT_ERR("call comm_vi_starchn failed with %#x\n", s32Ret);
+            PRT_ERR("call comm_vi_starchn failed with %#x\n", ret);
             return HI_FAILURE;
         } 
         /* HD mode, we will start vi sub-chn */
@@ -185,15 +202,15 @@ int comm_vi_start(VI_MODE_E vi_mode, VIDEO_NORM_E norm)
         {
 			PRT_ERR("--- to start subch %d\n", SUBCHN(ViChn));
             vichn_sub = SUBCHN(ViChn);
-            s32Ret = comm_vi_getsubchnsize(vichn_sub, norm, &stSubTargetSize);
-            if (HI_SUCCESS != s32Ret)
+            ret = comm_vi_getsubchnsize(vichn_sub, norm, &stSubTargetSize);
+            if (HI_SUCCESS != ret)
             {
                 PRT_ERR("comm_vi_getsubchnsize(%d) failed!\n", vichn_sub);
                 return HI_FAILURE;
             }
 			PRT_ERR("\tsize=%d-%d\n", stSubTargetSize.u32Width, stSubTargetSize.u32Height);
-            s32Ret = comm_vi_startchn(vichn_sub, &stCapRect, &stSubTargetSize,vi_mode, VI_CHN_SET_NORMAL);
-            if (HI_SUCCESS != s32Ret)
+            ret = comm_vi_startchn(vichn_sub, &stCapRect, &stSubTargetSize,vi_mode, VI_CHN_SET_NORMAL);
+            if (HI_SUCCESS != ret)
             {
                 PRT_ERR("comm_vi_startchn (Sub_Chn-%d) failed!\n", vichn_sub);
                 return HI_FAILURE;
@@ -204,12 +221,155 @@ int comm_vi_start(VI_MODE_E vi_mode, VIDEO_NORM_E norm)
     return HI_SUCCESS;
 }
 
-int comm_vda_odstart(int vda_chn, int  vi_chn, SIZE_S *pstSize)
+static void  comm_vi_readframe(FILE * fp, HI_U8 * pY, HI_U8 * pU, HI_U8 * pV, HI_U32 width, HI_U32 height, HI_U32 stride, HI_U32 stride2)
 {
-	char c = 'v';
+    HI_U8 * pDst;
+
+    HI_U32 u32Row;
+
+    pDst = pY;
+    for ( u32Row = 0; u32Row < height; u32Row++ )
+    {
+        fread( pDst, width, 1, fp );
+        pDst += stride;
+    }
+
+    pDst = pU;
+    for ( u32Row = 0; u32Row < height/2; u32Row++ )
+    {
+        fread( pDst, width/2, 1, fp );
+        pDst += stride2;
+    }
+
+    pDst = pV;
+    for ( u32Row = 0; u32Row < height/2; u32Row++ )
+    {
+        fread( pDst, width/2, 1, fp );
+        pDst += stride2;
+    }
+}
+
+static int  comm_vi_plantosemi(HI_U8 *pY, HI_S32 yStride,
+                       HI_U8 *pU, HI_S32 uStride,
+                       HI_U8 *pV, HI_S32 vStride,
+                       HI_S32 picWidth, HI_S32 picHeight)
+{
+    HI_S32 i;
+    HI_U8* pTmpU, *ptu;
+    HI_U8* pTmpV, *ptv;
+    HI_S32 s32HafW = uStride >>1 ;
+    HI_S32 s32HafH = picHeight >>1 ;
+    HI_S32 s32Size = s32HafW*s32HafH;
+
+    pTmpU = malloc( s32Size ); ptu = pTmpU;
+    pTmpV = malloc( s32Size ); ptv = pTmpV;
+
+    memcpy(pTmpU,pU,s32Size);
+    memcpy(pTmpV,pV,s32Size);
+
+    for(i = 0;i<s32Size>>1;i++)
+    {
+        *pU++ = *pTmpV++;
+        *pU++ = *pTmpU++;
+
+    }
+    for(i = 0;i<s32Size>>1;i++)
+    {
+        *pV++ = *pTmpV++;
+        *pV++ = *pTmpU++;
+    }
+
+    free( ptu );
+    free( ptv );
+
+    return HI_SUCCESS;
+}
+
+static int  comm_vi_getvframefromyuv(FILE *pYUVFile, HI_U32 u32Width, HI_U32 u32Height,HI_U32 u32Stride, VIDEO_FRAME_INFO_S *pstVFrameInfo)
+{
+    HI_U32             u32LStride;
+    HI_U32             u32CStride;
+    HI_U32             u32LumaSize;
+    HI_U32             u32ChrmSize;
+    HI_U32             u32Size;
+    VB_BLK VbBlk;
+    HI_U32 u32PhyAddr;
+    HI_U8 *pVirAddr;
+
+    u32LStride  = u32Stride;
+    u32CStride  = u32Stride;
+
+    u32LumaSize = (u32LStride * u32Height);
+    u32ChrmSize = (u32CStride * u32Height) >> 2;/* YUV 420 */
+    u32Size = u32LumaSize + (u32ChrmSize << 1);
+
+    /* alloc video buffer block ---------------------------------------------------------- */
+    VbBlk = HI_MPI_VB_GetBlock(VB_INVALID_POOLID, u32Size, NULL);
+    if (VB_INVALID_HANDLE == VbBlk)
+    {
+        PRT_ERR("HI_MPI_VB_GetBlock err! size:%d\n",u32Size);
+        return -1;
+    }
+    u32PhyAddr = HI_MPI_VB_Handle2PhysAddr(VbBlk);
+    if (0 == u32PhyAddr)
+    {
+        return -1;
+    }
+
+    pVirAddr = (HI_U8 *) HI_MPI_SYS_Mmap(u32PhyAddr, u32Size);
+    if (NULL == pVirAddr)
+    {
+        return -1;
+    }
+
+    pstVFrameInfo->u32PoolId = HI_MPI_VB_Handle2PoolId(VbBlk);
+	printf("#### poolId = %d\n", pstVFrameInfo->u32PoolId);
+    if (VB_INVALID_POOLID == pstVFrameInfo->u32PoolId)
+    {
+        return -1;
+    }
+    PRT_ERR("pool id :%d, phyAddr:%x,virAddr:%x\n" ,pstVFrameInfo->u32PoolId,u32PhyAddr,(int)pVirAddr);
+
+    pstVFrameInfo->stVFrame.u32PhyAddr[0] = u32PhyAddr;
+    pstVFrameInfo->stVFrame.u32PhyAddr[1] = pstVFrameInfo->stVFrame.u32PhyAddr[0] + u32LumaSize;
+    pstVFrameInfo->stVFrame.u32PhyAddr[2] = pstVFrameInfo->stVFrame.u32PhyAddr[1] + u32ChrmSize;
+
+    pstVFrameInfo->stVFrame.pVirAddr[0] = pVirAddr;
+    pstVFrameInfo->stVFrame.pVirAddr[1] = pstVFrameInfo->stVFrame.pVirAddr[0] + u32LumaSize;
+    pstVFrameInfo->stVFrame.pVirAddr[2] = pstVFrameInfo->stVFrame.pVirAddr[1] + u32ChrmSize;
+
+    pstVFrameInfo->stVFrame.u32Width  = u32Width;
+    pstVFrameInfo->stVFrame.u32Height = u32Height;
+    pstVFrameInfo->stVFrame.u32Stride[0] = u32LStride;
+    pstVFrameInfo->stVFrame.u32Stride[1] = u32CStride;
+    pstVFrameInfo->stVFrame.u32Stride[2] = u32CStride;
+    pstVFrameInfo->stVFrame.enPixelFormat = PIXEL_FORMAT_YUV_SEMIPLANAR_420;
+    pstVFrameInfo->stVFrame.u32Field = VIDEO_FIELD_FRAME;/* Intelaced D1,otherwise VIDEO_FIELD_FRAME */
+
+    /* read Y U V data from file to the addr ----------------------------------------------*/
+       comm_vi_readframe(pYUVFile, pstVFrameInfo->stVFrame.pVirAddr[0],
+       pstVFrameInfo->stVFrame.pVirAddr[1], pstVFrameInfo->stVFrame.pVirAddr[2],
+       pstVFrameInfo->stVFrame.u32Width, pstVFrameInfo->stVFrame.u32Height,
+       pstVFrameInfo->stVFrame.u32Stride[0], pstVFrameInfo->stVFrame.u32Stride[1] >> 1 );
+
+    /* convert planar YUV420 to sem-planar YUV420 -----------------------------------------*/
+  	  comm_vi_plantosemi(pstVFrameInfo->stVFrame.pVirAddr[0], pstVFrameInfo->stVFrame.u32Stride[0],
+      pstVFrameInfo->stVFrame.pVirAddr[1], pstVFrameInfo->stVFrame.u32Stride[1],
+      pstVFrameInfo->stVFrame.pVirAddr[2], pstVFrameInfo->stVFrame.u32Stride[1],
+      pstVFrameInfo->stVFrame.u32Width, pstVFrameInfo->stVFrame.u32Height);
+
+    HI_MPI_SYS_Munmap(pVirAddr, u32Size);
+	HI_MPI_VB_ReleaseBlock(VbBlk);
+    
+    return 0;
+}
+
+int comm_create_vda_channel();
+int comm_vda_odstart(int vda_chn, int  vi_chn, SIZE_S *pstSize, detect_t *det)
+{
     VDA_CHN_ATTR_S stVdaChnAttr;
     MPP_CHN_S stSrcChn, stDestChn;
-    HI_S32 s32Ret = HI_SUCCESS;
+    HI_S32 ret = HI_SUCCESS;
     
     if (VDA_MAX_WIDTH < pstSize->u32Width || VDA_MAX_HEIGHT < pstSize->u32Height)
     {
@@ -243,11 +403,11 @@ int comm_vda_odstart(int vda_chn, int  vi_chn, SIZE_S *pstSize)
     stVdaChnAttr.unAttr.stOdAttr.astOdRgnAttr[0].u32OccCntTh   = 1;
     stVdaChnAttr.unAttr.stOdAttr.astOdRgnAttr[0].u32UnOccCntTh = 0;
 	
-    s32Ret = HI_MPI_VDA_CreateChn(vda_chn, &stVdaChnAttr);
-    if(s32Ret != HI_SUCCESS)
+    ret = HI_MPI_VDA_CreateChn(vda_chn, &stVdaChnAttr);
+    if(ret != HI_SUCCESS)
     {
         PRT_ERR("err!\n");
-        return(s32Ret);
+        return(ret);
     }
 
     /********************************************
@@ -255,12 +415,12 @@ int comm_vda_odstart(int vda_chn, int  vi_chn, SIZE_S *pstSize)
     ********************************************/
 		
 	/* vda start rcv picture */
-    s32Ret = HI_MPI_VDA_StartRecvPic(vda_chn);
+    ret = HI_MPI_VDA_StartRecvPic(vda_chn);
 
-    if(s32Ret != HI_SUCCESS)
+    if(ret != HI_SUCCESS)
     {
         PRT_ERR("err!\n");
-        return(s32Ret);
+        return(ret);
     }
 	Send_Picture(vda_chn, "./save003.yuv");	
     stSrcChn.enModId = HI_ID_VIU;
@@ -270,24 +430,29 @@ int comm_vda_odstart(int vda_chn, int  vi_chn, SIZE_S *pstSize)
     stDestChn.s32ChnId = vda_chn;
 	stDestChn.s32DevId = 0;
 
-    s32Ret = HI_MPI_SYS_Bind(&stSrcChn, &stDestChn);
-    if(s32Ret != HI_SUCCESS)
+    ret = HI_MPI_SYS_Bind(&stSrcChn, &stDestChn);
+    if(ret != HI_SUCCESS)
     {
         PRT_ERR("err!\n");
-        return s32Ret;
+        return ret;
     }
 		
+    det->is_quit = false;
+    det->vda_chn   = vda_chn;
+	int ret = pthread_mutex_init(&det->mutex, NULL);
+	if (0 != ret){
+		perror("Mutex initialization failed");
+		comm_sys_exit();
+	}
 	
-    gs_stOdParam.bThreadStart = HI_TRUE;
-    gs_stOdParam.VdaChn   = vda_chn;
-    pthread_create(&gs_VdaPid[VDA_OD_CHN], 0, comm_vda_odgetresult, (HI_VOID *)&gs_stOdParam);
+    pthread_create(&(det->thread_id), 0, comm_vda_odgetresult, (HI_VOID *)det);
 
     return HI_SUCCESS;
 }
 
 void comm_vda_odstop(VDA_CHN VdaChn, VI_CHN ViChn)
 {
-    HI_S32 s32Ret = HI_SUCCESS;
+    HI_S32 ret = HI_SUCCESS;
     MPP_CHN_S stSrcChn, stDestChn;
 
     /* join thread */
@@ -298,10 +463,10 @@ void comm_vda_odstop(VDA_CHN VdaChn, VI_CHN ViChn)
     }
 	
     /* vda stop recv picture */
-    s32Ret = HI_MPI_VDA_StopRecvPic(VdaChn);
-    if(s32Ret != HI_SUCCESS)
+    ret = HI_MPI_VDA_StopRecvPic(VdaChn);
+    if(ret != HI_SUCCESS)
     {
-        PRT_ERR("err(0x%x)!!!!\n", s32Ret);
+        PRT_ERR("err(0x%x)!!!!\n", ret);
     }
 
     /* unbind vda chn & vi chn */
@@ -311,17 +476,17 @@ void comm_vda_odstop(VDA_CHN VdaChn, VI_CHN ViChn)
     stDestChn.enModId = HI_ID_VDA;
     stDestChn.s32ChnId = VdaChn;
     stDestChn.s32DevId = 0;
-    s32Ret = HI_MPI_SYS_UnBind(&stSrcChn, &stDestChn);
-    if(s32Ret != HI_SUCCESS)
+    ret = HI_MPI_SYS_UnBind(&stSrcChn, &stDestChn);
+    if(ret != HI_SUCCESS)
     {
-        PRT_ERR("err(0x%x)!!!!\n", s32Ret);
+        PRT_ERR("err(0x%x)!!!!\n", ret);
     }
 
     /* destroy vda chn */
-    s32Ret = HI_MPI_VDA_DestroyChn(VdaChn);
-    if(s32Ret != HI_SUCCESS)
+    ret = HI_MPI_VDA_DestroyChn(VdaChn);
+    if(ret != HI_SUCCESS)
     {
-        PRT_ERR("err(0x%x)!!!!\n",s32Ret);
+        PRT_ERR("err(0x%x)!!!!\n",ret);
     }
     return;
 }
@@ -331,12 +496,12 @@ int comm_vi_stop(VI_MODE_E vi_mode)
     VI_DEV ViDev;
     VI_CHN ViChn;
     HI_S32 i;
-    HI_S32 s32Ret;
+    HI_S32 ret;
     VI_PARAM_S stViParam;
 
     /*** get parameter from Sample_Vi_Mode ***/
-    s32Ret = comm_vi_mode2param(vi_mode, &stViParam);
-    if (HI_SUCCESS !=s32Ret)
+    ret = comm_vi_mode2param(vi_mode, &stViParam);
+    if (HI_SUCCESS !=ret)
     {
         PRT_ERR("SAMPLE_COMM_VI_Mode2Param failed!\n");
         return HI_FAILURE;
@@ -347,20 +512,20 @@ int comm_vi_stop(VI_MODE_E vi_mode)
     {
         /* Stop vi phy-chn */
         ViChn = i * stViParam.s32ViChnInterval;
-        s32Ret = HI_MPI_VI_DisableChn(ViChn);
-        if (HI_SUCCESS != s32Ret)
+        ret = HI_MPI_VI_DisableChn(ViChn);
+        if (HI_SUCCESS != ret)
         {
-            PRT_ERR("SAMPLE_COMM_VI_StopChn failed with %#x\n",s32Ret);
+            PRT_ERR("SAMPLE_COMM_VI_StopChn failed with %#x\n",ret);
             return HI_FAILURE;
         }
         /* HD mode, we will stop vi sub-chn */
         if (HI_TRUE == comm_vi_ishd(vi_mode))
         {
             ViChn += 16;
-            s32Ret = HI_MPI_VI_DisableChn(ViChn);
-            if (HI_SUCCESS != s32Ret)
+            ret = HI_MPI_VI_DisableChn(ViChn);
+            if (HI_SUCCESS != ret)
             {
-                PRT_ERR("SAMPLE_COMM_VI_StopChn failed with %#x\n", s32Ret);
+                PRT_ERR("SAMPLE_COMM_VI_StopChn failed with %#x\n", ret);
                 return HI_FAILURE;
             }
         }
@@ -370,10 +535,10 @@ int comm_vi_stop(VI_MODE_E vi_mode)
     for(i=0; i<stViParam.s32ViDevCnt; i++)
     {
         ViDev = i * stViParam.s32ViDevInterval;
-        s32Ret = HI_MPI_VI_DisableDev(ViDev);
-        if (HI_SUCCESS != s32Ret)
+        ret = HI_MPI_VI_DisableDev(ViDev);
+        if (HI_SUCCESS != ret)
         {
-            PRT_ERR("SAMPLE_COMM_VI_StopDev failed with %#x\n", s32Ret);
+            PRT_ERR("SAMPLE_COMM_VI_StopDev failed with %#x\n", ret);
             return HI_FAILURE;
         }
     }
@@ -383,56 +548,51 @@ int comm_vi_stop(VI_MODE_E vi_mode)
 
 void *comm_vda_odgetresult(void *pdata)
 {
-	FILE *fp;
-	struct timeval start;
-    HI_S32 i;
-    HI_S32 s32Ret;
-    VDA_CHN VdaChn;
-    VDA_DATA_S stVdaData;
-    HI_U32 u32RgnNum;
+    int i;
+    int ret;
+    unsigned int u32RgnNum;
+	VDA_DATA_S stVdaData;
     VDA_OD_PARAM_S *pgs_stOdParam;
-    //FILE *fp=stdout;
-	int num = 0;
-    pgs_stOdParam = (VDA_OD_PARAM_S *)pdata;
 
-    VdaChn    = pgs_stOdParam->VdaChn;
-    
-    while(HI_TRUE == pgs_stOdParam->bThreadStart)
+    detect_t *det = (detect_t*)pdata;
+	
+    int VdaChn    = det->vda_chn;
+    while(HI_TRUE != det->is_quit)
     {
-        s32Ret = HI_MPI_VDA_GetData(VdaChn,&stVdaData,HI_TRUE);
-        if(s32Ret != HI_SUCCESS)
+        ret = HI_MPI_VDA_GetData(VdaChn,&stVdaData,HI_TRUE);
+        if(ret != HI_SUCCESS)
         {
-            PRT_ERR("HI_MPI_VDA_GetData failed with %#x!\n", s32Ret);
+            PRT_ERR("HI_MPI_VDA_GetData failed with %#x!\n", ret);
             return NULL;
         }
-	//	fprintf(stdout, "HI_MPI_VDA_GetData od succeed\n");
-	    //COMM_VDA_OdPrt(fp, &stVdaData);
 
 		u32RgnNum = stVdaData.unData.stOdData.u32RgnNum;
 
-	//	fprintf(stdout, "u32RgnNum = %d\n", u32RgnNum);		
     	for(i=0; i<u32RgnNum; i++)
         {
+			//FIXME: 注意 是否能同时检测 ...
             if(HI_TRUE == stVdaData.unData.stOdData.abRgnAlarm[i])
             { 
-				num++;
-                printf("################VdaChn--%d, no--%d, Rgn--%d,Occ!\n",VdaChn, num, i);
-			//	gettimeofday(&start, NULL);
-       //         Log("\n");
-				s32Ret = HI_MPI_VDA_ResetOdRegion(VdaChn,i);
-		//		Print_Time_Diff(start);
-                if(s32Ret != HI_SUCCESS)
+                printf("################VdaChn--%d, Rgn--%d,Occ!\n",VdaChn, i);
+				ret = HI_MPI_VDA_ResetOdRegion(VdaChn,i);
+                if(ret != HI_SUCCESS)
                 {
-		   			 PRT_ERR("HI_MPI_VDA_ResetOdRegion failed with %#x!\n", s32Ret);
+		   			 PRT_ERR("HI_MPI_VDA_ResetOdRegion failed with %#x!\n", ret);
                     return NULL;
                 }
             }
         }
+
+		pthread_mutex_lock(&det->mutex);
+		det->stamp = now();	
+		for (i=0; i<u32RgnNum; i++)
+			det->is_arms[i] = stVdaData.unData.stOdData.abRgnAlarm[i];		
+		pthread_mutex_unlock(&det->mutex);
 			
-        s32Ret = HI_MPI_VDA_ReleaseData(VdaChn,&stVdaData);
-		if(s32Ret != HI_SUCCESS)
+        ret = HI_MPI_VDA_ReleaseData(VdaChn,&stVdaData);
+		if(ret != HI_SUCCESS)
         {
-            PRT_ERR("HI_MPI_VDA_ReleaseData failed with %#x!\n", s32Ret);
+            PRT_ERR("HI_MPI_VDA_ReleaseData failed with %#x!\n", ret);
             return NULL;
         }
 
@@ -482,11 +642,11 @@ int comm_vi_mode2param(VI_MODE_E vi_mode, VI_PARAM_S *pvi_param)
 
 int comm_vi_getdev(VI_MODE_E vi_mode, int vi_chn)
 {
-    HI_S32 s32Ret, s32ChnPerDev;
+    HI_S32 ret, s32ChnPerDev;
     VI_PARAM_S stViParam;
 
-    s32Ret = comm_vi_mode2param(vi_mode, &stViParam);
-    if (HI_SUCCESS !=s32Ret)
+    ret = comm_vi_mode2param(vi_mode, &stViParam);
+    if (HI_SUCCESS !=ret)
     {
         PRT_ERR("vi get param failed!\n");
         return (VI_DEV)-1;
@@ -532,7 +692,7 @@ int comm_vi_mode2size(VI_MODE_E vi_mode, VIDEO_NORM_E norm, RECT_S *pcap_rect, S
 
 int comm_vi_adstart(VI_MODE_E vi_mode, VIDEO_NORM_E norm)
 {
-    HI_S32 s32Ret;
+    HI_S32 ret;
     
     switch (vi_mode)
     {
@@ -549,7 +709,7 @@ int comm_vi_adstart(VI_MODE_E vi_mode, VIDEO_NORM_E norm)
 }
 
 int comm_vi_startdev(int vi_dev, VI_MODE_E vi_mode) {
-    HI_S32 s32Ret;
+    HI_S32 ret;
     VI_DEV_ATTR_S    stViDevAttr;
     memset(&stViDevAttr,0,sizeof(stViDevAttr));
 
@@ -569,17 +729,17 @@ int comm_vi_startdev(int vi_dev, VI_MODE_E vi_mode) {
     }
 
     
-    s32Ret = HI_MPI_VI_SetDevAttr(vi_dev, &stViDevAttr);
-    if (s32Ret != HI_SUCCESS)
+    ret = HI_MPI_VI_SetDevAttr(vi_dev, &stViDevAttr);
+    if (ret != HI_SUCCESS)
     {
-        PRT_ERR("HI_MPI_VI_SetDevAttr failed with %#x!\n", s32Ret);
+        PRT_ERR("HI_MPI_VI_SetDevAttr failed with %#x!\n", ret);
         return HI_FAILURE;
     }
 
-    s32Ret = HI_MPI_VI_EnableDev(vi_dev);
-    if (s32Ret != HI_SUCCESS)
+    ret = HI_MPI_VI_EnableDev(vi_dev);
+    if (ret != HI_SUCCESS)
     {
-        PRT_ERR("HI_MPI_VI_EnableDev failed with %#x!\n", s32Ret);
+        PRT_ERR("HI_MPI_VI_EnableDev failed with %#x!\n", ret);
         return HI_FAILURE;
     }
 
@@ -645,7 +805,7 @@ void comm_vi_setmask(int vi_dev, VI_DEV_ATTR_S *pdev_attr) {
 int comm_vi_startchn(int vi_chn, RECT_S *pstCapRect, SIZE_S *pstTarSize, 
     VI_MODE_E vi_mode, VI_CHN_SET_E enViChnSet)
 {
-    HI_S32 s32Ret;
+    HI_S32 ret;
     VI_CHN_ATTR_S stChnAttr, attr;
 
     /* step  5: config & start vicap dev */
@@ -669,16 +829,16 @@ int comm_vi_startchn(int vi_chn, RECT_S *pstCapRect, SIZE_S *pstTarSize,
     stChnAttr.s32SrcFrameRate = -1;
     stChnAttr.s32FrameRate = -1;
 
-    s32Ret = HI_MPI_VI_SetChnAttr(vi_chn, &stChnAttr);
-    if (s32Ret != HI_SUCCESS)
+    ret = HI_MPI_VI_SetChnAttr(vi_chn, &stChnAttr);
+    if (ret != HI_SUCCESS)
     {
-        PRT_ERR("failed with %#x!\n", s32Ret);
+        PRT_ERR("failed with %#x!\n", ret);
         return HI_FAILURE;
     }
 
-	s32Ret = HI_MPI_VI_GetChnAttr(vi_chn, &attr);
-	if (s32Ret != HI_SUCCESS) {
-		PRT_ERR("failed with %x\n", s32Ret);
+	ret = HI_MPI_VI_GetChnAttr(vi_chn, &attr);
+	if (ret != HI_SUCCESS) {
+		PRT_ERR("failed with %x\n", ret);
 		return HI_FAILURE;
 	}
 	
@@ -690,10 +850,10 @@ int comm_vi_startchn(int vi_chn, RECT_S *pstCapRect, SIZE_S *pstTarSize,
 
 
     
-    s32Ret = HI_MPI_VI_EnableChn(vi_chn);
-    if (s32Ret != HI_SUCCESS)
+    ret = HI_MPI_VI_EnableChn(vi_chn);
+    if (ret != HI_SUCCESS)
     {
-        PRT_ERR("failed with %#x!\n", s32Ret);
+        PRT_ERR("failed with %#x!\n", ret);
         return HI_FAILURE;
     }
 
@@ -704,7 +864,7 @@ void comm_sys_exit(void)
 {
     HI_MPI_SYS_Exit();
     HI_MPI_VB_Exit();
-    return;
+    exit(-1);
 }
 
 int comm_vi_getsubchnsize(int vichn_sub, VIDEO_NORM_E norm, SIZE_S *pstSize)
@@ -730,5 +890,101 @@ int comm_vi_getsubchnsize(int vichn_sub, VIDEO_NORM_E norm, SIZE_S *pstSize)
         PRT_ERR("Vi odd sub_chn(%d) is invaild!\n", vichn_sub);
         return HI_FAILURE;
     }
+    return HI_SUCCESS;
+}
+
+void  comm_vda_odstop(int  vda_chn, int  vi_chn)
+{
+    HI_S32 s32Ret = HI_SUCCESS;
+    MPP_CHN_S stSrcChn, stDestChn;
+
+    /* join thread */
+    if (HI_TRUE == gs_stOdParam.bThreadStart)
+    {
+        gs_stOdParam.bThreadStart = HI_FALSE;
+        pthread_join(gs_VdaPid[SAMPLE_VDA_OD_CHN], 0);
+    }
+	
+    /* vda stop recv picture */
+    s32Ret = HI_MPI_VDA_StopRecvPic(vda_chn);
+    if(s32Ret != HI_SUCCESS)
+    {
+        PRT_ERR("err(0x%x)!!!!\n", s32Ret);
+    }
+
+    /* unbind vda chn & vi chn */
+    stSrcChn.enModId = HI_ID_VIU;
+    stSrcChn.s32ChnId = vi_chn;
+    stSrcChn.s32DevId = 0;
+    stDestChn.enModId = HI_ID_VDA;
+    stDestChn.s32ChnId = vda_chn;
+    stDestChn.s32DevId = 0;
+    s32Ret = HI_MPI_SYS_UnBind(&stSrcChn, &stDestChn);
+    if(s32Ret != HI_SUCCESS)
+    {
+        PRT_ERR("err(0x%x)!!!!\n", s32Ret);
+    }
+
+    /* destroy vda chn */
+    s32Ret = HI_MPI_VDA_DestroyChn(vda_chn);
+    if(s32Ret != HI_SUCCESS)
+    {
+        PRT_ERR("err(0x%x)!!!!\n",s32Ret);
+    }
+    return;
+}
+
+int comm_vi_stop(VI_MODE_E vi_mode)
+{
+    VI_DEV ViDev;
+    VI_CHN ViChn;
+    HI_S32 i;
+    HI_S32 s32Ret;
+    SAMPLE_VI_PARAM_S stViParam;
+
+    /*** get parameter from Sample_Vi_Mode ***/
+    s32Ret = comm_vi_mode2param(vi_mode, &stViParam);
+    if (HI_SUCCESS !=s32Ret)
+    {
+        PRT_ERR("SAMPLE_COMM_VI_Mode2Param failed!\n");
+        return HI_FAILURE;
+    }
+
+    /*** Stop VI Chn ***/
+    for(i=0;i<stViParam.s32ViChnCnt;i++)
+    {
+        /* Stop vi phy-chn */
+        ViChn = i * stViParam.s32ViChnInterval;
+        s32Ret = HI_MPI_VI_DisableChn(ViChn);
+        if (HI_SUCCESS != s32Ret)
+        {
+            PRT_ERR("SAMPLE_COMM_VI_StopChn failed with %#x\n",s32Ret);
+            return HI_FAILURE;
+        }
+        /* HD mode, we will stop vi sub-chn */
+        if (HI_TRUE == SAMPLE_COMM_VI_IsHd(vi_mode))
+        {
+            ViChn += 16;
+            s32Ret = HI_MPI_VI_DisableChn(ViChn);
+            if (HI_SUCCESS != s32Ret)
+            {
+                PRT_ERR("SAMPLE_COMM_VI_StopChn failed with %#x\n", s32Ret);
+                return HI_FAILURE;
+            }
+        }
+    }
+
+    /*** Stop VI Dev ***/
+    for(i=0; i<stViParam.s32ViDevCnt; i++)
+    {
+        ViDev = i * stViParam.s32ViDevInterval;
+        s32Ret = HI_MPI_VI_DisableDev(ViDev);
+        if (HI_SUCCESS != s32Ret)
+        {
+            PRT_ERR("SAMPLE_COMM_VI_StopDev failed with %#x\n", s32Ret);
+            return HI_FAILURE;
+        }
+    }
+
     return HI_SUCCESS;
 }
