@@ -29,13 +29,20 @@ teacher_detect_SOURCES=	teacher_track/teacher_track.cpp \
 if DUMMY
 teacher_detect_SOURCES+= libteacher_detect/detect_dummy.cpp
 else
+
+HISLIBS=  ../../libmpi.a
+
 noinst_LIBRARIES = libteacher_detect.a
-# @老刘，在这里添加你的教师探测代码
 teacher_detect_SOURCES+= libteacher_detect/detect.cpp
-teacher_detect_LDADD= libteacher_detect.a
+teacher_detect_LDADD= libteacher_detect.a ${HISLIBS}
+
+
+test_arm_detect_SOURCES=  
+test_arm_detect_LDADD= libteacher_detect.a ${HISLIBS}
 
 TDPATH= ../hi353x/detect
 libteacher_detect_a_SOURCES=	${TDPATH}/mpi_wrap.cpp
+libteacher_detect_a_CFLAGS+= -I../
 endif
 
 
