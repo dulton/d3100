@@ -70,7 +70,7 @@ public:
 	{
 		int x, y, width, height;
 	};
-
+	
 	DetectionEvent(const char *who, const char *json_str)
 		: FSMEvent(EVT_Detection, "EV_Detection")
 	{
