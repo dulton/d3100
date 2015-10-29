@@ -2,11 +2,15 @@ AUTOMAKE_OPTIONS=foreign
 
 RUNTIME_CPP= teacher_track/runtime.cpp
 
-bin_PROGRAMS= teacher_detect test_ptz test_kvconfig test_detect_dummy test_udpsrv
+bin_PROGRAMS= teacher_detect test_ptz test_kvconfig test_detect_dummy test_udpsrv test_arm_detect
+lib_
 
 if PTZSRV
 bin_PROGRAMS+= ptzsrv
 endif
+
+test_arm_detect_SOURCES= test_arm_detect.cpp
+test_arm_detect_
 
 teacher_detect_SOURCES=	teacher_track/teacher_track.cpp \
 						teacher_track/cJSON.c \
