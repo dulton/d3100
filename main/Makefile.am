@@ -2,7 +2,7 @@ AUTOMAKE_OPTIONS=foreign
 
 RUNTIME_CPP= teacher_track/runtime.cpp
 
-bin_PROGRAMS= teacher_detect test_ptz test_kvconfig test_detect_dummy test_udpsrv test_arm_detect
+bin_PROGRAMS= teacher_detect test_ptz test_kvconfig test_detect test_udpsrv 
 
 if PTZSRV
 bin_PROGRAMS+= ptzsrv
@@ -27,6 +27,11 @@ teacher_detect_SOURCES=	teacher_track/teacher_track.cpp \
 
 
 if DUMMY
+test_detect_SOURCES= libteacher_detect/detect_dummy.cpp \
+					       ${RUNTIME_CPP} \
+						   teacher_track/log.cpp \
+						   libteacher_detect/test/test_detect_dummy.cpp
+
 teacher_detect_SOURCES+= libteacher_detect/detect_dummy.cpp
 else
 
@@ -37,6 +42,7 @@ noinst_LIBRARIES = libteacher_detect.a
 teacher_detect_SOURCES+= libteacher_detect/detect.cpp
 teacher_detect_LDADD= libteacher_detect.a ${HISLIBS}
 
+bin_PROGRAMS+= test_arm_detect
 
 test_arm_detect_SOURCES=libteacher_detect/test/test_arm_detect.cpp  
 test_arm_detect_LDADD= libteacher_detect.a ${HISLIBS}
@@ -56,11 +62,6 @@ test_ptz_SOURCES= libptz/test/test_ptz.cpp \
 
 test_kvconfig_SOURCES= libkvconfig/test/test_kvc.cpp \
 					   libkvconfig/kvconfig.cpp
-
-test_detect_dummy_SOURCES= libteacher_detect/detect_dummy.cpp \
-					       ${RUNTIME_CPP} \
-						   teacher_track/log.cpp \
-						   libteacher_detect/test/test_detect_dummy.cpp
 
 test_udpsrv_SOURCES= teacher_track/test/test_udpsrv.cpp \
 					 teacher_track/udpsrv.cpp \
