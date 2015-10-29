@@ -4,6 +4,7 @@
 #include<pthread.h>
 #include <string>	
 #include <sstream>
+
 /* 获取目标 转换成 json字符串 */	
 static std::string get_aims_str(bool *arms, point *centers, int stamp)
 {
@@ -50,24 +51,17 @@ static std::string get_aims_str(bool *arms, point *centers, int stamp)
 detect_t *det_open(const char *kvfname)
 {
 	int ret;
-
+	SIZE size;
 	kvconfig_t *kvc;
 	detect_t *det = (detect_t *)malloc(sizeof(detect_t);
 	VB_CONF_S vb_conf;
 
-	kvc = kvc_open(kvfname);
-	if (NULL == kvc) {
-		fprintf(stderr, "can't open %s\n", kvfname);
-		//FIXME: 提示方式，处理...
-		exit(-1);
-	}
+//	kvc = kvc_open(kvfname);
 
 	det->vi_chn = 1;
 	det->vda_chn = 1;
 		
-	comm_set_commvb_paras(&vb_conf)	
-
-	ret = comm_sys_init(&vb_conf);	
+	ret = comm_sys_init();	
 	if (0 != ret)
 		comm_sys_exit();
 
@@ -75,11 +69,14 @@ detect_t *det_open(const char *kvfname)
 	if (0 != ret)
 		comm_sys_exit();
 
-	ret =  comm_vi_start(VI_MODE_4_1080P, VIDEO_ENCODING_MODE_PAL);	
+	ret =  comm_vi_start(VI_MODE_4_1080P);	
 	if (0 != ret)
 		comm_sys_exit();
+	
 
-	ret = comm_vda_odstart(det->vda_chn, det->vi_chn, SIZE_S &size,(detect_t*)det);
+	size.width = 640;
+	size.height = 480;
+	ret = comm_vda_odstart(det->vda_chn, det->vi_chn,  &size,(detect_t*)det);
 	if (0 != ret)
 		comm_sys_exit();
 }

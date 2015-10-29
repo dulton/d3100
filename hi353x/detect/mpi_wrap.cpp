@@ -1,3 +1,15 @@
+#include "hi_type.h"
+#include "hi_common.h"
+#include "hi_comm_sys.h"
+#include "hi_comm_vb.h"
+#include "hi_comm_vi.h"
+#include "hi_comm_vda.h"
+
+#include "mpi_sys.h"
+#include "mpi_vb.h"
+#include "mpi_vi.h"
+#include "mpi_vda.h"
+
 #include "mpi_wrap.h"
 #include <stdio.h>
 
@@ -16,9 +28,10 @@ static int now()
 	return current.tv_sec*1000*1000 + current.tv_usec;
 }
 
-void comm_set_commvb_paras(VB_CONF_S *vb_conf)
+int comm_sys_init()
 {
 	// XXXX:写死还是通过配置文件？
+	VB_CONF_S vb_conf;
 	vb_conf.u32MaxPoolCnt = 256;
 	vb_conf.astCommPool[0].u32BlkSize = 1920 * 1080;
 	vb_conf.astCommPool[0].u32BlkCnt = 8;
@@ -28,10 +41,6 @@ void comm_set_commvb_paras(VB_CONF_S *vb_conf)
 	vb_conf.astCommPool[1].u32BlkSize = 8;
 	strcpy(vb_conf.astCommPool[1].acMmzName, "ddr1");
 
-}
-
-int comm_sys_init(VB_CONF_S *pvb_conf)
-{
     MPP_SYS_CONF_S sys_conf = {0};
     int ret = -1;
 
@@ -44,7 +53,7 @@ int comm_sys_init(VB_CONF_S *pvb_conf)
         return -1;
     }
 
-    ret = HI_MPI_VB_SetConf(pvb_conf);
+    ret = HI_MPI_VB_SetConf(vb_conf);
     if (0 != ret)
     {
         PRT_ERR("HI_MPI_VB_SetConf failed!\n");
@@ -141,7 +150,7 @@ int comm_vi_memconfig(VI_MODE_E vi_mode)
     return 0;
 }
 
-int comm_vi_start(VI_MODE_E vi_mode, VIDEO_NORM_E norm)
+int comm_vi_start(VI_MODE_E vi_mode)
 {
     VI_DEV ViDev;
     VI_CHN ViChn, vichn_sub;
@@ -159,18 +168,10 @@ int comm_vi_start(VI_MODE_E vi_mode, VIDEO_NORM_E norm)
         PRT_ERR("vi get param failed!\n");
         return HI_FAILURE;
     }
-    ret = comm_vi_mode2size(vi_mode, norm, &stCapRect, &stMainTargetSize);
+    ret = comm_vi_mode2size(vi_mode, &stCapRect, &stMainTargetSize);
     if (HI_SUCCESS !=ret)
     {
         PRT_ERR("vi get size failed!\n");
-        return HI_FAILURE;
-    }
-    
-    /*** Start AD ***/
-    ret = comm_vi_adstart(vi_mode, norm);
-    if (HI_SUCCESS !=ret)
-    {
-        PRT_ERR("Start AD failed!\n");
         return HI_FAILURE;
     }
     
@@ -202,7 +203,7 @@ int comm_vi_start(VI_MODE_E vi_mode, VIDEO_NORM_E norm)
         {
 			PRT_ERR("--- to start subch %d\n", SUBCHN(ViChn));
             vichn_sub = SUBCHN(ViChn);
-            ret = comm_vi_getsubchnsize(vichn_sub, norm, &stSubTargetSize);
+            ret = comm_vi_getsubchnsize(vichn_sub, &stSubTargetSize);
             if (HI_SUCCESS != ret)
             {
                 PRT_ERR("comm_vi_getsubchnsize(%d) failed!\n", vichn_sub);
@@ -364,8 +365,7 @@ static int  comm_vi_getvframefromyuv(FILE *pYUVFile, HI_U32 u32Width, HI_U32 u32
     return 0;
 }
 
-int comm_create_vda_channel();
-int comm_vda_odstart(int vda_chn, int  vi_chn, SIZE_S *pstSize, detect_t *det)
+int comm_vda_odstart(int vda_chn, int  vi_chn, SIZE *pstSize, detect_t *det)
 {
     VDA_CHN_ATTR_S stVdaChnAttr;
     MPP_CHN_S stSrcChn, stDestChn;
@@ -381,8 +381,8 @@ int comm_vda_odstart(int vda_chn, int  vi_chn, SIZE_S *pstSize, detect_t *det)
      step 1 : create vda channel
     ********************************************/
     stVdaChnAttr.enWorkMode = VDA_WORK_MODE_OD;
-    stVdaChnAttr.u32Width   = pstSize->u32Width;
-    stVdaChnAttr.u32Height  = pstSize->u32Height;
+    stVdaChnAttr.u32Width   = pstSize->width;
+    stVdaChnAttr.u32Height  = pstSize->height;
 
     stVdaChnAttr.unAttr.stOdAttr.enVdaAlg      = VDA_ALG_BG;
     stVdaChnAttr.unAttr.stOdAttr.enMbSize      = VDA_MB_16PIXEL;
@@ -582,7 +582,7 @@ void *comm_vda_odgetresult(void *pdata)
                 }
             }
         }
-
+		
 		pthread_mutex_lock(&det->mutex);
 		det->stamp = now();	
 		for (i=0; i<u32RgnNum; i++)
@@ -601,21 +601,21 @@ void *comm_vda_odgetresult(void *pdata)
     return HI_NULL;
 }
 
-int comm_sys_getpicsize(VIDEO_NORM_E norm, PIC_SIZE_E enPicSize, SIZE_S *pstSize)
+int comm_sys_getpicsize(PIC_SIZE_E enPicSize, SIZE *pstSize)
 {
     switch (enPicSize)
     {
        case PIC_VGA:     /* 640 * 480 */
-            pstSize->u32Width = 640;
-            pstSize->u32Height = 480;
+            pstSize->witdh = 640;
+            pstSize->height = 480;
             break;
        case PIC_HD720:   /* 1280 * 720 */
-            pstSize->u32Width = 1280;
-            pstSize->u32Height = 720;
+            pstSize->width = 1280;
+            pstSize->height = 720;
             break;
         case PIC_HD1080:  /* 1920 * 1080 */
-            pstSize->u32Width = 1920;
-            pstSize->u32Height = 1080;
+            pstSize->width = 1920;
+            pstSize->height = 1080;
             break;
         default:
             return HI_FAILURE;
@@ -664,7 +664,7 @@ HI_BOOL comm_vi_ishd(VI_MODE_E vi_mode)
         return HI_FALSE;
 }
 
-int comm_vi_mode2size(VI_MODE_E vi_mode, VIDEO_NORM_E norm, RECT_S *pcap_rect, SIZE_S *pdest_size)
+int comm_vi_mode2size(VI_MODE_E vi_mode, RECT_S *pcap_rect, SIZE_S *pdest_size)
 {
     pcap_rect->s32X = 0;
     pcap_rect->s32Y = 0;
@@ -688,24 +688,6 @@ int comm_vi_mode2size(VI_MODE_E vi_mode, VIDEO_NORM_E norm, RECT_S *pcap_rect, S
     }
 
 	return HI_SUCCESS;
-}
-
-int comm_vi_adstart(VI_MODE_E vi_mode, VIDEO_NORM_E norm)
-{
-    HI_S32 ret;
-    
-    switch (vi_mode)
-    {
-        case VI_MODE_4_720P:
-            break;
-        case VI_MODE_4_1080P:
-            break;
-        default:
-            PRT_ERR("AD not support!\n");
-            return HI_FAILURE;
-    }
-    
-    return HI_SUCCESS;
 }
 
 int comm_vi_startdev(int vi_dev, VI_MODE_E vi_mode) {
@@ -867,7 +849,7 @@ void comm_sys_exit(void)
     exit(-1);
 }
 
-int comm_vi_getsubchnsize(int vichn_sub, VIDEO_NORM_E norm, SIZE_S *pstSize)
+int comm_vi_getsubchnsize(int vichn_sub, SIZE_S *pstSize)
 {
     VI_CHN ViChn;
     
@@ -876,7 +858,7 @@ int comm_vi_getsubchnsize(int vichn_sub, VIDEO_NORM_E norm, SIZE_S *pstSize)
     if (0==(ViChn%4)) //(0,4,8,12) subchn max size is 960x1600
     {
         pstSize->u32Width = 720;
-        pstSize->u32Height = (VIDEO_ENCODING_MODE_PAL==norm)?576:480;
+        pstSize->u32Height = 576;
 //		pstSize->u32Width = 480;
 //		pstSize->u32Height = 270;
     }

@@ -30,19 +30,20 @@ if DUMMY
 teacher_detect_SOURCES+= libteacher_detect/detect_dummy.cpp
 else
 
-HISLIBS=  ../../libmpi.a
+
+HISLIBS=  ../hi353x/lib/libmpi.a
 
 noinst_LIBRARIES = libteacher_detect.a
 teacher_detect_SOURCES+= libteacher_detect/detect.cpp
 teacher_detect_LDADD= libteacher_detect.a ${HISLIBS}
 
 
-test_arm_detect_SOURCES=  
+test_arm_detect_SOURCES=libteacher_detect/test/test_arm_detect.cpp  
 test_arm_detect_LDADD= libteacher_detect.a ${HISLIBS}
 
 TDPATH= ../hi353x/detect
-libteacher_detect_a_SOURCES=	${TDPATH}/mpi_wrap.cpp
-libteacher_detect_a_CFLAGS+= -I../
+libteacher_detect_a_SOURCES= ${TDPATH}/mpi_wrap.cpp
+libteacher_detect_a_CXXFLAGS = -I${TDPATH} -I../hi353x/include
 endif
 
 
