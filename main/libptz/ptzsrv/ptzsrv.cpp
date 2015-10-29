@@ -113,6 +113,14 @@ inline double util_now()
 	return tv.tv_sec + tv.tv_usec / 1000000.0;
 }
 
+
+static double _time_begin = util_now();
+
+static double uptime()
+{
+	return util_now() - _time_begin;
+}
+
 class TimeUsed
 {
 	double begin_, max_;
@@ -147,6 +155,8 @@ static int wj_req(ost::URLStream &s, const char *url)
 {
 	TimeUsed tu(url);
 
+	fprintf(stderr, "[%.3f]: wj_req: url=%s\n", uptime(), url);
+
 	ost::URLStream::Error err = s.get(url);
 	if (err)
 		return err;
@@ -178,6 +188,7 @@ static int wj_req_with_res(ost::URLStream &s, const char *url, std::ostream &os)
 {
 	TimeUsed tu(url);
 
+	fprintf(stderr, "[%.3f]: wj_req_with_res: url=%s\n", uptime(), url);
 	ost::URLStream::Error err = s.get(url);
 	if (err)
 		return err;

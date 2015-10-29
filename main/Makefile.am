@@ -2,11 +2,12 @@ AUTOMAKE_OPTIONS=foreign
 
 RUNTIME_CPP= teacher_track/runtime.cpp
 
-bin_PROGRAMS= teacher_detect test_ptz test_kvconfig test_detect_dummy test_udpsrv
+bin_PROGRAMS= teacher_detect test_ptz test_kvconfig test_detect_dummy test_udpsrv test_arm_detect
 
 if PTZSRV
 bin_PROGRAMS+= ptzsrv
 endif
+
 
 teacher_detect_SOURCES=	teacher_track/teacher_track.cpp \
 						teacher_track/cJSON.c \
@@ -28,8 +29,21 @@ teacher_detect_SOURCES=	teacher_track/teacher_track.cpp \
 if DUMMY
 teacher_detect_SOURCES+= libteacher_detect/detect_dummy.cpp
 else
-# @老刘，在这里添加你的教师探测代码
-teacher_detect_SOURCES+= notfound.cpp
+
+
+HISLIBS=  ../hi353x/lib/libmpi.a
+
+noinst_LIBRARIES = libteacher_detect.a
+teacher_detect_SOURCES+= libteacher_detect/detect.cpp
+teacher_detect_LDADD= libteacher_detect.a ${HISLIBS}
+
+
+test_arm_detect_SOURCES=libteacher_detect/test/test_arm_detect.cpp  
+test_arm_detect_LDADD= libteacher_detect.a ${HISLIBS}
+
+TDPATH= ../hi353x/detect
+libteacher_detect_a_SOURCES= ${TDPATH}/mpi_wrap.cpp
+libteacher_detect_a_CXXFLAGS = -I${TDPATH} -I../hi353x/include
 endif
 
 
