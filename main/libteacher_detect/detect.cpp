@@ -4,6 +4,21 @@
 #include<pthread.h>
 #include <string>	
 #include <sstream>
+#include <unistd.h>
+
+typedef struct detect_t
+{
+	CHNS chns;
+
+	TD td;	
+
+	bool is_quit;
+	pthread_t thread_id;
+	pthread_mutex_t mutex;
+	
+	std::string s;
+	POINT areas[8];
+} detect_t;
 
 /* 获取目标 转换成 json字符串 */	
 static std::string get_aims_str(bool *arms, point *centers, int stamp)
@@ -48,37 +63,40 @@ static std::string get_aims_str(bool *arms, point *centers, int stamp)
 	return ss.str();
 }
 
+void thread_delete(detect_t *det)
+{
+	int ret;
+	while ( true != det->is_quit) {
+		pthread_mutex_lock(&det->mutex);
+		ret = read_hi3531(det->chns.vda_chn, &td);
+		pthread_mutex_unlock(&det-<mutex);
+		if (0 !=ret)
+			exit("read hi3531 failed");
+
+		usleep(200 * 1000);
+	}
+}
+
 detect_t *det_open(const char *kvfname)
 {
 	int ret;
-	SIZE size;
-	kvconfig_t *kvc;
+	SIZE size = {640, 560};
 	detect_t *det = (detect_t *)malloc(sizeof(detect_t);
-	VB_CONF_S vb_conf;
-
-//	kvc = kvc_open(kvfname);
 
 	det->vi_chn = 1;
 	det->vda_chn = 1;
-		
-	ret = comm_sys_init();	
-	if (0 != ret)
-		comm_sys_exit();
+	det->is_quit = false;
 
-	ret = comm_vi_memconfig(VI_MODE_4_1080P);
-	if (0 != ret)
+	int ret = pthread_mutex_init(&det->mutex, NULL);
+	if (0 != ret){
+		perror("Mutex initialization failed");
 		comm_sys_exit();
-
-	ret =  comm_vi_start(VI_MODE_4_1080P);	
-	if (0 != ret)
-		comm_sys_exit();
+	}
 	
-
-	size.width = 640;
-	size.height = 480;
-	ret = comm_vda_odstart(det->vda_chn, det->vi_chn,  &size,(detect_t*)det);
+	ret = open_hi3531(det->chns, size, "./background.yuv");
 	if (0 != ret)
-		comm_sys_exit();
+		exit("open hi3531 failed!");
+	pthread_create(det->thread_id, 0, thread_delete, det);
 }
 
 const char *det_detect(detect_t *det)
@@ -108,8 +126,6 @@ void det_close(detect *det)
 	det->is_quit = true;
 	pthread_join(det->thread_id);
 	pthread_mutex_destroy(&det->mutex);
-	comm_vda_odstop(det->vda_chn, det->vi_chn);
- 	comm_vi_stop(VI_MODE_4_1080P);
-	comm_sys_exit();
+	close_hi3531(det->chns);
 	free(det);
 }

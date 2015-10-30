@@ -1,11 +1,8 @@
 #pragma once
 
-#include <pthread.h>
-#include <string>
-
-//#ifdef __cplusplus
-//extern "C" {
-//#endif
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #define SYS_ALIGN_WIDTH 16
 #define PRT_ERR(fmt...) \
@@ -24,23 +21,19 @@ typedef struct point_t
 {
 	int x;
 	int y;
-} point;
+} POINT;
 
-typedef struct detect_t
+typedef struct size
 {
-	int vda_chn;
-	int vi_chn;
-	pthread_t thread_id;
-	pthread_mutex_t mutex;
-	std::string s;
-	
-	bool is_quit = false;
-	bool is_arms[4];
-	point areas[8];
-	int stamp;
-} detect_t;
+	unsigned int width;
+	unsigned int height;
+} SIZE;
 
-
+typedef struct area
+{
+	POINT pt;
+	SIZE size;
+} AREA;
 
 typedef enum vi_mode_e
 {
@@ -51,10 +44,10 @@ typedef enum vi_mode_e
 
 typedef struct vi_param_s
 {
-    HI_S32 s32ViDevCnt;		// VI Dev Total Count
-    HI_S32 s32ViDevInterval;	// Vi Dev Interval
-    HI_S32 s32ViChnCnt;		// Vi Chn Total Count
-    HI_S32 s32ViChnInterval;	// VI Chn Interval
+    int s32ViDevCnt;		// VI Dev Total Count
+    int s32ViDevInterval;	// Vi Dev Interval
+    int s32ViChnCnt;		// Vi Chn Total Count
+    int s32ViChnInterval;	// VI Chn Interval
 }VI_PARAM_S;
 
 typedef enum vi_chn_set_e
@@ -64,29 +57,25 @@ typedef enum vi_chn_set_e
     VI_CHN_SET_FILP		/* open filp */
 }VI_CHN_SET_E;
 
-typedef struct size
+typedef struct td
 {
-	unsigned int width;
-	unsigned int height;
-} SIZE;
+	int stamp;
+	int is_alarms[4];
+} TD;
 
-/* init mpp sys and vb */
-int comm_sys_init();
+typedef struct chns
+{
+	int vi_chn;
+	int vda_chn;
+} CHNS;
 
-/* set sys memory config */
-int comm_vi_memconfig(VI_MODE_E vi_mode);
+int open_hi3531(CHNS chns, const char *file_name);
 
-/* vi start */
-int comm_vi_start(VI_MODE_E vi_mode);
+int read_hi3531(int vda_chn, TD *ptd);
 
-/* vda start */
-int comm_vda_odstart(int vda_chn, int  vi_chn, SIZE *pstSize);
+int close_hi3531(CHNS chns);
 
-void  comm_vda_odstop(int  vda_chn, int  vi_chn);
 
-int comm_vi_stop(VI_MODE_E vi_mode);
-
-void comm_sys_exit(void);
-//#ifdef __cplusplus
-//}
-//#endif
+#ifdef __cplusplus
+}
+#endif
