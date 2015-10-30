@@ -447,7 +447,6 @@ HI_VOID Send_Picture(VDA_CHN VdaChn, const char * filename)
 ******************************************************************************/
 HI_S32 SAMPLE_COMM_VDA_OdStart(VDA_CHN VdaChn, VI_CHN ViChn, SIZE_S *pstSize)
 {
-	char c = 'v';
     VDA_CHN_ATTR_S stVdaChnAttr;
     MPP_CHN_S stSrcChn, stDestChn;
     HI_S32 s32Ret = HI_SUCCESS;

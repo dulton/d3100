@@ -29,11 +29,26 @@ typedef struct size
 	unsigned int height;
 } SIZE;
 
-typedef struct area
+typedef struct rect 
 {
-	POINT pt;
+	int x;
+	int y;
+	int width;
+	int height;
+} RECT;
+
+typedef struct vdas
+{
+	int an; 
+	int st;
+	int w;
+	int ot;
+	int ut;
 	SIZE size;
-} AREA;
+	RECT rect;
+
+	const char* image_file;
+} VDAS;
 
 typedef enum vi_mode_e
 {
@@ -69,8 +84,9 @@ typedef struct chns
 	int vda_chn;
 } CHNS;
 
-int open_hi3531(CHNS chns, const char *file_name);
-
+int open_hi3531(CHNS chns, VDAS vdas);
+//int set_hi3531();
+//int start_hi3531();
 int read_hi3531(int vda_chn, TD *ptd);
 
 void  close_hi3531(CHNS chns);

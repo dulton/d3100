@@ -6,6 +6,7 @@
 #include "../udpsrv.h"
 #include "../evt.h"
 #include "../detector.h"
+#include <stdlib.h>
 
 #ifdef WIN32
 #	define _USE_MATH_DEFINES

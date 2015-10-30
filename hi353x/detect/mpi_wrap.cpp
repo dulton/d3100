@@ -628,21 +628,26 @@ static int vda_send_picture(int vda_chn, const char * filename)
 	return ret;
 }
 
-static int vda_create_channel(int vda_chn, SIZE size)
+static int vda_create_channel(int vda_chn, VDAS vdas)
 {
+	int i;
+	int width;
+	int height;
+	int x;
+	int y;
     VDA_CHN_ATTR_S stVdaChnAttr;
     MPP_CHN_S stSrcChn, stDestChn;
     HI_S32 ret = HI_SUCCESS;
     
-    if (VDA_MAX_WIDTH < size.width || VDA_MAX_HEIGHT < size.height)
+    if (VDA_MAX_WIDTH < vdas.size.width || VDA_MAX_HEIGHT < vdas.size.height)
     {
         PRT_ERR("Picture size invaild!\n");
         return HI_FAILURE;
     }
-    
+   
     stVdaChnAttr.enWorkMode = VDA_WORK_MODE_OD;
-    stVdaChnAttr.u32Width   = size.width;
-    stVdaChnAttr.u32Height  = size.height;
+    stVdaChnAttr.u32Width   = vdas.size.width;
+    stVdaChnAttr.u32Height  = vdas.size.height;
 
     stVdaChnAttr.unAttr.stOdAttr.enVdaAlg      = VDA_ALG_BG;
     stVdaChnAttr.unAttr.stOdAttr.enMbSize      = VDA_MB_16PIXEL;
@@ -651,19 +656,28 @@ static int vda_create_channel(int vda_chn, SIZE size)
     stVdaChnAttr.unAttr.stOdAttr.u32VdaIntvl   = 4;
     stVdaChnAttr.unAttr.stOdAttr.u32BgUpSrcWgt = 128;
     
-    stVdaChnAttr.unAttr.stOdAttr.u32RgnNum = 1;
-    
-    stVdaChnAttr.unAttr.stOdAttr.astOdRgnAttr[0].stRect.s32X = 0;
-    stVdaChnAttr.unAttr.stOdAttr.astOdRgnAttr[0].stRect.s32Y = 0;
-    stVdaChnAttr.unAttr.stOdAttr.astOdRgnAttr[0].stRect.u32Width  = 320;
-    stVdaChnAttr.unAttr.stOdAttr.astOdRgnAttr[0].stRect.u32Height = 64;
+    stVdaChnAttr.unAttr.stOdAttr.u32RgnNum = vdas.an;
+  
+		
+	width = vdas.rect.width / 4;
+	height = vdas.rect.height / 4;
+	x = vdas.rect.x;
+	y = vdas.rect.y;
 
-    stVdaChnAttr.unAttr.stOdAttr.astOdRgnAttr[0].u32SadTh      = 100;
-    stVdaChnAttr.unAttr.stOdAttr.astOdRgnAttr[0].u32AreaTh     = 40;
-    stVdaChnAttr.unAttr.stOdAttr.astOdRgnAttr[0].u32OccCntTh   = 1;
-    stVdaChnAttr.unAttr.stOdAttr.astOdRgnAttr[0].u32UnOccCntTh = 0;
+
+	for (i = 0; i < vdas.an; i++) {
+		stVdaChnAttr.unAttr.stOdAttr.astOdRgnAttr[i].stRect.s32X = x + i * width;
+		stVdaChnAttr.unAttr.stOdAttr.astOdRgnAttr[i].stRect.s32Y = y;
+		stVdaChnAttr.unAttr.stOdAttr.astOdRgnAttr[i].stRect.u32Width  = width;
+		stVdaChnAttr.unAttr.stOdAttr.astOdRgnAttr[i].stRect.u32Height = height;
+
+		stVdaChnAttr.unAttr.stOdAttr.astOdRgnAttr[i].u32SadTh      = vdas.st;
+		stVdaChnAttr.unAttr.stOdAttr.astOdRgnAttr[i].u32AreaTh     = vdas.w / width;
+		stVdaChnAttr.unAttr.stOdAttr.astOdRgnAttr[i].u32OccCntTh   = vdas.ot;
+		stVdaChnAttr.unAttr.stOdAttr.astOdRgnAttr[i].u32UnOccCntTh = vdas.ut;
 	
-	ret = HI_MPI_VDA_StartRecvPic(vda_chn);
+	}
+    	ret = HI_MPI_VDA_StartRecvPic(vda_chn);
 
     if(ret != HI_SUCCESS)
     {
@@ -823,7 +837,7 @@ static int vi_stop(VI_MODE_E vi_mode)
     return HI_SUCCESS;
 }
 
-int open_hi3531(CHNS chns, SIZE size, const char *file_name)
+int open_hi3531(CHNS chns, VDAS vdas)
 {
 	int ret;
 	ret = sys_init();
@@ -841,12 +855,12 @@ int open_hi3531(CHNS chns, SIZE size, const char *file_name)
 		return -1;
 	}
 
-	ret = vda_create_channel(chns.vda_chn, size);
+	ret = vda_create_channel(chns.vda_chn, vdas);
 	if (0 != ret) {
 		return -1;
 	}
 	
-	ret = vda_send_picture(chns.vda_chn, file_name);
+	ret = vda_send_picture(chns.vda_chn, vdas.image_file);
 	if (0 != ret) {
 		return -1;	
 	}
