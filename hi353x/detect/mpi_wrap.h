@@ -73,7 +73,7 @@ int open_hi3531(CHNS chns, const char *file_name);
 
 int read_hi3531(int vda_chn, TD *ptd);
 
-int close_hi3531(CHNS chns);
+void  close_hi3531(CHNS chns);
 
 
 #ifdef __cplusplus

@@ -468,7 +468,7 @@ static int vi_start(VI_MODE_E vi_mode)
     return HI_SUCCESS;
 }
 
-static void  vi_readframe(FILE * fp, HI_U8 * pY, HI_U8 * pU, HI_U8 * pV, HI_U32 width, HI_U32 height, HI_U32 stride, HI_U32 stride2)
+static void vi_readframe(FILE * fp, HI_U8 * pY, HI_U8 * pU, HI_U8 * pV, HI_U32 width, HI_U32 height, HI_U32 stride, HI_U32 stride2)
 {
     HI_U8 * pDst;
 
@@ -494,7 +494,6 @@ static void  vi_readframe(FILE * fp, HI_U8 * pY, HI_U8 * pU, HI_U8 * pV, HI_U32 
         fread( pDst, width/2, 1, fp );
         pDst += stride2;
     }
-	return;
 }
 
 int  vi_plantosemi(HI_U8 *pY, HI_S32 yStride, \
@@ -582,9 +581,9 @@ int  vi_getvframefromyuv(FILE *pYUVFile, HI_U32 u32Width, HI_U32 u32Height,HI_U3
     pstVFrameInfo->stVFrame.u32PhyAddr[1] = pstVFrameInfo->stVFrame.u32PhyAddr[0] + u32LumaSize;
     pstVFrameInfo->stVFrame.u32PhyAddr[2] = pstVFrameInfo->stVFrame.u32PhyAddr[1] + u32ChrmSize;
 
-    pstVFrameInfo->stVFrame.pVirAddr[0] = pVirAddr;
-    pstVFrameInfo->stVFrame.pVirAddr[1] = pstVFrameInfo->stVFrame.pVirAddr[0] + u32LumaSize;
-    pstVFrameInfo->stVFrame.pVirAddr[2] = pstVFrameInfo->stVFrame.pVirAddr[1] + u32ChrmSize;
+    pstVFrameInfo->stVFrame.pVirAddr[0] = (HI_U8*)pVirAddr;
+    pstVFrameInfo->stVFrame.pVirAddr[1] = (HI_U8*)pstVFrameInfo->stVFrame.pVirAddr[0] + u32LumaSize;
+    pstVFrameInfo->stVFrame.pVirAddr[2] = (HI_U8*)pstVFrameInfo->stVFrame.pVirAddr[1] + u32ChrmSize;
 
     pstVFrameInfo->stVFrame.u32Width  = u32Width;
     pstVFrameInfo->stVFrame.u32Height = u32Height;
@@ -595,15 +594,15 @@ int  vi_getvframefromyuv(FILE *pYUVFile, HI_U32 u32Width, HI_U32 u32Height,HI_U3
     pstVFrameInfo->stVFrame.u32Field = VIDEO_FIELD_FRAME;/* Intelaced D1,otherwise VIDEO_FIELD_FRAME */
 
     /* read Y U V data from file to the addr ----------------------------------------------*/
-       vi_readframe(pYUVFile, pstVFrameInfo->stVFrame.pVirAddr[0],
-       pstVFrameInfo->stVFrame.pVirAddr[1], pstVFrameInfo->stVFrame.pVirAddr[2],
+       vi_readframe(pYUVFile, (HI_U8*)pstVFrameInfo->stVFrame.pVirAddr[0],
+       (HI_U8*)pstVFrameInfo->stVFrame.pVirAddr[1], (HI_U8*)pstVFrameInfo->stVFrame.pVirAddr[2],
        pstVFrameInfo->stVFrame.u32Width, pstVFrameInfo->stVFrame.u32Height,
        pstVFrameInfo->stVFrame.u32Stride[0], pstVFrameInfo->stVFrame.u32Stride[1] >> 1 );
 
     /* convert planar YUV420 to sem-planar YUV420 -----------------------------------------*/
-  	  vi_plantosemi(pstVFrameInfo->stVFrame.pVirAddr[0], pstVFrameInfo->stVFrame.u32Stride[0],
-      pstVFrameInfo->stVFrame.pVirAddr[1], pstVFrameInfo->stVFrame.u32Stride[1],
-      pstVFrameInfo->stVFrame.pVirAddr[2], pstVFrameInfo->stVFrame.u32Stride[1],
+  	  vi_plantosemi((HI_U8*)pstVFrameInfo->stVFrame.pVirAddr[0], pstVFrameInfo->stVFrame.u32Stride[0],
+      (HI_U8*)pstVFrameInfo->stVFrame.pVirAddr[1], pstVFrameInfo->stVFrame.u32Stride[1],
+      (HI_U8*)pstVFrameInfo->stVFrame.pVirAddr[2], pstVFrameInfo->stVFrame.u32Stride[1],
       pstVFrameInfo->stVFrame.u32Width, pstVFrameInfo->stVFrame.u32Height);
 
     HI_MPI_SYS_Munmap(pVirAddr, u32Size);
@@ -856,7 +855,7 @@ int open_hi3531(CHNS chns, SIZE size, const char *file_name)
 	if (0 != ret) {
 		return -1;	
 	}
-
+	return 0;
 }
 
 int read_hi3531(int vda_chn, TD *ptd)
@@ -899,9 +898,10 @@ int read_hi3531(int vda_chn, TD *ptd)
 		fprintf(stderr, "hi_mpi_vda_releasedata failed with %#x!\n", ret);
 		return -1;
 	}
+	return 0;
 }
 
-int close_hi3531(CHNS chns)
+void close_hi3531(CHNS chns)
 {
 	vda_odstop(chns.vda_chn, chns.vi_chn);
 	vi_stop(VI_MODE_4_1080P);
