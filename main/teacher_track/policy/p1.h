@@ -407,7 +407,7 @@ public:
 			//p_->isin_field(targets[0], angle); 	
 
 			//int speed;
-			//if(!p_->ptz_speed(abs(angle), speed))//不在视野内的话speed用最大值;
+			//if(!p_->ptz_speed(fabs(angle), speed))//不在视野内的话speed用最大值;
 			//{
 			//	return id();
 			//}
@@ -564,7 +564,7 @@ public:
 			if (p_->isin_field(rcs[0], angle)) 
 			{
 				//若云台返回失败无法获取转动速度该返回哪个状态呢???...
-				if(!p_->ptz_speed(abs(angle), speed))
+				if(!p_->ptz_speed(fabs(angle), speed))
 				{
 					return id();
 				}
