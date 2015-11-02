@@ -656,7 +656,7 @@ HI_S32 SAMPLE_COMM_VI_MemConfig(SAMPLE_VI_MODE_E enViMode)
 		fprintf(stderr, " ch %d: using %s\n", ViChn, pcMmzName);
         
         /* HD mode, we will start vi sub-chn */
-        if (HI_TRUE == HI_TRUE))
+        if (HI_TRUE == SAMPLE_COMM_VI_IsHd(enViMode))
         {
             ViChn += 16;
             

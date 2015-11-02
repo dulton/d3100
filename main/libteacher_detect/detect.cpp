@@ -1,10 +1,13 @@
+#include <stdlib.h>
 #include <string.h>
 #include "detect.h"
 #include "../../hi353x/detect/mpi_wrap.h"
-#include<pthread.h>
+#include <pthread.h>
 #include <string>	
 #include <sstream>
 #include <unistd.h>
+#include <stdio.h>
+#include <errno.h>
 
 typedef struct detect_t
 {
@@ -94,7 +97,7 @@ detect_t *det_open(const char *kvfname)
 	SIZE size = {640, 560};
 	detect_t *det = (detect_t *)malloc(sizeof(detect_t));
 
-	det->chns.vi_chn = 1;
+	det->chns.vi_chn = 12;
 	det->chns.vda_chn = 1;
 	det->is_quit = false;
 
@@ -103,7 +106,7 @@ detect_t *det_open(const char *kvfname)
 		perror("Mutex initialization failed");
 		exit(-1);
 	}
-	VDAS vdas = {4, 100, 45, 1, 0, {480, 270}, {14, 71, 438, 28}, "./background.yuv"};	
+	VDAS vdas = {4, 100, 45, 1, 0, {480, 270}, {14, 71, 440, 28}, "./background.yuv"};	
 	width = vdas.rect.width / 2;
 	height = vdas.rect.height / 2;
 	x = vdas.rect.x + width;

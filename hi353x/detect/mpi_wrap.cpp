@@ -1,3 +1,4 @@
+#include <string.h>
 #include <stdlib.h>
 #include "hi_type.h"
 #include "hi_common.h"
@@ -282,13 +283,15 @@ static int sys_init()
 {
 	// XXXX:写死还是通过配置文件？
 	VB_CONF_S vb_conf;
-	vb_conf.u32MaxPoolCnt = 256;
+	memset(&vb_conf, 0, sizeof(vb_conf));
+	vb_conf.u32MaxPoolCnt = 128;
 	vb_conf.astCommPool[0].u32BlkSize = 1920 * 1080;
 	vb_conf.astCommPool[0].u32BlkCnt = 8;
-	vb_conf.astCommPool[0].acMmzName[0] = '\0';
+	memset(vb_conf.astCommPool[0].acMmzName, 0, \
+			sizeof(vb_conf.astCommPool[0].acMmzName));
 
 	vb_conf.astCommPool[1].u32BlkSize = 1920 * 1080;
-	vb_conf.astCommPool[1].u32BlkSize = 8;
+	vb_conf.astCommPool[1].u32BlkCnt = 8;
 	strcpy(vb_conf.astCommPool[1].acMmzName, "ddr1");
 
     MPP_SYS_CONF_S sys_conf = {0};
@@ -646,9 +649,9 @@ static int vda_create_channel(int vda_chn, VDAS vdas)
     }
    
     stVdaChnAttr.enWorkMode = VDA_WORK_MODE_OD;
-    stVdaChnAttr.u32Width   = vdas.size.width;
-    stVdaChnAttr.u32Height  = vdas.size.height;
-
+    stVdaChnAttr.u32Width   = 480;//vdas.size.width;
+    stVdaChnAttr.u32Height  = 270;//vdas.size.height;
+	fprintf(stdout, "chn = %d, width = %d, height = %d\n", vda_chn, vdas.size.width, vdas.size.height);
     stVdaChnAttr.unAttr.stOdAttr.enVdaAlg      = VDA_ALG_BG;
     stVdaChnAttr.unAttr.stOdAttr.enMbSize      = VDA_MB_16PIXEL;
     stVdaChnAttr.unAttr.stOdAttr.enMbSadBits   = VDA_MB_SAD_16BIT;
@@ -656,27 +659,46 @@ static int vda_create_channel(int vda_chn, VDAS vdas)
     stVdaChnAttr.unAttr.stOdAttr.u32VdaIntvl   = 4;
     stVdaChnAttr.unAttr.stOdAttr.u32BgUpSrcWgt = 128;
     
-    stVdaChnAttr.unAttr.stOdAttr.u32RgnNum = vdas.an;
+//    stVdaChnAttr.unAttr.stOdAttr.u32RgnNum = vdas.an;
   
 		
 	width = vdas.rect.width / 4;
-	height = vdas.rect.height / 4;
+	height = vdas.rect.height;
 	x = vdas.rect.x;
 	y = vdas.rect.y;
 
+	stVdaChnAttr.unAttr.stOdAttr.u32RgnNum = 1;
+    
+    stVdaChnAttr.unAttr.stOdAttr.astOdRgnAttr[0].stRect.s32X = 0;
+    stVdaChnAttr.unAttr.stOdAttr.astOdRgnAttr[0].stRect.s32Y = 0;
+    stVdaChnAttr.unAttr.stOdAttr.astOdRgnAttr[0].stRect.u32Width  = 320;
+    stVdaChnAttr.unAttr.stOdAttr.astOdRgnAttr[0].stRect.u32Height = 64;
 
-	for (i = 0; i < vdas.an; i++) {
-		stVdaChnAttr.unAttr.stOdAttr.astOdRgnAttr[i].stRect.s32X = x + i * width;
-		stVdaChnAttr.unAttr.stOdAttr.astOdRgnAttr[i].stRect.s32Y = y;
-		stVdaChnAttr.unAttr.stOdAttr.astOdRgnAttr[i].stRect.u32Width  = width;
-		stVdaChnAttr.unAttr.stOdAttr.astOdRgnAttr[i].stRect.u32Height = height;
+    stVdaChnAttr.unAttr.stOdAttr.astOdRgnAttr[0].u32SadTh      = 100;
+    stVdaChnAttr.unAttr.stOdAttr.astOdRgnAttr[0].u32AreaTh     = 40;
+    stVdaChnAttr.unAttr.stOdAttr.astOdRgnAttr[0].u32OccCntTh   = 1;
+    stVdaChnAttr.unAttr.stOdAttr.astOdRgnAttr[0].u32UnOccCntTh = 0;
 
-		stVdaChnAttr.unAttr.stOdAttr.astOdRgnAttr[i].u32SadTh      = vdas.st;
-		stVdaChnAttr.unAttr.stOdAttr.astOdRgnAttr[i].u32AreaTh     = vdas.w / width;
-		stVdaChnAttr.unAttr.stOdAttr.astOdRgnAttr[i].u32OccCntTh   = vdas.ot;
-		stVdaChnAttr.unAttr.stOdAttr.astOdRgnAttr[i].u32UnOccCntTh = vdas.ut;
-	
+//	for (i = 0; i < vdas.an; i++) {
+//		stVdaChnAttr.unAttr.stOdAttr.astOdRgnAttr[i].stRect.s32X = x + i * width;
+//		stVdaChnAttr.unAttr.stOdAttr.astOdRgnAttr[i].stRect.s32Y = y;
+//		stVdaChnAttr.unAttr.stOdAttr.astOdRgnAttr[i].stRect.u32Width  = width;
+//		stVdaChnAttr.unAttr.stOdAttr.astOdRgnAttr[i].stRect.u32Height = height;
+//
+//		stVdaChnAttr.unAttr.stOdAttr.astOdRgnAttr[i].u32SadTh      = 100;//vdas.st;
+//		stVdaChnAttr.unAttr.stOdAttr.astOdRgnAttr[i].u32AreaTh     = 40;//vdas.w * 100/ width;
+//		stVdaChnAttr.unAttr.stOdAttr.astOdRgnAttr[i].u32OccCntTh   = 1;//vdas.ot;
+//		stVdaChnAttr.unAttr.stOdAttr.astOdRgnAttr[i].u32UnOccCntTh = 0;//vdas.ut;
+//	}
+
+	ret = HI_MPI_VDA_CreateChn(vda_chn, &stVdaChnAttr);
+	if(HI_SUCCESS != ret) {
+		PRT_ERR("err 0x%x!\n", ret);
+		return(ret);
 	}
+
+
+
     	ret = HI_MPI_VDA_StartRecvPic(vda_chn);
 
     if(ret != HI_SUCCESS)

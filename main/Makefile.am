@@ -2,7 +2,7 @@ AUTOMAKE_OPTIONS=foreign
 
 RUNTIME_CPP= teacher_track/runtime.cpp
 
-bin_PROGRAMS= teacher_detect test_ptz test_kvconfig test_detect test_udpsrv 
+bin_PROGRAMS= teacher_detect test_ptz test_kvconfig test_udpsrv 
 
 if PTZSRV
 bin_PROGRAMS+= ptzsrv
@@ -19,9 +19,7 @@ teacher_detect_SOURCES=	teacher_track/teacher_track.cpp \
 						teacher_track/detector.cpp \
 						teacher_track/log.cpp \
 						${RUNTIME_CPP} \
-						teacher_track/switch.cpp \
-						libptz/ptz.cpp \
-						libptz/tcp_util.cpp \
+						teacher_track/switch.cpp \ libptz/ptz.cpp \ libptz/tcp_util.cpp \
 						libptz/polyfit.cpp \
 						libkvconfig/kvconfig.cpp
 
@@ -35,8 +33,8 @@ test_detect_SOURCES= libteacher_detect/detect_dummy.cpp \
 teacher_detect_SOURCES+= libteacher_detect/detect_dummy.cpp
 else
 
+HISLIBS= ../hi353x/lib/libmpi.a ../hi353x/lib/libaec.a ../hi353x/lib/libanr.a ../hi353x/lib/libhdmi.a ../hi353x/lib/libjpeg.a  ../hi353x/lib/libpciv.a ../hi353x/lib/libresampler.a ../hi353x/lib/libtde.a ../hi353x/lib/libVoiceEngine.a
 
-HISLIBS=  ../hi353x/lib/libmpi.a
 
 noinst_LIBRARIES = libteacher_detect.a
 teacher_detect_SOURCES+= libteacher_detect/detect.cpp
@@ -44,7 +42,7 @@ teacher_detect_LDADD= libteacher_detect.a ${HISLIBS}
 
 bin_PROGRAMS+= test_arm_detect
 
-test_arm_detect_SOURCES=libteacher_detect/test/test_arm_detect.cpp  
+test_arm_detect_SOURCES= libteacher_detect/test/test_arm_detect.cpp  libteacher_detect/detect.cpp 
 test_arm_detect_LDADD= libteacher_detect.a ${HISLIBS}
 
 TDPATH= ../hi353x/detect
