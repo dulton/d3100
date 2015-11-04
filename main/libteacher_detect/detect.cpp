@@ -241,18 +241,23 @@ static std::vector<RECT> get_targets(const std::vector<Range> &ranges)
 
 	last_cnt(cnt, ranges.size(), idx1, idx2);
 
+	fprintf(stderr, "merged idx: ");
 	std::vector<RECT> rcs;
 	for (size_t i = 0; i < idx1.size(); i++) {
 		// 合并 ...x 可以使用中点，y 怎么办？返回第一个的吧
 		RECT left = ranges[idx1[i]].pos();    // 左侧矩形
 		RECT right = ranges[idx1[i]+1].pos(); // 右侧矩形
+		fprintf(stderr, "%d, %d, ", idx1[i], idx1[i]+1);
 
 		RECT rc(left.x + left.width/2, left.y, (left.width + right.width) / 2, left.height);
 		rcs.push_back(rc);
 	}
 
+	fprintf(stderr, "\naloned idx: ");
+
 	for (size_t i = 0; i < idx2.size(); i++) {
 		// 独立的 ...
+		fprintf(stderr, "%d, ", idx2[i]);
 		RECT rc = ranges[idx2[i]].pos();	// 需要返回的矩形
 		rcs.push_back(rc);
 	}
