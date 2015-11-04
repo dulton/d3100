@@ -6,6 +6,7 @@
 #include "../teacher_track/runtime.h"
 #include "../teacher_track/log.h"
 #include "detect.h"
+#include <unistd.h>
 
 const char *_empty_result = "{\"stamp\":0000,\"rect\":[]}"; 
 

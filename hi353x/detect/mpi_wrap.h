@@ -15,7 +15,7 @@ extern "C" {
 
 #define VI_SUBCHN_2_W 720
 #define VI_SUBCHN_2_H  640
-
+typedef struct hi31_t hi31_t;
 
 typedef struct point_t
 {
@@ -37,18 +37,14 @@ typedef struct rect
 	int height;
 } RECT;
 
-typedef struct vdas
+typedef struct region
 {
-	int an; 
 	int st;
-	int w;
+	int at;
 	int ot;
 	int ut;
-	SIZE size;
 	RECT rect;
-
-	const char* image_file;
-} VDAS;
+} REGION;
 
 typedef enum vi_mode_e
 {
@@ -56,6 +52,34 @@ typedef enum vi_mode_e
 	VI_MODE_4_720P,
 	VI_MODE_4_1080P
 } VI_MODE_E;
+
+typedef struct vdas
+{
+	int num;
+	SIZE size;
+	REGION regions[4];
+	const char* image_file;
+} VDAS;
+
+typedef struct chns
+{
+	int vi_chn;
+	int vda_chn;
+} CHNS;
+
+typedef struct td
+{
+	int stamp;
+	int is_alarms[4];
+	RECT rects[4];
+} TD;
+
+
+typedef struct hi3531_ptrs
+{
+	CHNS chns;
+	VDAS vdas;
+} HI31_PS;
 
 typedef struct vi_param_s
 {
@@ -72,24 +96,11 @@ typedef enum vi_chn_set_e
     VI_CHN_SET_FILP		/* open filp */
 }VI_CHN_SET_E;
 
-typedef struct td
-{
-	int stamp;
-	int is_alarms[4];
-} TD;
+int open_hi3531(hi31_t **hi31, HI31_PS ps);
 
-typedef struct chns
-{
-	int vi_chn;
-	int vda_chn;
-} CHNS;
+int read_hi3531(hi31_t *hi31, TD *td);
 
-int open_hi3531(CHNS chns, VDAS vdas);
-//int set_hi3531();
-//int start_hi3531();
-int read_hi3531(int vda_chn, TD *ptd);
-
-void  close_hi3531(CHNS chns);
+void  close_hi3531(hi31_t *hi31);
 
 
 #ifdef __cplusplus
