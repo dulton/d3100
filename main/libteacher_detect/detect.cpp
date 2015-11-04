@@ -254,13 +254,13 @@ static std::vector<RECT> get_targets(const std::vector<Range> &ranges)
 	}
 
 	fprintf(stderr, "\naloned idx: ");
-
 	for (size_t i = 0; i < idx2.size(); i++) {
 		// 独立的 ...
 		fprintf(stderr, "%d, ", idx2[i]);
 		RECT rc = ranges[idx2[i]].pos();	// 需要返回的矩形
 		rcs.push_back(rc);
 	}
+	fprintf(stderr, "\n\n");
 
 	return rcs;
 }
