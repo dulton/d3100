@@ -1,3 +1,4 @@
+#include "config.h"
 #include <stdlib.h>
 #include <string.h>
 #include "detect.h"
@@ -8,12 +9,6 @@
 #include <unistd.h>
 #include <stdio.h>
 #include <errno.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-
-#define MULTICAST_ADDR "239.119.119.1"
-#define PORT 11000
 
 struct detect_t
 {
@@ -26,14 +21,14 @@ struct detect_t
 	pthread_t thread_id;
 	pthread_mutex_t mutex;
 	std::string s;
-
-#ifdef DEBUG
-	struct sockaddr_in addr;
-	int addr_len;
-	int fd;
-#endif  // debug
 };
 
+static void erase_str(std::string &s)
+{
+	int len = s.size();
+	if (s[len-3] == ',')
+		s.erase(len-3, 1);
+}
 static std::string get_aims_str(TD *td, RECT *rects)
 {
 	std::stringstream ss;
@@ -44,12 +39,14 @@ static std::string get_aims_str(TD *td, RECT *rects)
 	int width;
 	int height;
 
-	int length = sizeof(td->is_alarms);
+	int length = sizeof(td->is_alarms) /4 ;
+	printf("length = %d\n", length);
 	ss<<"{\"stamp\":"<<td->stamp<<",\"rect\":[";
-
+	for (int k = 0; k < 4; k++)
+		printf("$$$$$$ %d\n", td->is_alarms[i]);
 	for (i = 0; i < length; i++) {
-		if ((i < length - 2) && (td->is_alarms[i] * td->is_alarms[i+1] * td->is_alarms[i+2] == 1)) {
-			for (j=0; j<3; j++) {
+		if ((i < length - 2)&&(td->is_alarms[i]==1)&&(td->is_alarms[i+1]==1)&&(td->is_alarms[i+2]==1)) {
+			for (j=i; j<i+3; j++) {
 				ss<< "{\"x\":"<<rects[i].x<<",\"y\":"<<rects[i].y \
 					<< ",\"width\":"<<rects[i].width<<",\"height\":" \
 					<<rects[i].height<<"},";
@@ -57,7 +54,7 @@ static std::string get_aims_str(TD *td, RECT *rects)
 			i = i + 2;
 		}
 			
-		else if ((i < length -1) && (td->is_alarms[i] * td->is_alarms[i+1] == 1)) {
+		else if ((i < length -1) && (td->is_alarms[i]==1)&&(td->is_alarms[i+1]==1)) {
 			x = (rects[i].x + rects[i+1].x) / 2;
 			y = (rects[i].y + rects[i+1].y) / 2;
 			width = (rects[i].width + rects[i+1].width) / 2;
@@ -67,15 +64,18 @@ static std::string get_aims_str(TD *td, RECT *rects)
 					<<height<<"},";
 			i = i + 1;
 		}
-		else if(td->is_alarms[i] == 1)
+		else if(td->is_alarms[i] == 1) {
 			ss<< "{\"x\":"<<rects[i].x<<",\"y\":"<<rects[i].y \
 					<< ",\"width\":"<<rects[i].width<<",\"height\":" \
 					<<rects[i].height<<"},";
+		}
 		else
 			;
 	}
 	ss<<"]}";
-	return ss.str();	
+	std::string s(ss.str());
+	erase_str(s);
+	return s;	
 }
 
 void *thread_proc(void *pdet)
@@ -84,7 +84,6 @@ void *thread_proc(void *pdet)
 	int i;
 	detect_t *det = (detect_t*)pdet;	
 
-#if 1
 	while (!det->is_quit) {
 		TD td;
 		ret = read_hi3531(det->hi31, &td);
@@ -93,35 +92,19 @@ void *thread_proc(void *pdet)
 			continue;
 		}
 
-#ifdef DEBUG
-		for (i = 0; i < 4; i++) {
-			printf("%d\n", det->td.is_alarms[i]);
-		}
+#ifdef ZDEBUG
 #endif // debug
 
 		pthread_mutex_lock(&det->mutex);
 		det->td = td;
+#ifdef ZDEBUG
+#endif // debug
+
 		pthread_mutex_unlock(&det->mutex);
 
 		usleep(200 * 1000);
 	}
 
-#else
-
-	while ( true != det->is_quit) {
-		pthread_mutex_lock(&det->mutex);
-		ret = read_hi3531(det->hi31, &det->td);
-		for (i = 0; i < 4; i++) {
-			printf("%d\n", det->td.is_alarms[i]);
-		}
-
-		pthread_mutex_unlock(&det->mutex);
-		if (0 !=ret)
-			exit(-1);
-
-		usleep(200 * 1000);
-	}
-#endif
 	return 0;
 }
 
@@ -159,27 +142,14 @@ detect_t *det_open(const char *kvfname)
 	ps.vdas.size.width = 640;
 	ps.vdas.size.height = 480;
 	ps.vdas.num = 4;
-	ps.chns.vi_chn = 28;
+	ps.chns.vi_chn = 16;
 	ps.chns.vda_chn = 1;
 	ps.vdas.image_file = "./background.yuv";	
 	set_regions(rect, &ps);
 
-//	detect_t *det = (detect_t *)malloc(sizeof(detect_t));
 	detect_t *det = new detect_t;
 	det->is_quit = false;
 
-#ifdef DEBUG
-	if ((det->fd=socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
-		perror("socket");
-		exit(-1);
-	}
-	
-	det->addr_len = sizeof(det->addr);
-	memset(&det->addr, 0, sizeof(det->addr));
-	det->addr.sin_family = AF_INET;
-	det->addr.sin_addr.s_addr = inet_addr(MULTICAST_ADDR);
-	det->addr.sin_port = htons(PORT);
-#endif // debug
 
 	for (i=0; i++; i < ps.vdas.num) {
 		det->rects[i] = ps.vdas.regions[i].rect;
@@ -188,13 +158,11 @@ detect_t *det_open(const char *kvfname)
 	ret = pthread_mutex_init(&det->mutex, NULL);
 	if (0 != ret){
 		perror("Mutex initialization failed");
-		exit(-1);
 	}
 	
 	ret = open_hi3531(&det->hi31, ps);
 	if (0 != ret) {
 		PRT_ERR("err no 0x%x\n", ret);
-		exit(-1);
 	}
 	pthread_create(&det->thread_id, 0, thread_proc, (void*)det);
 	return det;
@@ -208,14 +176,6 @@ const char *det_detect(detect_t *det)
 	pthread_mutex_lock(&det->mutex);
 	det->s = get_aims_str(&det->td, det->rects);
 	pthread_mutex_unlock(&det->mutex);
-
-#ifdef DEBUG
-	const char *message = det->s.c_str();
-	if (sendto(det->fd, message, strlen(message), 0, (const sockaddr*)&det->addr, det->addr_len) < 0) {
-		perror("sendto");
-		exit(-1);
-	}
-#endif	
 
 	return det->s.c_str();
 }

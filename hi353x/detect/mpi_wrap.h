@@ -69,7 +69,7 @@ typedef struct chns
 
 typedef struct td
 {
-	int stamp;
+	double stamp;
 	int is_alarms[4];
 	RECT rects[4];
 } TD;
@@ -94,7 +94,7 @@ typedef enum vi_chn_set_e
     VI_CHN_SET_NORMAL = 0, /* mirror, filp close */
     VI_CHN_SET_MIRROR,      /* open MIRROR */
     VI_CHN_SET_FILP		/* open filp */
-}VI_CHN_SET_E;
+} VI_CHN_SET_E;
 
 int open_hi3531(hi31_t **hi31, HI31_PS ps);
 
