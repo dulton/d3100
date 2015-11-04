@@ -52,6 +52,7 @@ AC_ARG_ENABLE([dummy],
 		 esac],
 		[dummy=false])
 AM_CONDITIONAL([DUMMY], [test x$dummy = xtrue])
+AM_CONDITIONAL([DEBUG], [test x$debug = true])
 
 
 # ptz srv

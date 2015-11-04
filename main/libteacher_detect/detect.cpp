@@ -15,7 +15,7 @@
 #define MULTICAST_ADDR "239.119.119.1"
 #define PORT 11000
 
-typedef struct detect_t
+struct detect_t
 {
 	hi31_t *hi31;
 
@@ -27,10 +27,12 @@ typedef struct detect_t
 	pthread_mutex_t mutex;
 	std::string s;
 
+#ifdef DEBUG
 	struct sockaddr_in addr;
 	int addr_len;
 	int fd;
-} detect_t;
+#endif  // debug
+};
 
 static std::string get_aims_str(TD *td, RECT *rects)
 {
@@ -76,11 +78,36 @@ static std::string get_aims_str(TD *td, RECT *rects)
 	return ss.str();	
 }
 
-void *thread_delete(void *pdet)
+void *thread_proc(void *pdet)
 {
 	int ret;
 	int i;
 	detect_t *det = (detect_t*)pdet;	
+
+#if 1
+	while (!det->is_quit) {
+		TD td;
+		ret = read_hi3531(det->hi31, &td);
+		if (ret < 0) {
+			usleep(10 * 1000);
+			continue;
+		}
+
+#ifdef DEBUG
+		for (i = 0; i < 4; i++) {
+			printf("%d\n", det->td.is_alarms[i]);
+		}
+#endif // debug
+
+		pthread_mutex_lock(&det->mutex);
+		det->td = td;
+		pthread_mutex_unlock(&det->mutex);
+
+		usleep(200 * 1000);
+	}
+
+#else
+
 	while ( true != det->is_quit) {
 		pthread_mutex_lock(&det->mutex);
 		ret = read_hi3531(det->hi31, &det->td);
@@ -94,6 +121,7 @@ void *thread_delete(void *pdet)
 
 		usleep(200 * 1000);
 	}
+#endif
 	return 0;
 }
 
@@ -136,9 +164,11 @@ detect_t *det_open(const char *kvfname)
 	ps.vdas.image_file = "./background.yuv";	
 	set_regions(rect, &ps);
 
-	detect_t *det = (detect_t *)malloc(sizeof(detect_t));
+//	detect_t *det = (detect_t *)malloc(sizeof(detect_t));
+	detect_t *det = new detect_t;
 	det->is_quit = false;
 
+#ifdef DEBUG
 	if ((det->fd=socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
 		perror("socket");
 		exit(-1);
@@ -149,6 +179,7 @@ detect_t *det_open(const char *kvfname)
 	det->addr.sin_family = AF_INET;
 	det->addr.sin_addr.s_addr = inet_addr(MULTICAST_ADDR);
 	det->addr.sin_port = htons(PORT);
+#endif // debug
 
 	for (i=0; i++; i < ps.vdas.num) {
 		det->rects[i] = ps.vdas.regions[i].rect;
@@ -165,25 +196,26 @@ detect_t *det_open(const char *kvfname)
 		PRT_ERR("err no 0x%x\n", ret);
 		exit(-1);
 	}
-	pthread_create(&det->thread_id, 0, thread_delete, (void*)det);
+	pthread_create(&det->thread_id, 0, thread_proc, (void*)det);
 	return det;
 }
 
 const char *det_detect(detect_t *det)
 {
-	std::string s;
 	detect_t detect;
 	int len;
 	
 	pthread_mutex_lock(&det->mutex);
-	det->s  = get_aims_str(&det->td, det->rects);
+	det->s = get_aims_str(&det->td, det->rects);
 	pthread_mutex_unlock(&det->mutex);
+
+#ifdef DEBUG
 	const char *message = det->s.c_str();
 	if (sendto(det->fd, message, strlen(message), 0, (const sockaddr*)&det->addr, det->addr_len) < 0) {
 		perror("sendto");
 		exit(-1);
 	}
-	
+#endif	
 
 	return det->s.c_str();
 }
@@ -194,5 +226,6 @@ void det_close(detect_t *det)
 	pthread_join(det->thread_id, 0);
 	pthread_mutex_destroy(&det->mutex);
 	close_hi3531(det->hi31);
-	free(det);
+	delete det;
 }
+
