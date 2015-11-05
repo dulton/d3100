@@ -21,6 +21,11 @@
 
 #define VDA_OD_CHN 1
 
+typedef struct hi31_t 
+{
+	CHNS chns;
+} hi31_t;
+
 VI_DEV_ATTR_S DEV_ATTR_7441_BT1120_1080P =
 {
     VI_MODE_BT1120_STANDARD,
@@ -295,7 +300,7 @@ static int sys_init()
 	strcpy(vb_conf.astCommPool[1].acMmzName, "ddr1");
 
     MPP_SYS_CONF_S sys_conf = {0};
-    int ret = -1;
+    int ret;
 
     HI_MPI_SYS_Exit();
     HI_MPI_VB_Exit();
@@ -304,14 +309,14 @@ static int sys_init()
     if (0 != ret)
     {
         PRT_ERR("HI_MPI_VB_SetConf failed!\n");
-        return -1;
+        return ret;
     }
 
     ret = HI_MPI_VB_Init();
     if (0 != ret)
     {
         PRT_ERR("HI_MPI_VB_Init failed!\n");
-        return -1;
+        return ret;
     }
 
     sys_conf.u32AlignWidth = SYS_ALIGN_WIDTH;
@@ -319,14 +324,14 @@ static int sys_init()
     if (0 != ret)
     {
         PRT_ERR("HI_MPI_SYS_SetConf failed\n");
-        return -1;
+        return ret;
     }
 
     ret = HI_MPI_SYS_Init();
     if (0 != ret)
     {
         PRT_ERR("HI_MPI_SYS_Init failed!\n");
-        return -1;
+        return ret;
     }
 
     return 0;
@@ -627,7 +632,13 @@ static int vda_send_picture(int vda_chn, const char * filename)
 		printf("###read file fail\n");
 		return -1;
 	}
+
 	ret = HI_MPI_VDA_UserSendPic(vda_chn, &stVFrameInfo, HI_TRUE, 0);
+	if (0 != ret)
+	{
+		PRT_ERR("err: 0x%x\n", ret);
+		return ret;
+	}
 	return ret;
 }
 
@@ -639,7 +650,6 @@ static int vda_create_channel(int vda_chn, VDAS vdas)
 	int x;
 	int y;
     VDA_CHN_ATTR_S stVdaChnAttr;
-    MPP_CHN_S stSrcChn, stDestChn;
     HI_S32 ret = HI_SUCCESS;
     
     if (VDA_MAX_WIDTH < vdas.size.width || VDA_MAX_HEIGHT < vdas.size.height)
@@ -649,9 +659,9 @@ static int vda_create_channel(int vda_chn, VDAS vdas)
     }
    
     stVdaChnAttr.enWorkMode = VDA_WORK_MODE_OD;
-    stVdaChnAttr.u32Width   = 480;//vdas.size.width;
-    stVdaChnAttr.u32Height  = 270;//vdas.size.height;
-	fprintf(stdout, "chn = %d, width = %d, height = %d\n", vda_chn, vdas.size.width, vdas.size.height);
+    stVdaChnAttr.u32Width   = vdas.size.width;
+    stVdaChnAttr.u32Height  =  vdas.size.height;
+
     stVdaChnAttr.unAttr.stOdAttr.enVdaAlg      = VDA_ALG_BG;
     stVdaChnAttr.unAttr.stOdAttr.enMbSize      = VDA_MB_16PIXEL;
     stVdaChnAttr.unAttr.stOdAttr.enMbSadBits   = VDA_MB_SAD_16BIT;
@@ -659,47 +669,29 @@ static int vda_create_channel(int vda_chn, VDAS vdas)
     stVdaChnAttr.unAttr.stOdAttr.u32VdaIntvl   = 4;
     stVdaChnAttr.unAttr.stOdAttr.u32BgUpSrcWgt = 128;
     
-//    stVdaChnAttr.unAttr.stOdAttr.u32RgnNum = vdas.an;
+    stVdaChnAttr.unAttr.stOdAttr.u32RgnNum = vdas.num;
   
 		
-	width = vdas.rect.width / 4;
-	height = vdas.rect.height;
-	x = vdas.rect.x;
-	y = vdas.rect.y;
+	for (i = 0; i < vdas.num; i++) {
+		stVdaChnAttr.unAttr.stOdAttr.astOdRgnAttr[i].stRect.s32X = vdas.regions[i].rect.x;
+		stVdaChnAttr.unAttr.stOdAttr.astOdRgnAttr[i].stRect.s32Y = vdas.regions[i].rect.y;
+		stVdaChnAttr.unAttr.stOdAttr.astOdRgnAttr[i].stRect.u32Width  =  vdas.regions[i].rect.width;
+		stVdaChnAttr.unAttr.stOdAttr.astOdRgnAttr[i].stRect.u32Height = vdas.regions[i].rect.height;
 
-	stVdaChnAttr.unAttr.stOdAttr.u32RgnNum = 1;
-    
-    stVdaChnAttr.unAttr.stOdAttr.astOdRgnAttr[0].stRect.s32X = 0;
-    stVdaChnAttr.unAttr.stOdAttr.astOdRgnAttr[0].stRect.s32Y = 0;
-    stVdaChnAttr.unAttr.stOdAttr.astOdRgnAttr[0].stRect.u32Width  = 320;
-    stVdaChnAttr.unAttr.stOdAttr.astOdRgnAttr[0].stRect.u32Height = 64;
-
-    stVdaChnAttr.unAttr.stOdAttr.astOdRgnAttr[0].u32SadTh      = 100;
-    stVdaChnAttr.unAttr.stOdAttr.astOdRgnAttr[0].u32AreaTh     = 40;
-    stVdaChnAttr.unAttr.stOdAttr.astOdRgnAttr[0].u32OccCntTh   = 1;
-    stVdaChnAttr.unAttr.stOdAttr.astOdRgnAttr[0].u32UnOccCntTh = 0;
-
-//	for (i = 0; i < vdas.an; i++) {
-//		stVdaChnAttr.unAttr.stOdAttr.astOdRgnAttr[i].stRect.s32X = x + i * width;
-//		stVdaChnAttr.unAttr.stOdAttr.astOdRgnAttr[i].stRect.s32Y = y;
-//		stVdaChnAttr.unAttr.stOdAttr.astOdRgnAttr[i].stRect.u32Width  = width;
-//		stVdaChnAttr.unAttr.stOdAttr.astOdRgnAttr[i].stRect.u32Height = height;
-//
-//		stVdaChnAttr.unAttr.stOdAttr.astOdRgnAttr[i].u32SadTh      = 100;//vdas.st;
-//		stVdaChnAttr.unAttr.stOdAttr.astOdRgnAttr[i].u32AreaTh     = 40;//vdas.w * 100/ width;
-//		stVdaChnAttr.unAttr.stOdAttr.astOdRgnAttr[i].u32OccCntTh   = 1;//vdas.ot;
-//		stVdaChnAttr.unAttr.stOdAttr.astOdRgnAttr[i].u32UnOccCntTh = 0;//vdas.ut;
-//	}
+		stVdaChnAttr.unAttr.stOdAttr.astOdRgnAttr[i].u32SadTh      = vdas.regions[i].st;
+		stVdaChnAttr.unAttr.stOdAttr.astOdRgnAttr[i].u32AreaTh     = vdas.regions[i].at;
+		stVdaChnAttr.unAttr.stOdAttr.astOdRgnAttr[i].u32OccCntTh   = vdas.regions[i].ot;
+		stVdaChnAttr.unAttr.stOdAttr.astOdRgnAttr[i].u32UnOccCntTh = vdas.regions[i].ut;
+	
+	}
 
 	ret = HI_MPI_VDA_CreateChn(vda_chn, &stVdaChnAttr);
 	if(HI_SUCCESS != ret) {
 		PRT_ERR("err 0x%x!\n", ret);
 		return(ret);
 	}
-
-
-
-    	ret = HI_MPI_VDA_StartRecvPic(vda_chn);
+	
+   	ret = HI_MPI_VDA_StartRecvPic(vda_chn);
 
     if(ret != HI_SUCCESS)
     {
@@ -710,7 +702,7 @@ static int vda_create_channel(int vda_chn, VDAS vdas)
 	return 0;
 }
 
-static int vda_receive_videos(int vda_chn, int  vi_chn)
+static int vi_vda_bind(int  vi_chn, int vda_chn)
 {
 	int ret;
 	MPP_CHN_S stSrcChn, stDestChn;
@@ -766,22 +758,14 @@ static void sys_exit(void)
 {
     HI_MPI_SYS_Exit();
     HI_MPI_VB_Exit();
-    exit(-1);
 }
 
-static void vda_odstop(int  vda_chn, int  vi_chn)
+static int  vi_vda_unbind(int vi_chn, int vda_chn)
 {
-    HI_S32 s32Ret = HI_SUCCESS;
+	HI_S32 s32Ret = HI_SUCCESS;
     MPP_CHN_S stSrcChn, stDestChn;
 
-    /* vda stop recv picture */
-    s32Ret = HI_MPI_VDA_StopRecvPic(vda_chn);
-    if(s32Ret != HI_SUCCESS)
-    {
-        PRT_ERR("err(0x%x)!!!!\n", s32Ret);
-    }
-
-    /* unbind vda chn & vi chn */
+	 /* unbind vda chn & vi chn */
     stSrcChn.enModId = HI_ID_VIU;
     stSrcChn.s32ChnId = vi_chn;
     stSrcChn.s32DevId = 0;
@@ -792,6 +776,21 @@ static void vda_odstop(int  vda_chn, int  vi_chn)
     if(s32Ret != HI_SUCCESS)
     {
         PRT_ERR("err(0x%x)!!!!\n", s32Ret);
+		return s32Ret;
+    }
+	return s32Ret;
+	
+}
+static int vda_stop(int  vda_chn)
+{
+    HI_S32 s32Ret = HI_SUCCESS;
+
+    /* vda stop recv picture */
+    s32Ret = HI_MPI_VDA_StopRecvPic(vda_chn);
+    if(s32Ret != HI_SUCCESS)
+    {
+        PRT_ERR("err(0x%x)!!!!\n", s32Ret);
+		return s32Ret;
     }
 
     /* destroy vda chn */
@@ -799,8 +798,9 @@ static void vda_odstop(int  vda_chn, int  vi_chn)
     if(s32Ret != HI_SUCCESS)
     {
         PRT_ERR("err(0x%x)!!!!\n",s32Ret);
+		return s32Ret;
     }
-    return;
+    return s32Ret;
 }
 
 static int vi_stop(VI_MODE_E vi_mode)
@@ -859,87 +859,106 @@ static int vi_stop(VI_MODE_E vi_mode)
     return HI_SUCCESS;
 }
 
-int open_hi3531(CHNS chns, VDAS vdas)
+int open_hi3531(hi31_t ** phi31, HI31_PS ps)
 {
+	int i;
 	int ret;
 	ret = sys_init();
 	if (0 != ret) {
-		return -1;
+		sys_exit();
+		return ret;
 	}
 	
 	ret = vi_memconfig(VI_MODE_4_1080P);
 	if (0 != ret) {
-		return -1;
+		sys_exit();
+		return ret;
 	}
 	
 	ret = vi_start(VI_MODE_4_1080P);
 	if (0 != ret) {
-		return -1;
+		sys_exit();
+		return ret;
 	}
 
-	ret = vda_create_channel(chns.vda_chn, vdas);
+	ret = vda_create_channel(ps.chns.vda_chn, ps.vdas);
 	if (0 != ret) {
-		return -1;
+		PRT_ERR("can not create channel\n");
+		vi_stop(VI_MODE_4_1080P);
+		sys_exit();
+		return ret;
 	}
 	
-	ret = vda_send_picture(chns.vda_chn, vdas.image_file);
+	ret = vda_send_picture(ps.chns.vda_chn, ps.vdas.image_file);
 	if (0 != ret) {
-		return -1;	
+		vi_stop(VI_MODE_4_1080P);		
+		vda_stop(ps.chns.vda_chn);
+		sys_exit();
+		return ret;	
 	}
 
-	ret = vda_receive_videos(chns.vda_chn, chns.vi_chn);
+	ret = vi_vda_bind(ps.chns.vi_chn, ps.chns.vda_chn);
 	if (0 != ret) {
-		return -1;	
+		vi_stop(VI_MODE_4_1080P);
+		vda_stop(ps.chns.vda_chn);
+		return ret;	
 	}
+
+
+	*phi31 = (hi31_t*)malloc(sizeof(hi31_t));	
+	(*phi31)->chns = ps.chns;
+	
 	return 0;
 }
 
-int read_hi3531(int vda_chn, TD *ptd)
+int read_hi3531(hi31_t *hi31, TD *td)
 {
 	int i;
     int ret;
     unsigned int rgn_num;
 	VDA_DATA_S vda_data;
 
-	ret = HI_MPI_VDA_GetData(vda_chn,&vda_data,HI_TRUE);
+	ret = HI_MPI_VDA_GetData(hi31->chns.vda_chn,&vda_data,HI_TRUE);
 	if(ret != HI_SUCCESS)
 	{
 		PRT_ERR("HI_MPI_VDA_GetData failed with %#x!\n", ret);
-		return -1;
+		return ret;
 	}
 
 	rgn_num = vda_data.unData.stOdData.u32RgnNum;
-
 	for(i=0; i<rgn_num; i++)
 	{
 		//fixme: 注意 是否能同时检测 ...
 		if(HI_TRUE == vda_data.unData.stOdData.abRgnAlarm[i])
 		{ 
-			PRT_ERR("################vdachn--%d, rgn--%d,occ!\n",vda_chn, i);
-			ret = HI_MPI_VDA_ResetOdRegion(vda_chn,i);
+			PRT_ERR("################vdachn--%d, rgn--%d,occ!\n",hi31->chns.vda_chn, i);
+			ret = HI_MPI_VDA_ResetOdRegion(hi31->chns.vda_chn, i);
 			if(ret != HI_SUCCESS)
 			{
 				 PRT_ERR("hi_mpi_vda_resetodregion failed with %#x!\n", ret);
-				return -1;
+				return ret;
 			}
 		}
 	}
 	
-	ptd->stamp = now();
+	td->stamp = (double)now() / 1000000;
 	for (i=0; i<rgn_num; i++)
-		ptd->is_alarms[i] = vda_data.unData.stOdData.abRgnAlarm[i];		
-	ret = HI_MPI_VDA_ReleaseData(vda_chn,&vda_data);
+		td->is_alarms[i] = vda_data.unData.stOdData.abRgnAlarm[i];		
+	ret = HI_MPI_VDA_ReleaseData(hi31->chns.vda_chn,&vda_data);
 	if(ret != HI_SUCCESS)
 	{
 		fprintf(stderr, "hi_mpi_vda_releasedata failed with %#x!\n", ret);
-		return -1;
+		return ret;
 	}
 	return 0;
 }
 
-void close_hi3531(CHNS chns)
+void close_hi3531(hi31_t *hi31)
 {
-	vda_odstop(chns.vda_chn, chns.vi_chn);
+	vi_vda_unbind(hi31->chns.vi_chn, hi31->chns.vda_chn);
+	vda_stop(hi31->chns.vda_chn);
 	vi_stop(VI_MODE_4_1080P);
+	
 	sys_exit();
+	free(hi31);
 }

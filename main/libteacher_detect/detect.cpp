@@ -1,3 +1,4 @@
+#include "config.h"
 #include <stdlib.h>
 #include <string.h>
 #include "detect.h"
@@ -9,80 +10,121 @@
 #include <stdio.h>
 #include <errno.h>
 
-typedef struct detect_t
+struct detect_t
 {
-	CHNS chns;
-	TD td;	
+	hi31_t *hi31;
 
+	TD td;
+	RECT rects[4];
+	
 	bool is_quit;
 	pthread_t thread_id;
 	pthread_mutex_t mutex;
-	
 	std::string s;
-	POINT points[7];
-} detect_t;
+};
 
-/* 获取目标 转换成 json字符串 */	
-static std::string get_aims_str(int *arms, POINT *centers, int stamp)
+static void erase_str(std::string &s)
 {
-	int i;
+	int len = s.size();
+	if (s[len-3] == ',')
+		s.erase(len-3, 1);
+}
+static std::string get_aims_str(TD *td, RECT *rects)
+{
 	std::stringstream ss;
-	std::string s;
-	ss<<"{\"stamp\":"<<stamp<<",\"rect\":[";
-	if (1 == arms[0] && 1 == arms[1]) {
-		ss<<"{\"x\":"<<centers[4].x<<"\"y\":"<< \
-			centers[4].y<<",";
-		arms[0] = false; arms[1] = false;
+	int i = 0;
+	int j = 0;
+	int x;
+	int y;
+	int width;
+	int height;
+
+	int length = sizeof(td->is_alarms) /4 ;
+	ss<<"{\"stamp\":"<<td->stamp<<",\"rect\":[";
+	for (int k = 0; k < 4; k++)
+	for (i = 0; i < length; i++) {
+		if ((i < length - 2)&&(td->is_alarms[i]==1)&&(td->is_alarms[i+1]==1)&&(td->is_alarms[i+2]==1)) {
+			for (j=i; j<i+3; j++) {
+				ss<< "{\"x\":"<<rects[i].x<<",\"y\":"<<rects[i].y \
+					<< ",\"width\":"<<rects[i].width<<",\"height\":" \
+					<<rects[i].height<<"},";
+			} 	
+			i = i + 2;
+		}
+			
+		else if ((i < length -1) && (td->is_alarms[i]==1)&&(td->is_alarms[i+1]==1)) {
+			x = (rects[i].x + rects[i+1].x) / 2;
+			y = (rects[i].y + rects[i+1].y) / 2;
+			width = (rects[i].width + rects[i+1].width) / 2;
+			height = (rects[i].height + rects[i+1].height) / 2;
+			ss<< "{\"x\":"<<x<<",\"y\":"<<y \
+					<< ",\"width\":"<<width<<",\"height\":" \
+					<<height<<"},";
+			i = i + 1;
+		}
+		else if(td->is_alarms[i] == 1) {
+			ss<< "{\"x\":"<<rects[i].x<<",\"y\":"<<rects[i].y \
+					<< ",\"width\":"<<rects[i].width<<",\"height\":" \
+					<<rects[i].height<<"},";
+		}
+		else
+			;
 	}
-	else if (1 == arms[1] && 1 == arms[2]) {
-		ss<<"{\"x\":"<<centers[5].x<<"\"y\":"<< \
-			centers[5].y<<",";
-		arms[1] = false; arms[2] = false;
-	}
-	else if (1 == arms[2] && 1 == arms[3]) {
-		ss<<"{\"x\":"<<centers[6].x<<"\"y\":"<< \
-			centers[6].y<<",";
-		arms[2] = false; arms[3] = false;
-	}
-	else if (1 == arms[0]) {
-		ss<<"{\"x\":"<<centers[0].x<<"\"y\":"<< \
-			centers[0].y<<",";
-	}
-	else if (1 == arms[1]) {
-		ss<<"{\"x\":"<<centers[1].x<<"\"y\":"<< \
-			centers[1].y<<",";
-	}
-	else if (1 == arms[2]) {
-		ss<<"{\"x\":"<<centers[2].x<<"\"y\":"<< \
-			centers[2].y<<",";
-	}
-	else if (1 == arms[3]) {
-		ss<<"{\"x\":"<<centers[3].x<<"\"y\":"<< \
-			centers[3].y<<",";
-	}
-	else {
-		ss<<"{\"x\":"<<-1<<"\"y\":"<< \
-			-1<<",";
-	}
-	// XXXX: 多一个,有影响否？
 	ss<<"]}";
-	return ss.str();
+	std::string s(ss.str());
+	erase_str(s);
+	return s;	
 }
 
-void *thread_delete(void *pdet)
+void *thread_proc(void *pdet)
 {
 	int ret;
+	int i;
 	detect_t *det = (detect_t*)pdet;	
-	while ( true != det->is_quit) {
+
+	while (!det->is_quit) {
+		TD td;
+		ret = read_hi3531(det->hi31, &td);
+		if (ret < 0) {
+			usleep(10 * 1000);
+			continue;
+		}
+
+#ifdef ZDEBUG
+#endif // debug
+
 		pthread_mutex_lock(&det->mutex);
-		ret = read_hi3531(det->chns.vda_chn, &det->td);
+		det->td = td;
+#ifdef ZDEBUG
+#endif // debug
+
 		pthread_mutex_unlock(&det->mutex);
-		if (0 !=ret)
-			exit(-1);
 
 		usleep(200 * 1000);
 	}
+
 	return 0;
+}
+
+static void set_regions(RECT region, HI31_PS *ps)
+{
+	int i = 0;
+	int x = region.x;
+	int y = region.y;
+	int width = region.width / 4;
+	int height = region.height;
+
+
+	for (i = 0; i < ps->vdas.num; i++) {
+		ps->vdas.regions[i].rect.x = x + i * width;
+		ps->vdas.regions[i].rect.y = y;
+		ps->vdas.regions[i].rect.width = width;
+		ps->vdas.regions[i].rect.height = height;
+		ps->vdas.regions[i].st = 300;
+		ps->vdas.regions[i].at = 45;
+		ps->vdas.regions[i].ot = 1;
+		ps->vdas.regions[i].ut = 0;
+	}
 }
 
 detect_t *det_open(const char *kvfname)
@@ -93,52 +135,47 @@ detect_t *det_open(const char *kvfname)
 	int width;
 	int height;
 	int i;
+	RECT rect = {0, 240, 640, 64};
+	HI31_PS ps;
+	ps.vdas.size.width = 640;
+	ps.vdas.size.height = 480;
+	ps.vdas.num = 1;
+	ps.chns.vi_chn = 28;
+	ps.chns.vda_chn = 1;
+	ps.vdas.image_file = "./background.yuv";	
+	set_regions(rect, &ps);
 
-	SIZE size = {640, 560};
-	detect_t *det = (detect_t *)malloc(sizeof(detect_t));
-
-	det->chns.vi_chn = 12;
-	det->chns.vda_chn = 1;
+	detect_t *det = new detect_t;
 	det->is_quit = false;
+
+
+	
+	for (i=0; i < ps.vdas.num; i++) {
+		det->rects[i] = ps.vdas.regions[i].rect;
+	}
 
 	ret = pthread_mutex_init(&det->mutex, NULL);
 	if (0 != ret){
 		perror("Mutex initialization failed");
-		exit(-1);
 	}
-	VDAS vdas = {4, 100, 45, 1, 0, {480, 270}, {14, 71, 440, 28}, "./background.yuv"};	
-	width = vdas.rect.width / 2;
-	height = vdas.rect.height / 2;
-	x = vdas.rect.x + width;
-	y = vdas.rect.y + height;
-	for (i = 0; i < 7; i++) {
-		det->points[i].x = x + i * width;
-		det->points[i].y = y;
+	
+	ret = open_hi3531(&det->hi31, ps);
+	if (0 != ret) {
+		PRT_ERR("err no 0x%x\n", ret);
 	}
-	ret = open_hi3531(det->chns, vdas);
-	if (0 != ret)
-		exit(-1);
-	pthread_create(&det->thread_id, 0, thread_delete, (void*)det);
+	pthread_create(&det->thread_id, 0, thread_proc, (void*)det);
 	return det;
 }
 
 const char *det_detect(detect_t *det)
 {
-	int tmp[4];			
-	int stamp;
-	int i;
+	detect_t detect;
+	int len;
+	
 	pthread_mutex_lock(&det->mutex);
-	for (i = 0; i < 4; i++)
-		tmp[i] = det->td.is_alarms[i];
-	stamp = det->td.stamp;
+	det->s = get_aims_str(&det->td, det->rects);
 	pthread_mutex_unlock(&det->mutex);
-	for (i = 0; i < 4; i++) {
-		if (1 == tmp[i]) {
-			int x = det->points[i].x;
-			int y = det->points[i].y;
-		}
-	}
-	det->s = get_aims_str(tmp, (POINT*)&det->points, stamp);
+
 	return det->s.c_str();
 }
 
@@ -147,6 +184,125 @@ void det_close(detect_t *det)
 	det->is_quit = true;
 	pthread_join(det->thread_id, 0);
 	pthread_mutex_destroy(&det->mutex);
-	close_hi3531(det->chns);
-	free(det);
+	close_hi3531(det->hi31);
+	delete det;
 }
+
+#if 0
+struct Range
+{
+	RECT r_;
+	bool f_;
+
+	Range(bool fired, RECT &r) : r_(r), f_(fired) {}
+	Range(bool fired): f_(fired) {}
+
+	bool is_fired() const { return f_; };	// 是否触发
+	RECT pos() const { return r_; }		// 返回矩形位置
+};
+
+static void last_cnt(int cnt, int total, std::vector<int> &idx1, std::vector<int> &idx2)
+{
+	if (cnt == 2) {
+		// 说明有两个区域激活，返回第一个的序号
+		idx1.push_back(total - cnt);
+	}
+	else {
+		// 0/1个，或者多个 ..
+		for (int i = 0; i < cnt; i++) {
+			idx2.push_back(total - cnt + i);
+		}
+	}
+}
+
+static std::vector<RECT> get_targets(const std::vector<Range> &ranges)
+{
+	/** 1. 如果相邻两个range都触发，则返回相邻两个的x的中点 ...
+		2. 其他都返回触发的 ...
+
+		可以先找出两个在一起的..
+	 */
+
+	std::vector<int> idx1, idx2;	// idx1 保存相邻的ranges中的第一个的序号，idx2 保存其它触发的 ..
+
+	int cnt = 0;	// 连续次数
+	for (size_t i = 0; i < ranges.size(); i++) {
+		bool fired = ranges[i].is_fired();
+		if (!fired) {
+			// 不再连续
+			last_cnt(cnt, i, idx1, idx2);
+			cnt = 0;
+		}
+		else {
+			cnt++;
+		}
+	}
+
+	last_cnt(cnt, ranges.size(), idx1, idx2);
+
+	fprintf(stderr, "merged idx: ");
+	std::vector<RECT> rcs;
+	for (size_t i = 0; i < idx1.size(); i++) {
+		// 合并 ...x 可以使用中点，y 怎么办？返回第一个的吧
+		RECT left = ranges[idx1[i]].pos();    // 左侧矩形
+		RECT right = ranges[idx1[i]+1].pos(); // 右侧矩形
+		fprintf(stderr, "%d, %d, ", idx1[i], idx1[i]+1);
+
+		RECT rc(left.x + left.width/2, left.y, (left.width + right.width) / 2, left.height);
+		rcs.push_back(rc);
+	}
+
+	fprintf(stderr, "\naloned idx: ");
+	for (size_t i = 0; i < idx2.size(); i++) {
+		// 独立的 ...
+		fprintf(stderr, "%d, ", idx2[i]);
+		RECT rc = ranges[idx2[i]].pos();	// 需要返回的矩形
+		rcs.push_back(rc);
+	}
+	fprintf(stderr, "\n\n");
+
+	return rcs;
+}
+
+static void test_1()
+{
+	// 没有触发
+	std::vector<Range> no_fired;
+	no_fired.push_back(Range(false));
+	no_fired.push_back(Range(false));
+	no_fired.push_back(Range(false));
+	no_fired.push_back(Range(false));
+	no_fired.push_back(Range(false));
+	no_fired.push_back(Range(false));
+
+	std::vector<RECT> rcs = get_targets(no_fired);
+
+	// 没有俩连续的 ...
+	std::vector<Range> no_merged;
+	no_merged.push_back(Range(false));
+	no_merged.push_back(Range(true));
+	no_merged.push_back(Range(false));
+	no_merged.push_back(Range(true));
+	no_merged.push_back(Range(true));
+	no_merged.push_back(Range(true));
+	no_merged.push_back(Range(false));
+	no_merged.push_back(Range(false));
+
+	rcs = get_targets(no_merged);
+
+	// 需要合并的
+	std::vector<Range> merged;
+	merged.push_back(Range(true));
+	merged.push_back(Range(true));
+	merged.push_back(Range(false));
+	merged.push_back(Range(true));
+	merged.push_back(Range(true));
+	merged.push_back(Range(true));
+	merged.push_back(Range(false));
+	merged.push_back(Range(true));
+	merged.push_back(Range(true));
+
+	rcs = get_targets(merged);
+}
+
+#endif

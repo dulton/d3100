@@ -2,7 +2,7 @@ AUTOMAKE_OPTIONS=foreign
 
 RUNTIME_CPP= teacher_track/runtime.cpp
 
-bin_PROGRAMS= teacher_detect test_ptz test_kvconfig test_udpsrv 
+bin_PROGRAMS= teacher_detect test_ptz test_kvconfig test_udpsrv test_detect
 
 if PTZSRV
 bin_PROGRAMS+= ptzsrv
@@ -48,6 +48,7 @@ test_arm_detect_LDADD= libteacher_detect.a ${HISLIBS}
 TDPATH= ../hi353x/detect
 libteacher_detect_a_SOURCES= ${TDPATH}/mpi_wrap.cpp
 libteacher_detect_a_CXXFLAGS = -I${TDPATH} -I../hi353x/include
+test_detect_SOURCES= libteacher_detect/detect_dummy2.cpp
 endif
 
 
