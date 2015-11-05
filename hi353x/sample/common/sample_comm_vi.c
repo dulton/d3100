@@ -565,8 +565,8 @@ HI_S32 SAMPLE_COMM_VI_GetSubChnSize(VI_CHN ViChn_Sub, VIDEO_NORM_E enNorm, SIZE_
     {
         pstSize->u32Width = 720;
         pstSize->u32Height = (VIDEO_ENCODING_MODE_PAL==enNorm)?576:480;
-		pstSize->u32Width = 480;
-		pstSize->u32Height = 270;
+//		pstSize->u32Width = 480;
+//		pstSize->u32Height = 270;
     }
     else if (0==(ViChn%2)) //(2,6,10,14) subchn max size is 640x720
     {

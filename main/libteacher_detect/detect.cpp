@@ -40,10 +40,8 @@ static std::string get_aims_str(TD *td, RECT *rects)
 	int height;
 
 	int length = sizeof(td->is_alarms) /4 ;
-	printf("length = %d\n", length);
 	ss<<"{\"stamp\":"<<td->stamp<<",\"rect\":[";
 	for (int k = 0; k < 4; k++)
-		printf("$$$$$$ %d\n", td->is_alarms[i]);
 	for (i = 0; i < length; i++) {
 		if ((i < length - 2)&&(td->is_alarms[i]==1)&&(td->is_alarms[i+1]==1)&&(td->is_alarms[i+2]==1)) {
 			for (j=i; j<i+3; j++) {
@@ -122,7 +120,7 @@ static void set_regions(RECT region, HI31_PS *ps)
 		ps->vdas.regions[i].rect.y = y;
 		ps->vdas.regions[i].rect.width = width;
 		ps->vdas.regions[i].rect.height = height;
-		ps->vdas.regions[i].st = 100;
+		ps->vdas.regions[i].st = 300;
 		ps->vdas.regions[i].at = 45;
 		ps->vdas.regions[i].ot = 1;
 		ps->vdas.regions[i].ut = 0;
@@ -137,12 +135,12 @@ detect_t *det_open(const char *kvfname)
 	int width;
 	int height;
 	int i;
-	RECT rect = {16, 17, 386, 32};
+	RECT rect = {0, 240, 640, 64};
 	HI31_PS ps;
 	ps.vdas.size.width = 640;
 	ps.vdas.size.height = 480;
-	ps.vdas.num = 4;
-	ps.chns.vi_chn = 16;
+	ps.vdas.num = 1;
+	ps.chns.vi_chn = 28;
 	ps.chns.vda_chn = 1;
 	ps.vdas.image_file = "./background.yuv";	
 	set_regions(rect, &ps);
@@ -151,7 +149,8 @@ detect_t *det_open(const char *kvfname)
 	det->is_quit = false;
 
 
-	for (i=0; i++; i < ps.vdas.num) {
+	
+	for (i=0; i < ps.vdas.num; i++) {
 		det->rects[i] = ps.vdas.regions[i].rect;
 	}
 
