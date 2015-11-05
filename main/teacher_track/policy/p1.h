@@ -520,6 +520,9 @@ public:
 		{
 			printf("turn_to_targ(isin_field) **************\n");
 			// 目标在视野中，进入稳定跟踪状态 ...
+			// 此时切换到教师近景...
+			MovieScene ms = MS_TC;
+			ms_switch_to(ms);
 			return ST_P1_Tracking;
 		}
 		else 

@@ -6,7 +6,12 @@
 #include "../teacher_track/runtime.h"
 #include "../teacher_track/log.h"
 #include "detect.h"
+
+#ifdef WIN32
+
+#else
 #include <unistd.h>
+#endif
 
 const char *_empty_result = "{\"stamp\":0000,\"rect\":[]}"; 
 
