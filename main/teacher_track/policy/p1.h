@@ -155,10 +155,12 @@ public:
 
 	// 返回云台等待时间...
 	double ptz_wait() const { return ptz_wait_; }
+	double ptz_back_;
 	int ptz_wait_next_state() const { return ptz_wait_next_state_; }
 	void set_ptz_wait(int next_state, double wait = 2.0) 
 	{ 
 		ptz_wait_ = wait; 
+		ptz_back_ = now() + ptz_wait_;
 		ptz_wait_next_state_ = next_state;
 	}
 
@@ -319,19 +321,17 @@ public:
 class p1_ptz_wait: public FSMState
 {
 	p1 *p_;
-	double ptz_back_;
 
 public:
 	p1_ptz_wait(p1 *p1)
 		: FSMState(ST_P1_PtzWaiting, "ptz wait")
 	{
 		p_ = p1;
-		ptz_back_ = now() + p_->ptz_wait();
 	}
 
 	virtual int when_timeout(double curr)
 	{
-		if (curr > ptz_back_)
+		if (curr > p_->ptz_back_)
 			return p_->ptz_wait_next_state();
 		return id();
 	}
