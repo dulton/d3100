@@ -8,6 +8,7 @@
 #include "cJSON.h"
 #include "runtime.h"
 #include "policy/p1.h"
+#include "policy/p2.h"
 
 int main(int argc, char **argv)
 {

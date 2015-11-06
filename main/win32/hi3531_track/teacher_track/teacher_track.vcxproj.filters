@@ -60,6 +60,9 @@
     <ClCompile Include="..\..\..\libptz\polyfit.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\teacher_track\policy\p2.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\..\libkvconfig\kvconfig.h">
@@ -105,6 +108,9 @@
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="..\..\..\teacher_track\switch.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\teacher_track\policy\p2.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>

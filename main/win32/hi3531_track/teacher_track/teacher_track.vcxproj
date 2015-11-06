@@ -87,6 +87,7 @@
     <ClCompile Include="..\..\..\teacher_track\log.cpp" />
     <ClCompile Include="..\..\..\teacher_track\policy.cpp" />
     <ClCompile Include="..\..\..\teacher_track\policy\p1.cpp" />
+    <ClCompile Include="..\..\..\teacher_track\policy\p2.cpp" />
     <ClCompile Include="..\..\..\teacher_track\runtime.cpp" />
     <ClCompile Include="..\..\..\teacher_track\switch.cpp" />
     <ClCompile Include="..\..\..\teacher_track\teacher_track.cpp" />
@@ -104,6 +105,7 @@
     <ClInclude Include="..\..\..\teacher_track\log.h" />
     <ClInclude Include="..\..\..\teacher_track\policy.h" />
     <ClInclude Include="..\..\..\teacher_track\policy\p1.h" />
+    <ClInclude Include="..\..\..\teacher_track\policy\p2.h" />
     <ClInclude Include="..\..\..\teacher_track\runtime.h" />
     <ClInclude Include="..\..\..\teacher_track\switch.h" />
     <ClInclude Include="..\..\..\teacher_track\udpsrv.h" />
