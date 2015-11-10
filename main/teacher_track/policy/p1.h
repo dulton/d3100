@@ -14,6 +14,14 @@
 
 #include <math.h>
 
+// 策略说明：
+// 机位：一个教师云台 + 学生全景机 ...
+// 录播界面：开机进入学生全景 ---〉...
+//           教师有目标且云台转到位时切教师近景 ---〉 ...
+//           教师无目标时切学生全景，并开始计时，一定时间无目标后教师云台复位 ---〉 ...
+//           有VGA通知时切换VGA，停止云台转动，VGA超时判定目标是否在云台视野内，若在视野内回到tracking状态并切到教师近景 ...
+//           若不在视野或无目标回到searching状态并切换到学生全景 ...
+
 
 typedef struct Cal_Angle
 {
@@ -58,6 +66,8 @@ class p1
 	double view_angle_0_;		// 1倍时，镜头水平夹角 .
 
 	Cal_Angle cal_angle_;
+
+	MovieScene ms_, ms_last_;   // 录播机状态切换 ...
 
 public:
 	p1(const char *fname = "teacher_detect_trace.config");
@@ -131,10 +141,29 @@ public:
 		return true;		
 	}
 
+	// 设定录播机状态 ...
+	void set_ms( MovieScene ms ) 
+	{
+		ms_last_ = ms_; // 暂时未用到 ...
+		ms_ =  ms;
+	}
+	// 切换录播机状态 ...
+	void switch_ms()
+	{
+		ms_switch_to(ms_);
+	}
+
 	// vga 超时, 当 now() > vga_back() 时，vga 返回上个状态...
 	double vga_back() const { return vga_back_; }
 
 	int vga_last_state() const { return vga_last_state_; }
+
+	void set_vga_last_state( int state) 
+	{
+		vga_last_state_ = state;
+	}
+
+	int get_vga_last_state() const { return vga_last_state_; }
 
 	// 触发 vga
 	void set_vga(int last_state) 
@@ -155,10 +184,12 @@ public:
 
 	// 返回云台等待时间...
 	double ptz_wait() const { return ptz_wait_; }
+	double ptz_back_;
 	int ptz_wait_next_state() const { return ptz_wait_next_state_; }
 	void set_ptz_wait(int next_state, double wait = 2.0) 
 	{ 
 		ptz_wait_ = wait; 
+		ptz_back_ = now() + ptz_wait_;
 		ptz_wait_next_state_ = next_state;
 	}
 
@@ -221,7 +252,7 @@ private:
 
 
 // 下面声明一大堆状态，和状态转换函数 ...
-enum
+enum state
 {
 	ST_P1_Staring,	    // 启动后，等待云台归位.
 	ST_P1_PtzWaiting,	// 等待云台执行完成 .
@@ -265,6 +296,7 @@ protected:
 
 		if (e->code() == UdpEvent::UDP_Stop) {
 			// 结束跟踪.
+			ptz_stop(p_->ptz()); // 让云台停止转动 ...
 			return ST_P1_Staring;
 		}
 
@@ -274,6 +306,12 @@ protected:
 			if (last_state == ST_P1_Vga) last_state = p_->vga_last_state();
 
 			p_->set_vga(last_state); // 保存上个非 VGA 状态 ...
+
+			ptz_stop(p_->ptz()); // 让云台停止转动 ...
+
+			// 切换到vga状态...
+			p_->set_ms(MS_VGA);
+			p_->switch_ms();
 
 			return ST_P1_Vga;
 		}
@@ -319,19 +357,17 @@ public:
 class p1_ptz_wait: public FSMState
 {
 	p1 *p_;
-	double ptz_back_;
 
 public:
 	p1_ptz_wait(p1 *p1)
 		: FSMState(ST_P1_PtzWaiting, "ptz wait")
 	{
 		p_ = p1;
-		ptz_back_ = now() + p_->ptz_wait();
 	}
 
 	virtual int when_timeout(double curr)
 	{
-		if (curr > ptz_back_)
+		if (curr > p_->ptz_back_)
 			return p_->ptz_wait_next_state();
 		return id();
 	}
@@ -352,6 +388,8 @@ public:
 
 	virtual int when_timeout(double curr)
 	{
+		p_->set_ms(MS_SF);
+		p_->switch_ms();
 		return ST_P1_Searching;//为了便于测试，改动过;
 	}
 
@@ -359,6 +397,8 @@ public:
 	virtual int when_udp(UdpEvent *e)
 	{
 		if (e->code() == UdpEvent::UDP_Start) {
+			p_->set_ms(MS_SF); // 设置开机录播机显示画面为学生全景 ...
+		    p_->switch_ms();
 			return ST_P1_Searching; 
 		}
 		else if (e->code() == UdpEvent::UDP_Quit) {
@@ -426,8 +466,10 @@ public:
 		}
 		else 
 		{
-			MovieScene ms = MS_SF;
-			ms_switch_to(ms);
+			// 切换到学生全景状态...
+			p_->set_ms(MS_SF);
+			p_->switch_ms();
+
 			//无目标云台复位计时开始...
 			p_->is_reset_ = false;
 			p_->set_cam_reset(p_->reset_wait_);
@@ -520,6 +562,9 @@ public:
 		{
 			printf("turn_to_targ(isin_field) **************\n");
 			// 目标在视野中，进入稳定跟踪状态 ...
+			// 此时切换到教师近景...
+			p_->set_ms(MS_TC);
+			p_->switch_ms();
 			return ST_P1_Tracking;
 		}
 		else 
@@ -554,7 +599,7 @@ public:
 		if (rcs.size() != 1) 
 		{
 			printf("p1_tracking(no rcs) **************\n");
-			ptz_stop(p_->ptz());//??? ...
+			ptz_stop(p_->ptz());
 			return ST_P1_Searching;			
 		}
 		else 
@@ -604,13 +649,35 @@ public:
 	{
 	}
 
+	virtual int when_detection(DetectionEvent *e)
+	{
+		// 根据探测结果，当前云台位置，判断是否目标丢失 ...
+		double angle;
+		std::vector<DetectionEvent::Rect> rcs = e->targets();
+
+		// 如果有目标且在视野内 ms = MS_TC ; state = tracking状态 ...
+		if (rcs.size() == 1 && p_->isin_field(rcs[0], angle)) 
+		{
+			 p_->set_vga_last_state(ST_P1_Tracking);
+			 p_->set_ms(MS_TC);
+		     
+		}
+		else // 如果没有目标或不在视野范围内 ms = MS_SF  ;state = searching状态 ...
+		{
+            p_->set_vga_last_state(ST_P1_Searching);
+			p_->set_ms(MS_SF);
+		
+		}
+		return id();
+	}
+
 	virtual int when_timeout(double curr)
 	{
 		if (curr > p_->vga_back()) 
 		{    
-			// 检查是否vga 超时，超时则返回上一个状态 ...
-			return p_->vga_last_state();
+			// vga超时返回 ...	
+			p_->switch_ms();
+			return p_->get_vga_last_state();
 		}
-		return id();
 	}
 };
