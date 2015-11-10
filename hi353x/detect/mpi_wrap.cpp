@@ -266,10 +266,10 @@ static int vi_getsubchnsize(int vichn_sub, SIZE_S *pstSize)
 
     if (0==(ViChn%4)) //(0,4,8,12) subchn max size is 960x1600
     {
-        pstSize->u32Width = 720;
-        pstSize->u32Height = 576;
-//		pstSize->u32Width = 480;
-//		pstSize->u32Height = 270;
+        //pstSize->u32Width = 720;
+        //pstSize->u32Height = 576;
+		pstSize->u32Width = 640;
+		pstSize->u32Height = 480;
     }
     else if (0==(ViChn%2)) //(2,6,10,14) subchn max size is 640x720
     {
@@ -625,7 +625,7 @@ static int vda_send_picture(int vda_chn, const char * filename)
 	int ret;
 	VIDEO_FRAME_INFO_S stVFrameInfo;
 	if ((fp = fopen(filename, "rb")) != NULL) {
-		vi_getvframefromyuv(fp, 960, 540, 960, &stVFrameInfo);
+		vi_getvframefromyuv(fp, 640, 480, 640, &stVFrameInfo);
 		fclose(fp);
 	}
 	else {
@@ -931,7 +931,7 @@ int read_hi3531(hi31_t *hi31, TD *td)
 		//fixme: 注意 是否能同时检测 ...
 		if(HI_TRUE == vda_data.unData.stOdData.abRgnAlarm[i])
 		{ 
-			PRT_ERR("################vdachn--%d, rgn--%d,occ!\n",hi31->chns.vda_chn, i);
+			PRT_ERR("rgn--%d,occ!\n", i);
 			ret = HI_MPI_VDA_ResetOdRegion(hi31->chns.vda_chn, i);
 			if(ret != HI_SUCCESS)
 			{

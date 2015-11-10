@@ -18,7 +18,7 @@ static int zk_mpi_init()
 	int hdcnt = 0;		// 不需要hd
 	int sdcnt = 64;
 	int hdsize = 1920*1080*2;	// sp420
-    int sdsize = 480*270*2;
+    int sdsize = 640*480*2;
 
 	memset(&stVbConf, 0, sizeof(stVbConf));
 
@@ -26,24 +26,24 @@ static int zk_mpi_init()
 
     /*ddr0 video buffer*/
     stVbConf.astCommPool[0].u32BlkSize = hdsize;
-    stVbConf.astCommPool[0].u32BlkCnt = hdcnt;
+    stVbConf.astCommPool[0].u32BlkCnt = 8;
     stVbConf.astCommPool[0].acMmzName[0] = 0;
 
     /*ddr1 video buffer*/
     stVbConf.astCommPool[1].u32BlkSize = hdsize;
-    stVbConf.astCommPool[1].u32BlkCnt = hdcnt;
+    stVbConf.astCommPool[1].u32BlkCnt = 8;
     strcpy(stVbConf.astCommPool[1].acMmzName,"ddr1");
 
 	// for sub channel ...
 
     /*ddr0 video buffer*/
     stVbConf.astCommPool[2].u32BlkSize = sdsize;
-    stVbConf.astCommPool[2].u32BlkCnt = sdcnt;
+    stVbConf.astCommPool[2].u32BlkCnt = 8;
     stVbConf.astCommPool[2].acMmzName[0] = 0;
 
     /*ddr1 video buffer*/
     stVbConf.astCommPool[3].u32BlkSize = sdsize;
-    stVbConf.astCommPool[3].u32BlkCnt = sdcnt;
+    stVbConf.astCommPool[3].u32BlkCnt = 8;
     strcpy(stVbConf.astCommPool[3].acMmzName,"ddr1");
 
     int rc = SAMPLE_COMM_SYS_Init(&stVbConf);
@@ -118,6 +118,7 @@ static void save_nv12(int ch, int cnt, VIDEO_FRAME_S *frame)
 	// mmap
 	unsigned char *y = HI_MPI_SYS_Mmap(frame->u32PhyAddr[0], 
 			frame->u32Stride[0] * frame->u32Height);
+	printf("#### width = %d, ####height = %d\n", frame->u32Width, frame->u32Height);
 	unsigned char *uv = HI_MPI_SYS_Mmap(frame->u32PhyAddr[1],
 			frame->u32Stride[1] * frame->u32Height / 2);	// uv 交错保存
 

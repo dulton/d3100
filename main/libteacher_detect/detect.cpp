@@ -14,6 +14,7 @@ struct detect_t
 {
 	hi31_t *hi31;
 
+	int num;
 	TD td;
 	RECT rects[4];
 	
@@ -29,7 +30,7 @@ static void erase_str(std::string &s)
 	if (s[len-3] == ',')
 		s.erase(len-3, 1);
 }
-static std::string get_aims_str(TD *td, RECT *rects)
+static std::string get_aims_str(detect_t *det)
 {
 	std::stringstream ss;
 	int i = 0;
@@ -39,33 +40,33 @@ static std::string get_aims_str(TD *td, RECT *rects)
 	int width;
 	int height;
 
-	int length = sizeof(td->is_alarms) /4 ;
-	ss<<"{\"stamp\":"<<td->stamp<<",\"rect\":[";
-	for (int k = 0; k < 4; k++)
+	int length = det->num ;
+
+	ss<<"{\"stamp\":"<<det->td.stamp<<",\"rect\":[";
 	for (i = 0; i < length; i++) {
-		if ((i < length - 2)&&(td->is_alarms[i]==1)&&(td->is_alarms[i+1]==1)&&(td->is_alarms[i+2]==1)) {
+		if ((i < length - 2)&&(det->td.is_alarms[i]==1)&&(det->td.is_alarms[i+1]==1)&&(det->td.is_alarms[i+2]==1)) {
 			for (j=i; j<i+3; j++) {
-				ss<< "{\"x\":"<<rects[i].x<<",\"y\":"<<rects[i].y \
-					<< ",\"width\":"<<rects[i].width<<",\"height\":" \
-					<<rects[i].height<<"},";
+				ss<< "{\"x\":"<<det->rects[j].x<<",\"y\":"<<det->rects[j].y \
+					<< ",\"width\":"<<det->rects[j].width<<",\"height\":" \
+					<<det->rects[j].height<<"},";
 			} 	
 			i = i + 2;
 		}
 			
-		else if ((i < length -1) && (td->is_alarms[i]==1)&&(td->is_alarms[i+1]==1)) {
-			x = (rects[i].x + rects[i+1].x) / 2;
-			y = (rects[i].y + rects[i+1].y) / 2;
-			width = (rects[i].width + rects[i+1].width) / 2;
-			height = (rects[i].height + rects[i+1].height) / 2;
+		else if ((i < length -1) && (det->td.is_alarms[i]==1)&&(det->td.is_alarms[i+1]==1)) {
+			x = (det->rects[i].x + det->rects[i+1].x) / 2;
+			y = (det->rects[i].y + det->rects[i+1].y) / 2;
+			width = (det->rects[i].width + det->rects[i+1].width) / 2;
+			height = (det->rects[i].height + det->rects[i+1].height) / 2;
 			ss<< "{\"x\":"<<x<<",\"y\":"<<y \
 					<< ",\"width\":"<<width<<",\"height\":" \
 					<<height<<"},";
 			i = i + 1;
 		}
-		else if(td->is_alarms[i] == 1) {
-			ss<< "{\"x\":"<<rects[i].x<<",\"y\":"<<rects[i].y \
-					<< ",\"width\":"<<rects[i].width<<",\"height\":" \
-					<<rects[i].height<<"},";
+		else if(det->td.is_alarms[i] == 1) {
+			ss<< "{\"x\":"<<det->rects[i].x<<",\"y\":"<<det->rects[i].y \
+					<< ",\"width\":"<<det->rects[i].width<<",\"height\":" \
+					<<det->rects[i].height<<"},";
 		}
 		else
 			;
@@ -111,16 +112,15 @@ static void set_regions(RECT region, HI31_PS *ps)
 	int i = 0;
 	int x = region.x;
 	int y = region.y;
-	int width = region.width / 4;
+	int width = region.width / ps->vdas.num;
 	int height = region.height;
-
 
 	for (i = 0; i < ps->vdas.num; i++) {
 		ps->vdas.regions[i].rect.x = x + i * width;
 		ps->vdas.regions[i].rect.y = y;
 		ps->vdas.regions[i].rect.width = width;
 		ps->vdas.regions[i].rect.height = height;
-		ps->vdas.regions[i].st = 300;
+		ps->vdas.regions[i].st = 100;
 		ps->vdas.regions[i].at = 45;
 		ps->vdas.regions[i].ot = 1;
 		ps->vdas.regions[i].ut = 0;
@@ -135,11 +135,11 @@ detect_t *det_open(const char *kvfname)
 	int width;
 	int height;
 	int i;
-	RECT rect = {0, 240, 640, 64};
+	RECT rect = {0, 0, 640, 64};
 	HI31_PS ps;
 	ps.vdas.size.width = 640;
 	ps.vdas.size.height = 480;
-	ps.vdas.num = 1;
+	ps.vdas.num = 4;
 	ps.chns.vi_chn = 28;
 	ps.chns.vda_chn = 1;
 	ps.vdas.image_file = "./background.yuv";	
@@ -148,9 +148,8 @@ detect_t *det_open(const char *kvfname)
 	detect_t *det = new detect_t;
 	det->is_quit = false;
 
-
-	
-	for (i=0; i < ps.vdas.num; i++) {
+	det->num = ps.vdas.num;	
+	for (i=0; i < det->num; i++) {
 		det->rects[i] = ps.vdas.regions[i].rect;
 	}
 
@@ -169,11 +168,10 @@ detect_t *det_open(const char *kvfname)
 
 const char *det_detect(detect_t *det)
 {
-	detect_t detect;
 	int len;
 	
 	pthread_mutex_lock(&det->mutex);
-	det->s = get_aims_str(&det->td, det->rects);
+	det->s = get_aims_str(det);
 	pthread_mutex_unlock(&det->mutex);
 
 	return det->s.c_str();
