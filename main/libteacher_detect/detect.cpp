@@ -139,6 +139,10 @@ detect_t *det_open(const char *kvfname)
 	HI31_PS ps;
 	ps.vdas.size.width = 640;
 	ps.vdas.size.height = 480;
+	ps.vdas.mb_size = VDA_MB_16PIXEL;
+	ps.vdas.mb_sadbits = VDA_MB_SAD_16BIT;
+	ps.vdas.ref_mode = VDA_REF_DYNAMIC;
+	ps.vdas.bg_wgt = 128;
 	ps.vdas.num = 4;
 	ps.chns.vi_chn = 28;
 	ps.chns.vda_chn = 1;

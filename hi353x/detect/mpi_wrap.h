@@ -53,8 +53,37 @@ typedef enum vi_mode_e
 	VI_MODE_4_1080P
 } VI_MODE_E;
 
+typedef enum vda_ref_mode
+{
+	VDA_REF_DYNAMIC = 0,
+	VDA_REF_STATIC,
+	VDA_REF_USER, 
+	VDA_REF_BUTT
+} VDA_REF_MODE;
+
+/*MB size*/
+typedef enum vda_mb_size
+{
+	VDA_MB_8PIXEL,      /* 8*8 */          
+	VDA_MB_16PIXEL,     /* 16*16 */
+	VDA_MB_BUTT	
+}VDA_MB_SIZE;
+
+/*SAD bits*/
+typedef enum vda_mb_sadbits
+{
+    VDA_MB_SAD_8BIT = 0,  /*SAD precision 8bits*/
+    VDA_MB_SAD_16BIT,     /*SAD precision 16bits*/
+    VDA_MB_SAD_BUTT       /*reserve*/
+} VDA_MB_SADBITS;
+
+
 typedef struct vdas
 {
+	VDA_MB_SIZE mb_size;
+	VDA_MB_SADBITS mb_sadbits;
+	VDA_REF_MODE ref_mode;
+	int bg_wgt;
 	int num;
 	SIZE size;
 	REGION regions[4];
