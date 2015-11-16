@@ -81,14 +81,14 @@ export PARAM_FILE
 # Allocated the linux position
 # Define cross compiler
 ifeq ($(LIBC),glibc)
-	export CROSS_COMPILE?= arm-hisiv200-linux-
-	export CROSS?= arm-hisiv200-linux-
+	export CROSS_COMPILE?= arm-hisiv200-linux-gnueabi-
+	export CROSS?= arm-hisiv200-linux-gnueabi-
 else
 	export CROSS_COMPILE?= arm-hisiv100nptl-linux-
 	export CROSS?= arm-hisiv100nptl-linux-
 endif
 
-export CROSS=arm-hisiv200-linux-
+export CROSS=arm-hisiv200-linux-gnueabi-
 
 export CC:=$(CROSS)gcc
 export AR:=$(CROSS)ar
