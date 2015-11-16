@@ -2,7 +2,7 @@ AUTOMAKE_OPTIONS=foreign
 
 RUNTIME_CPP= teacher_track/runtime.cpp
 
-bin_PROGRAMS= teacher_detect test_ptz test_kvconfig test_udpsrv test_detect
+bin_PROGRAMS= teacher_detect test_ptz test_kvconfig test_udpsrv 
 
 if PTZSRV
 bin_PROGRAMS+= ptzsrv
@@ -33,6 +33,9 @@ test_detect_SOURCES= libteacher_detect/detect_dummy.cpp \
 teacher_detect_SOURCES+= libteacher_detect/detect_dummy.cpp
 else
 if OPENCV
+
+HISLIBS=${top_srcdir}/../hi353x/lib/libmpi.a ${top_srcdir}/../hi353x/lib/libaec.a ${top_srcdir}/../hi353x/lib/libanr.a ${top_srcdir}/../hi353x/lib/libhdmi.a ${top_srcdir}/../hi353x/lib/libjpeg.a  ${top_srcdir}/../hi353x/lib/libpciv.a ${top_srcdir}/../hi353x/lib/libresampler.a ${top_srcdir}/../hi353x/lib/libtde.a ${top_srcdir}/../hi353x/lib/libVoiceEngine.a
+
 noinst_LIBRARIES= libopencv_detect.a
 libopencv_detect_a_SOURCES= libopencv_teacher_detect/blackboard_detect.cpp \
 							libopencv_teacher_detect/detect_t.cpp \
@@ -45,14 +48,15 @@ libopencv_detect_a_SOURCES= libopencv_teacher_detect/blackboard_detect.cpp \
 							libopencv_teacher_detect/common/sample_comm_vdec.c \
 							libopencv_teacher_detect/common/sample_comm_venc.c \
 							libopencv_teacher_detect/common/sample_comm_vi.c \
-							libopencv_teacher_detect/common/sample_comm_vo.c \
 							libopencv_teacher_detect/common/sample_comm_vpss.c 
+
 libopencv_detect_a_CXXFLAGS= -I$(top_srcdir)/libopencv_teacher_detect/ive_include \
 							 -I$(top_srcdir)/libopencv_teacher_detect/common
 libopencv_detect_a_CFLAGS= $(libopencv_detect_a_CXXFLAGS)
 
-teacher_detect_LDADD= libopencv_detect.a
+teacher_detect_LDADD= libopencv_detect.a -lccgnu2 ${OPENCV_LIBS} ${HISLIBS}
 teacher_detect_SOURCES+= libopencv_teacher_detect/detect_opencv.cpp
+teacher_detect_CXXFLAGS= $(libopencv_detect_a_CXXFLAGS)
 
 else
 
@@ -60,7 +64,7 @@ HISLIBS= ../hi353x/lib/libmpi.a ../hi353x/lib/libaec.a ../hi353x/lib/libanr.a ..
 
 
 noinst_LIBRARIES = libteacher_detect.a
-teacher_detect_SOURCES+= libteacher_detect/detect1.cpp
+teacher_detect_SOURCES+= libteacher_detect/detect.cpp
 teacher_detect_LDADD= libteacher_detect.a ${HISLIBS}
 
 bin_PROGRAMS+= test_arm_detect
