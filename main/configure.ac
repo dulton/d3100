@@ -60,7 +60,14 @@ PKG_CHECK_MODULES([CCGNU2], [libccgnu2, libccext2],
 		[ac_ptzsrv=true],
 		["Not found libccgnu2, not to build ptzsrv"])
 
+# opencv
+ac_opencv="false"
+PKG_CHECK_MODULES([OPENCV], [opencv],
+		[ac_opencv=true],
+		["Not found opencv, ???????"])
+
 AM_CONDITIONAL([PTZSRV], [test x$ac_ptzsrv = xtrue])
+AM_CONDITIONAL([OPENCV], [test x$ac_opencv = xtrue])
 
 case "$host" in
 arm*)

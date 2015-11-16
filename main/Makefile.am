@@ -32,12 +32,35 @@ test_detect_SOURCES= libteacher_detect/detect_dummy.cpp \
 
 teacher_detect_SOURCES+= libteacher_detect/detect_dummy.cpp
 else
+if OPENCV
+noinst_LIBRARIES= libopencv_detect.a
+libopencv_detect_a_SOURCES= libopencv_teacher_detect/blackboard_detect.cpp \
+							libopencv_teacher_detect/detect_t.cpp \
+							libopencv_teacher_detect/KVConfig.cpp \
+							libopencv_teacher_detect/opencv_detect.cpp \
+							libopencv_teacher_detect/common/loadbmp.c \
+							libopencv_teacher_detect/common/sample_comm_audio.c \
+							libopencv_teacher_detect/common/sample_comm_sys.c \
+							libopencv_teacher_detect/common/sample_comm_vda.c \
+							libopencv_teacher_detect/common/sample_comm_vdec.c \
+							libopencv_teacher_detect/common/sample_comm_venc.c \
+							libopencv_teacher_detect/common/sample_comm_vi.c \
+							libopencv_teacher_detect/common/sample_comm_vo.c \
+							libopencv_teacher_detect/common/sample_comm_vpss.c 
+libopencv_detect_a_CXXFLAGS= -I$(top_srcdir)/libopencv_teacher_detect/ive_include \
+							 -I$(top_srcdir)/libopencv_teacher_detect/common
+libopencv_detect_a_CFLAGS= $(libopencv_detect_a_CXXFLAGS)
+
+teacher_detect_LDADD= libopencv_detect.a
+teacher_detect_SOURCES+= libopencv_teacher_detect/detect_opencv.cpp
+
+else
 
 HISLIBS= ../hi353x/lib/libmpi.a ../hi353x/lib/libaec.a ../hi353x/lib/libanr.a ../hi353x/lib/libhdmi.a ../hi353x/lib/libjpeg.a  ../hi353x/lib/libpciv.a ../hi353x/lib/libresampler.a ../hi353x/lib/libtde.a ../hi353x/lib/libVoiceEngine.a
 
 
 noinst_LIBRARIES = libteacher_detect.a
-teacher_detect_SOURCES+= libteacher_detect/detect.cpp
+teacher_detect_SOURCES+= libteacher_detect/detect1.cpp
 teacher_detect_LDADD= libteacher_detect.a ${HISLIBS}
 
 bin_PROGRAMS+= test_arm_detect
@@ -49,6 +72,7 @@ TDPATH= ../hi353x/detect
 libteacher_detect_a_SOURCES= ${TDPATH}/mpi_wrap.cpp
 libteacher_detect_a_CXXFLAGS = -I${TDPATH} -I../hi353x/include
 test_detect_SOURCES= libteacher_detect/detect_dummy2.cpp
+endif
 endif
 
 
