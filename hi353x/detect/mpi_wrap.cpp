@@ -663,11 +663,11 @@ static int vda_create_channel(int vda_chn, VDAS vdas)
     stVdaChnAttr.u32Height  =  vdas.size.height;
 
     stVdaChnAttr.unAttr.stOdAttr.enVdaAlg      = VDA_ALG_BG;
-    stVdaChnAttr.unAttr.stOdAttr.enMbSize      = VDA_MB_16PIXEL;
-    stVdaChnAttr.unAttr.stOdAttr.enMbSadBits   = VDA_MB_SAD_16BIT;
-    stVdaChnAttr.unAttr.stOdAttr.enRefMode     = VDA_REF_MODE_DYNAMIC;
+    stVdaChnAttr.unAttr.stOdAttr.enMbSize      = (VDA_MB_SIZE_E)vdas.mb_size;
+    stVdaChnAttr.unAttr.stOdAttr.enMbSadBits   = (VDA_MB_SADBITS_E)vdas.mb_sadbits;
+    stVdaChnAttr.unAttr.stOdAttr.enRefMode     = (VDA_REF_MODE_E)vdas.ref_mode;
     stVdaChnAttr.unAttr.stOdAttr.u32VdaIntvl   = 4;
-    stVdaChnAttr.unAttr.stOdAttr.u32BgUpSrcWgt = 128;
+    stVdaChnAttr.unAttr.stOdAttr.u32BgUpSrcWgt = vdas.bg_wgt;
     
     stVdaChnAttr.unAttr.stOdAttr.u32RgnNum = vdas.num;
   
