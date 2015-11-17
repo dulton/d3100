@@ -232,6 +232,23 @@ static void save_nv1(IVE_SRC_INFO_S *stSrc, HI_VOID *pVirtSrc)
 
 }
 
+static void save_rgb(int stride, int width, int height, void* data)
+{
+	const char* filename = "test_image.rgb";
+
+	FILE *fp = fopen(filename, "wb");
+	if(fp)
+	{
+		uchar* p = (uchar*)data;
+		for(int i = 0; i<height; i++)
+		{
+			fwrite(p, width * 3, 1, fp);
+			p += stride;
+		}
+		fclose(fp);
+	}
+}
+
 // VIDEO_FRAME_INFO_S转化为Mat矩阵;
 // 处理一：模糊处理;
 // 处理二：YUV->RGB;
@@ -339,6 +356,8 @@ static void vf2mat(VIDEO_FRAME_INFO_S &frame, cv::Mat &m)
 		s += rgb.u32Stride;
 		d += m.cols*3;		// FIXME: Mat 应该有 stride 的概念把 ..
 	}
+
+	save_rgb(src.stSrcMem.u32Stride, width, height, (void*)m.data);
 
 	HI_MPI_SYS_MmzFree(rgb.u32PhyAddr, rgb_vir);
 }
