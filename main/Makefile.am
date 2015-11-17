@@ -32,6 +32,7 @@ test_detect_SOURCES= libteacher_detect/detect_dummy.cpp \
 
 teacher_detect_SOURCES+= libteacher_detect/detect_dummy.cpp
 else
+
 if OPENCV
 
 HISLIBS=${top_srcdir}/../hi353x/lib/libmpi.a ${top_srcdir}/../hi353x/lib/libaec.a ${top_srcdir}/../hi353x/lib/libanr.a ${top_srcdir}/../hi353x/lib/libhdmi.a ${top_srcdir}/../hi353x/lib/libjpeg.a  ${top_srcdir}/../hi353x/lib/libpciv.a ${top_srcdir}/../hi353x/lib/libresampler.a ${top_srcdir}/../hi353x/lib/libtde.a ${top_srcdir}/../hi353x/lib/libVoiceEngine.a
@@ -50,8 +51,9 @@ libopencv_detect_a_SOURCES= libopencv_teacher_detect/blackboard_detect.cpp \
 							libopencv_teacher_detect/common/sample_comm_vi.c \
 							libopencv_teacher_detect/common/sample_comm_vpss.c 
 
-libopencv_detect_a_CXXFLAGS= -I$(top_srcdir)/libopencv_teacher_detect/ive_include \
-							 -I$(top_srcdir)/libopencv_teacher_detect/common
+bin_PROGRAMS += test_arm_opencv_detect
+test_detect_SOURCES+= libopencv_teacher_detect/test/test_arm_opencv_detect.cpp libopencv_teacher_detect/detect.cpp
+
 libopencv_detect_a_CFLAGS= $(libopencv_detect_a_CXXFLAGS)
 
 teacher_detect_LDADD= libopencv_detect.a -lccgnu2 ${OPENCV_LIBS} ${HISLIBS}
@@ -75,7 +77,7 @@ test_arm_detect_LDADD= libteacher_detect.a ${HISLIBS}
 TDPATH= ../hi353x/detect
 libteacher_detect_a_SOURCES= ${TDPATH}/mpi_wrap.cpp
 libteacher_detect_a_CXXFLAGS = -I${TDPATH} -I../hi353x/include
-test_detect_SOURCES= libteacher_detect/detect_dummy2.cpp
+#test_detect_SOURCES= libteacher_detect/detect_dummy2.cpp
 endif
 endif
 
