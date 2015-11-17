@@ -1,5 +1,5 @@
 #include <stdio.h>
-#include "../detect.h"
+#include "../../libteacher_detect/detect.h"
 #include "../../libkvconfig/kvconfig.h"
 #include <unistd.h>
 #include <stdlib.h>
@@ -13,8 +13,15 @@
 #define MULTICAST_ADDR "239.119.119.1"
 #define PORT 11000
 
-int main(void)
+int main(int argc, char **argv)
 {
+	if (argc < 2) {
+		fprintf(stderr, "usage: %s <cfg fname>\n", argv[0]);
+		return -1;
+	}
+
+	const char *fname = argv[1];
+
 	struct sockaddr_in addr;
 	int fd;
 	int st;
@@ -30,14 +37,7 @@ int main(void)
 	addr.sin_port = htons(PORT);
 
 
-	const char *fname = NULL;
-	kvconfig_t kvc = kvc_open(fname);
-	if (!kvc) {
-		fprintf(stderr, "can not get kv parameters\n");
-		return -1;
-	}
-
-	detect_t *det = det_open(kvc);
+	detect_t *det = det_open(fname);
 	while (true) {
 		char c;
 		const char *message = det_detect(det);

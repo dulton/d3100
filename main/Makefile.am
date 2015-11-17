@@ -35,12 +35,25 @@ else
 
 if OPENCV
 
-HISLIBS=${top_srcdir}/../hi353x/lib/libmpi.a ${top_srcdir}/../hi353x/lib/libaec.a ${top_srcdir}/../hi353x/lib/libanr.a ${top_srcdir}/../hi353x/lib/libhdmi.a ${top_srcdir}/../hi353x/lib/libjpeg.a  ${top_srcdir}/../hi353x/lib/libpciv.a ${top_srcdir}/../hi353x/lib/libresampler.a ${top_srcdir}/../hi353x/lib/libtde.a ${top_srcdir}/../hi353x/lib/libVoiceEngine.a
+HISLIBS=${top_srcdir}/../hi353x/lib/libmpi.a \
+		${top_srcdir}/../hi353x/lib/libaec.a \
+		${top_srcdir}/../hi353x/lib/libanr.a \
+		${top_srcdir}/../hi353x/lib/libhdmi.a \
+		${top_srcdir}/../hi353x/lib/libjpeg.a  \
+		${top_srcdir}/../hi353x/lib/libpciv.a \
+		${top_srcdir}/../hi353x/lib/libresampler.a \
+		${top_srcdir}/../hi353x/lib/libtde.a \
+		${top_srcdir}/../hi353x/lib/libVoiceEngine.a
+
+bdir=	${top_srcdir}/libopencv_teacher_detect
+	
+libopencv_detect_a_CXXFLAGS=  -I${bdir}/common -I${bdir}/ive_include
 
 noinst_LIBRARIES= libopencv_detect.a
 libopencv_detect_a_SOURCES= libopencv_teacher_detect/blackboard_detect.cpp \
 							libopencv_teacher_detect/detect_t.cpp \
 							libopencv_teacher_detect/KVConfig.cpp \
+							libopencv_teacher_detect/detect_opencv.cpp \
 							libopencv_teacher_detect/vi_src.cpp \
 							libopencv_teacher_detect/common/loadbmp.c \
 							libopencv_teacher_detect/common/sample_comm_audio.c \
@@ -51,14 +64,15 @@ libopencv_detect_a_SOURCES= libopencv_teacher_detect/blackboard_detect.cpp \
 							libopencv_teacher_detect/common/sample_comm_vi.c \
 							libopencv_teacher_detect/common/sample_comm_vpss.c 
 
-bin_PROGRAMS += test_arm_opencv_detect
-test_detect_SOURCES+= libopencv_teacher_detect/test/test_arm_opencv_detect.cpp libopencv_teacher_detect/detect.cpp
-
 libopencv_detect_a_CFLAGS= $(libopencv_detect_a_CXXFLAGS)
 
 teacher_detect_LDADD= libopencv_detect.a ${CCGNU2_LIBS} ${OPENCV_LIBS} ${HISLIBS}
 teacher_detect_SOURCES+= libopencv_teacher_detect/detect_opencv.cpp
 teacher_detect_CXXFLAGS= $(libopencv_detect_a_CXXFLAGS)
+
+bin_PROGRAMS += test_arm_opencv_detect
+test_arm_opencv_detect_SOURCES= libopencv_teacher_detect/test/test_arm_opencv_detect.cpp
+test_arm_opencv_detect_LDADD= libopencv_detect.a ${CCGNU2_LIBS} ${OPENCV_LIBS} ${HISLIBS}
 
 else
 
