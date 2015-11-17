@@ -2,8 +2,8 @@
 #ifndef _detect_t_h_
 #define _detect_t_h_
 
-#include<opencv2/opencv.hpp>
-#include<time.h>
+#include <opencv2/opencv.hpp>
+#include <time.h>
 #include "KVConfig.h"
 
 using namespace cv;
@@ -19,7 +19,7 @@ using namespace std;
 #include "mpi_vb.h"
 #include "mpi_vi.h"
 
-//¼ÆÊ±½á¹¹Ìå;
+//è®¡æ—¶ç»“æ„ä½“;
 struct Static_s
 {
 	bool flag;
@@ -35,40 +35,40 @@ struct Static_s
 	//}
 };
 
-//Ìî³ä±³¾°Ëã·¨µÄ½á¹¹Ìå;
+//å¡«å……èƒŒæ™¯ç®—æ³•çš„ç»“æ„ä½“;
 struct Fill_Bg
 {
-	//bool ud_static_begain;//ÊÇ·ñ¸Õ¸üĞÂÍê¾²Ö¹Ä¿±ê;
+	//bool ud_static_begain;//æ˜¯å¦åˆšæ›´æ–°å®Œé™æ­¢ç›®æ ‡;
 	bool body_move;
 
-	double continued_time;//ÅĞ¶ÏÖØºÏµÄÊ±¼ä£¨10£©;
-	double continued_time_long;//ÅĞ¶Ï¾²Ö¹µÄµÚ¶şÖÖ·½·¨µÄ¸üĞÂÊ±¼ä;
-	//double norect_update_time;//ÎŞÄ¿±ê¶à³¤Ê±¼ä¾Í¸üĞÂÕû¸ö±³¾°;
+	double continued_time;//åˆ¤æ–­é‡åˆçš„æ—¶é—´ï¼ˆ10ï¼‰;
+	double continued_time_long;//åˆ¤æ–­é™æ­¢çš„ç¬¬äºŒç§æ–¹æ³•çš„æ›´æ–°æ—¶é—´;
+	//double norect_update_time;//æ— ç›®æ ‡å¤šé•¿æ—¶é—´å°±æ›´æ–°æ•´ä¸ªèƒŒæ™¯;
 	
-	bool isfillok;//À¶¿òÇøÓò¸üĞÂµÄ±êÖ¾;
-	bool isfillok_end;//À¶¿òÇøÓòÊÇ·ñ¸üĞÂÕıÈ·µÄ±êÖ¾;
-	int filltwice_num;//À¶¿òÍâÁ¬Ğøµ¥Ä¿±ê´ÎÊı;
+	bool isfillok;//è“æ¡†åŒºåŸŸæ›´æ–°çš„æ ‡å¿—;
+	bool isfillok_end;//è“æ¡†åŒºåŸŸæ˜¯å¦æ›´æ–°æ­£ç¡®çš„æ ‡å¿—;
+	int filltwice_num;//è“æ¡†å¤–è¿ç»­å•ç›®æ ‡æ¬¡æ•°;
 
-	int nframe;//¹á´©Ö÷Ïß;
-	int num;//»ñÈ¡µÚ10Ö¡×÷Îª³õÊ¼±³¾°Í¼;
+	int nframe;//è´¯ç©¿ä¸»çº¿;
+	int num;//è·å–ç¬¬10å¸§ä½œä¸ºåˆå§‹èƒŒæ™¯å›¾;
 
-	double mog2_interval1;//¶àÄ¿±êÈÚºÏ¼ä¾à£¨ÍêÈ«¸üĞÂÍê±ÏÖ®ºó£©;
-	double mog2_interval2;//´ó¸ÅÒ»ÈËµÄĞ¡µÄÈÚºÏ¼ä¾à£¨ÔÚ¸üĞÂÍê±ÏÖ®Ç°£©;
-	double second_interval;//¾àÀëÀ¶¿òÍâ¶àÉÙÊ±½øĞĞ¸üĞÂ;
+	double mog2_interval1;//å¤šç›®æ ‡èåˆé—´è·ï¼ˆå®Œå…¨æ›´æ–°å®Œæ¯•ä¹‹åï¼‰;
+	double mog2_interval2;//å¤§æ¦‚ä¸€äººçš„å°çš„èåˆé—´è·ï¼ˆåœ¨æ›´æ–°å®Œæ¯•ä¹‹å‰ï¼‰;
+	double second_interval;//è·ç¦»è“æ¡†å¤–å¤šå°‘æ—¶è¿›è¡Œæ›´æ–°;
 
-	double body_width;//ÈËÔÚÍ¼ÏñÖĞ´ó¸Å¿í¶È(ÏñËØÎªµ¥Î»);
-	//double w_max;//bg2ÖĞµÚÒ»¸ö¾ØĞÎĞèÒªÀ©Õ¹µÄ¾àÀë;
+	double body_width;//äººåœ¨å›¾åƒä¸­å¤§æ¦‚å®½åº¦(åƒç´ ä¸ºå•ä½);
+	//double w_max;//bg2ä¸­ç¬¬ä¸€ä¸ªçŸ©å½¢éœ€è¦æ‰©å±•çš„è·ç¦»;
 	//double h_max;
 
-	//std::vector<Rect> fill_nowrect;//µ±Ç°¸Õ¸üĞÂµÄ¾ØĞÎ¿ò£¨£¿£¿£¿£¿£©;
-	std::vector<Rect> fist_fillrect;//À©Õ¹ºóÀ¶¿ò;
+	//std::vector<Rect> fill_nowrect;//å½“å‰åˆšæ›´æ–°çš„çŸ©å½¢æ¡†ï¼ˆï¼Ÿï¼Ÿï¼Ÿï¼Ÿï¼‰;
+	std::vector<Rect> fist_fillrect;//æ‰©å±•åè“æ¡†;
 	//std::vector<Rect> fist_fillrect_noclear;
-	//std::vector<Rect> fist_fillrect_original;//µÚÒ»¸öÀ©Õ¹ºóµÄ¾ØĞÎ(Î´ÓëÕû·ùÍ¼Ïñ½øĞĞÓëµÄ);
-	//std::vector<Rect> fist_fillrect_t;//µÚÒ»¸öÀ©Õ¹ºóµÄ¾ØĞÎ;
-	std::vector<Rect> rect_old;//±³¾°¼õ³ı»ñµÃµÄ¾ØĞÎ;
-	Mat bg;//±³¾°Í¼;	
+	//std::vector<Rect> fist_fillrect_original;//ç¬¬ä¸€ä¸ªæ‰©å±•åçš„çŸ©å½¢(æœªä¸æ•´å¹…å›¾åƒè¿›è¡Œä¸çš„);
+	//std::vector<Rect> fist_fillrect_t;//ç¬¬ä¸€ä¸ªæ‰©å±•åçš„çŸ©å½¢;
+	std::vector<Rect> rect_old;//èƒŒæ™¯å‡é™¤è·å¾—çš„çŸ©å½¢;
+	Mat bg;//èƒŒæ™¯å›¾;	
 	//Static_s no_rect;
-	Static_s mog2_s;//mog2Ëã·¨µÄÊ±¼äÅĞ¶Ï;
+	Static_s mog2_s;//mog2ç®—æ³•çš„æ—¶é—´åˆ¤æ–­;
 
 };
 
@@ -79,54 +79,54 @@ struct Fill_Bg
 //	const char* cascade_name;
 //	std::vector<Rect> face_rect;
 //	std::vector<Rect> ct_rect;
-//	bool is_face_ok;//ÊÇ·ñ¼ì²âµ½ÈËÁ³;
-//	bool is_ct_ok;//ÊÇ·ñ³õÊ¼»¯ct¿ò;
+//	bool is_face_ok;//æ˜¯å¦æ£€æµ‹åˆ°äººè„¸;
+//	bool is_ct_ok;//æ˜¯å¦åˆå§‹åŒ–ctæ¡†;
 //};
 
 
-//±³¾°·ÖÇø½á¹¹;
+//èƒŒæ™¯åˆ†åŒºç»“æ„;
 struct Region
 {
 	double cur_tbg;
 	double pre_tbg;
 	double continuetime_bg;
-	bool flage_bg;//¿ªÊ¼¼ÆÊ±µÄ±êÖ¾;
-	bool has_frame_rect;//ÊÇ·ñÓĞÖ¡²î¿ò;
+	bool flage_bg;//å¼€å§‹è®¡æ—¶çš„æ ‡å¿—;
+	bool has_frame_rect;//æ˜¯å¦æœ‰å¸§å·®æ¡†;
 	bool has_old_rect;
-	Rect region;//ËùÔÚµÄ·ÖÇø;
+	Rect region;//æ‰€åœ¨çš„åˆ†åŒº;
 	int num;	
 	double cur_static;
 	double pre_static;
 	double continuetime_static;
-	bool flag_static;//¿ªÊ¼¼ÆÊ±µÄ±êÖ¾;
+	bool flag_static;//å¼€å§‹è®¡æ—¶çš„æ ‡å¿—;
 };
 
-//ÀûÓÃÖ¡²î·¨¸üĞÂ±³¾°Í¼;
+//åˆ©ç”¨å¸§å·®æ³•æ›´æ–°èƒŒæ™¯å›¾;
 struct Update_Bg
 {
     std::vector<Region> region;
-	double time;//µ¥Ä¿±ê³ÖĞøÎŞÄ¿±êÊ±¼ä;
-	double multiple_target_time;//¶àÄ¿±ê¸üĞÂÊ±¼ä;
-	int region_num;//·ÖÇøÊıÄ¿;//´Ó×óÏòÓÒÒÀ´Î1,2,3....
-	double region_interval;//·ÖÇø¼ä¸ô;
-	double slow_learn_rate;//ÎŞÄ¿±êÇøÓò±³¾°»ºÂı¸üĞÂ;
-	double fast_learn_rate;//¼ÙÄ¿±êÇøÓò¿ìËÙ¸üĞÂ;
+	double time;//å•ç›®æ ‡æŒç»­æ— ç›®æ ‡æ—¶é—´;
+	double multiple_target_time;//å¤šç›®æ ‡æ›´æ–°æ—¶é—´;
+	int region_num;//åˆ†åŒºæ•°ç›®;//ä»å·¦å‘å³ä¾æ¬¡1,2,3....
+	double region_interval;//åˆ†åŒºé—´éš”;
+	double slow_learn_rate;//æ— ç›®æ ‡åŒºåŸŸèƒŒæ™¯ç¼“æ…¢æ›´æ–°;
+	double fast_learn_rate;//å‡ç›®æ ‡åŒºåŸŸå¿«é€Ÿæ›´æ–°;
 };
 
-//Ö¡²î·¨;
+//å¸§å·®æ³•;
 struct Frame_struct
 {
 	int N;
 	Mat buffer[5];	
-	int threshold_three;//ÈıÖ¡²î·Ö·¨ãĞÖµ;
-	int threshold_two;//Ë«Ö¡²î·Ö·¨ãĞÖµ;
+	int threshold_three;//ä¸‰å¸§å·®åˆ†æ³•é˜ˆå€¼;
+	int threshold_two;//åŒå¸§å·®åˆ†æ³•é˜ˆå€¼;
 	std::vector<Rect> frame_rect;
 	std::vector<Rect> masked_frame_rect;
 	int interval;
 	int minarea;
 	int minrect;
 	bool is_body_down;
-	int bottom_inter;//¾àÀë±ê¶¨¾ØĞÎ¿òÏÂ·½ÏñËØ¾àÀë;
+	int bottom_inter;//è·ç¦»æ ‡å®šçŸ©å½¢æ¡†ä¸‹æ–¹åƒç´ è·ç¦»;
 };
 
 struct Upbody_Update
@@ -147,7 +147,7 @@ struct Upbody_Update
 
 class TeacherDetecting
 {
-	BackgroundSubtractorMOG2 bg_model;//¿É¸ü¸ÄÒ»Ğ©ÄÚ²¿²ÎÊı;
+	BackgroundSubtractorMOG2 bg_model;//å¯æ›´æ”¹ä¸€äº›å†…éƒ¨å‚æ•°;
 	float mog_learn_rate;
 
 	int video_width_;
@@ -168,7 +168,7 @@ class TeacherDetecting
 	double luv_L;
 
 	bool ismask_;
-	Mat img_mask_;//Ô­À´ÊÇÔ­Ê¼´óĞ¡ÑÚÂëÍ¼Ïñ£¬ºó¸Ä³É±ê¶¨ÇøÑÚÂëÍ¼Ïñ;
+	Mat img_mask_;//åŸæ¥æ˜¯åŸå§‹å¤§å°æ©ç å›¾åƒï¼Œåæ”¹æˆæ ‡å®šåŒºæ©ç å›¾åƒ;
 
 public:
 	Upbody_Update up_update;
@@ -192,7 +192,7 @@ public:
 	HI_S32 hi_two_frame_method( Mat src, Mat &dst);
 
 protected:
-	//ÈËÁ³ºÍct;
+	//äººè„¸å’Œct;
 	/*std::vector<Rect> face_detect_and_draw( IplImage* image);
 	std::vector<Rect> face_detecting(Mat image,Rect rect);
 	void init_ct(Mat raw_image,Rect rect);
@@ -200,7 +200,7 @@ protected:
 	void facedetect_ctinit(Mat raw_image, Rect rect_bg);*/
 	void init_fillbg_struct(Fill_Bg &fillbg_struct);
 
-	//Ö¡²î·¨;
+	//å¸§å·®æ³•;
 	void creat_buffer(IplImage *image);
 	//void two_frame_method(Mat img,Mat &silh);
 	void two_frame_method(Mat img,Mat &silh,Mat Y);
@@ -209,7 +209,7 @@ protected:
 	void frame_difference_method (Mat image,std::vector<Rect> &masked_frame_rect,Mat Y);
 	void init_frame_struct(Frame_struct &frame_s);
 
-	//¶¯Ì¬¸üĞÂ±³¾°;
+	//åŠ¨æ€æ›´æ–°èƒŒæ™¯;
 	void frame_updatebg(Mat image);
 	void reset(Update_Bg &bg);
 	void reset_upbody(Update_Bg &bg);//&&&&&&&&&&&&;
@@ -218,7 +218,7 @@ protected:
 	void reset_region( Region &region );
 	void frame_updatebg(Mat raw_img,Mat image);
 
-	//±³¾°¼õ³ı·¨;
+	//èƒŒæ™¯å‡é™¤æ³•;
 	void luv_method(const Mat &img ,std::vector<Mat> img_t_vec);
 	void fillbg_LUV( Mat img);
 	void is_teacher_down(Mat raw_img,Mat img2);
@@ -228,7 +228,7 @@ protected:
 	void norect_update_bg( Mat img);
 	void eliminate_longrect(Mat img );
 
-	//ÈÚºÏ;
+	//èåˆ;
 	static int cmp_area(const Rect&a,const Rect&b);
 	Rect sort_rect(Rect a,Rect b);
 	vector<Rect> refineSegments2(Mat img, Mat& mask,Mat &dst,double interval,double min_area,double rect_area);
@@ -237,7 +237,7 @@ protected:
 						       Mat & dst,
 						       double interval,double marea,double mrect_area);
 
-	//ÑÚÂë;
+	//æ©ç ;
 	bool build_mask_internal(const char *key, Mat& img);
 	Mat build_mask(const char *key,const char *key2 = 0);
 	std::vector<cv::Point> load_roi(const char *pts);

@@ -134,13 +134,13 @@ void KVConfig::load_from_file(const char *filename)
 	}
 
 	while (!feof(fp)) {
-		char line[1024];	// FIXME: ÕâÀï¼òµ¥µÄ¼ÙÉèÒ»ĞĞ²»»á³¬¹ı 1024 ×Ö½Ú
+		char line[1024];	// FIXME: è¿™é‡Œç®€å•çš„å‡è®¾ä¸€è¡Œä¸ä¼šè¶…è¿‡ 1024 å­—èŠ‚
 		char *p = fgets(line, sizeof(line), fp);
 		if (!p) continue;
-		while (p && isspace(*p)) p++;	// È¥³ıĞĞÊ×¿Õ¸ñ
-		if (*p == '#') continue;		// ×¢ÊÍĞĞ
+		while (p && isspace(*p)) p++;	// å»é™¤è¡Œé¦–ç©ºæ ¼
+		if (*p == '#') continue;		// æ³¨é‡Šè¡Œ
 
-		char key[64], value[512];	// FIXME£º
+		char key[64], value[512];	// FIXMEï¼š
 		if (sscanf(p, "%63[^=] = %511[^\r\n]", key, value) == 2) {
 			kvs_[key] = value;
 		}

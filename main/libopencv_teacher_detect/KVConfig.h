@@ -1,5 +1,5 @@
-/** ¶ÁÈ¡ÅäÖÃÎÄ¼ş£¬¸ñÊ½Îª£º
-		# ×¢ÊÍĞĞ
+/** è¯»å–é…ç½®æ–‡ä»¶ï¼Œæ ¼å¼ä¸ºï¼š
+		# æ³¨é‡Šè¡Œ
 		key1=value1
 		key 2=value 2
 
@@ -35,27 +35,27 @@ public:
 
 	const char *file_name() const { return filename_.c_str(); }
 
-	/// ·µ»ØÊÇ·ñ°üº¬ key
+	/// è¿”å›æ˜¯å¦åŒ…å« key
 	bool has_key(const char *key);
 
-	/// ·µ»Ø key ¶ÔÓ¦µÄ value£¬Èç¹ûÃ»ÓĞÕÒµ½ key, Ôò·µ»Ø def
+	/// è¿”å› key å¯¹åº”çš„ valueï¼Œå¦‚æœæ²¡æœ‰æ‰¾åˆ° key, åˆ™è¿”å› def
 	const char *get_value(const char *key, const char *def = 0);
 
-	// É¾³ı key
+	// åˆ é™¤ key
 	bool del_key(const char *key);
 
-	/// ·µ»Ø key ÁĞ±í
+	/// è¿”å› key åˆ—è¡¨
 	std::vector<std::string> keys();
 
-	/// Ö§³ÖĞÂÔö»òĞŞ¸Ä key=value£¬Èç¹û value == 0£¬ÔòÉ¾³ı key£¬Èç¹û key ÒÑ¾­´æÔÚ£¬Ôò¸²¸Ç£¬
+	/// æ”¯æŒæ–°å¢æˆ–ä¿®æ”¹ key=valueï¼Œå¦‚æœ value == 0ï¼Œåˆ™åˆ é™¤ keyï¼Œå¦‚æœ key å·²ç»å­˜åœ¨ï¼Œåˆ™è¦†ç›–ï¼Œ
 	int set_value(const char *key, const char *value);
 	int set_value(const char *key, int v);
 
-	/// ±£´æµ½Ö¸¶¨µÄÎÄ¼şÃû
+	/// ä¿å­˜åˆ°æŒ‡å®šçš„æ–‡ä»¶å
 	int save_as(const char *filename);
 	int reload();
 
-	void clear();	// É¾³ıËùÓĞ
+	void clear();	// åˆ é™¤æ‰€æœ‰
 
 private:
 	void load_from_file(const char *filename);

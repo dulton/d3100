@@ -40,7 +40,7 @@ noinst_LIBRARIES= libopencv_detect.a
 libopencv_detect_a_SOURCES= libopencv_teacher_detect/blackboard_detect.cpp \
 							libopencv_teacher_detect/detect_t.cpp \
 							libopencv_teacher_detect/KVConfig.cpp \
-							libopencv_teacher_detect/opencv_detect.cpp \
+							libopencv_teacher_detect/vi_src.cpp \
 							libopencv_teacher_detect/common/loadbmp.c \
 							libopencv_teacher_detect/common/sample_comm_audio.c \
 							libopencv_teacher_detect/common/sample_comm_sys.c \
@@ -54,7 +54,7 @@ libopencv_detect_a_CXXFLAGS= -I$(top_srcdir)/libopencv_teacher_detect/ive_includ
 							 -I$(top_srcdir)/libopencv_teacher_detect/common
 libopencv_detect_a_CFLAGS= $(libopencv_detect_a_CXXFLAGS)
 
-teacher_detect_LDADD= libopencv_detect.a -lccgnu2 ${OPENCV_LIBS} ${HISLIBS}
+teacher_detect_LDADD= libopencv_detect.a ${CCGNU2_LIBS} ${OPENCV_LIBS} ${HISLIBS}
 teacher_detect_SOURCES+= libopencv_teacher_detect/detect_opencv.cpp
 teacher_detect_CXXFLAGS= $(libopencv_detect_a_CXXFLAGS)
 

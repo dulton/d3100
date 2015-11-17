@@ -1,10 +1,12 @@
 
-#include "detect.h"
+#include "../libteacher_detect/detect.h"
 #include "detect_t.h"
 #include"blackboard_detect.h"
 #include <string>
+#include <sstream>
 #include "sys/timeb.h"
-struct det_t
+
+struct detect_t
 {
 	KVConfig *cfg_;
 	TeacherDetecting *detect_;
@@ -16,10 +18,9 @@ struct det_t
 	std::string result_str;	
 };
 
-
-det_t *det_open(const char *cfg_name)
+detect_t *det_open(const char *cfg_name)
 {
-	det_t *ctx = new det_t;
+	detect_t *ctx = new detect_t;
 	ctx->cfg_ = new KVConfig(cfg_name);
 
 	//++++++++++
@@ -41,7 +42,7 @@ det_t *det_open(const char *cfg_name)
 	return ctx;
 }
 
-void det_close(det_t * ctx)
+void det_close(detect_t * ctx)
 {
 	delete ctx->cfg_;
 	//++++++++;
@@ -49,10 +50,7 @@ void det_close(det_t * ctx)
 	else if(ctx->b_m ) { delete ctx->bd_detect_; }
 	//+++++++;
 	delete ctx;
-	return;
 }
-
-
 
 void vector_to_json_t(std::vector < Rect > r, cv::Rect upbody_rect,bool is_upbody,bool is_rect, char *buf)
 {
@@ -117,12 +115,9 @@ void vector_to_json(std::vector < Rect > r, char *buf)
 
 }
 
-
 #define BUFSIZE 100
 
-
-
-char* det_detect(det_t * ctx, Mat img)
+static const char* det_detect(detect_t * ctx, Mat &img)
 {
 	char *str = (char*)alloca(BUFSIZE);
 	bool isrect = false;
@@ -173,7 +168,7 @@ char* det_detect(det_t * ctx, Mat img)
 		}
 //		vector_to_json_t(r, upbody,is_up_body,isrect,str);	
 		//***********************************
-		//***************µ÷ÊÔ****************
+		//***************è°ƒè¯•****************
 		if (atoi(ctx->cfg_->get_value("debug", "0")) > 0) 
 		{
 			for (int i = 0; i<r.size(); i++) {
@@ -190,7 +185,7 @@ char* det_detect(det_t * ctx, Mat img)
 		}
 			
 	}
-	//***************************°åÊéÌ½²â****************************;
+	//***************************æ¿ä¹¦æ¢æµ‹****************************;
 	else if(ctx->b_m)
 	{
 		 
@@ -218,7 +213,29 @@ char* det_detect(det_t * ctx, Mat img)
 //		}
 	}
 	ctx->result_str = str;
-	return (char*)ctx->result_str.c_str();
+	return ctx->result_str.c_str();
+}
 
+static const char *empty_result()
+{
+	return "{\"stamp\":12345, \"rect\":[]}";
+}
+
+static bool next_frame(detect_t *ctx, cv::Mat &frame)
+{
+	/** TODO: ä»viå¾—åˆ°ä¸‹ä¸€å¸§å›¾åƒ ...
+	 */
+	return false;
+}
+
+const char *det_detect(detect_t *ctx)
+{
+	cv::Mat frame;
+	if (next_frame(ctx, frame)) {
+		return det_detect(ctx, frame);
+	}
+	else {
+		return empty_result();
+	}
 }
 
