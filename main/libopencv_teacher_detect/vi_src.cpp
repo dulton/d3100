@@ -309,6 +309,7 @@ static void vf2mat(VIDEO_FRAME_INFO_S &frame, cv::Mat &m)
 		fprintf(stderr, "FATAL: HI_MPI_SYS_MmzAlloc_Cached err %s:%s\n", __FILE__, __LINE__);
 		exit(-1);
 	}
+	rgb.u32Stride = width * 3;
 
 	IVE_SRC_INFO_S yuv; // 直接使用滤波后的 dst
 	yuv.u32Width = width;
@@ -323,6 +324,7 @@ static void vf2mat(VIDEO_FRAME_INFO_S &frame, cv::Mat &m)
 	rc = HI_MPI_IVE_CSC(&IveHandle, &yuv, &rgb, &pstCscCtrl, bInstant);
 	if (rc != HI_SUCCESS) {
 		fprintf(stderr, "FATAL: HI_MPI_IVE_CSC err %s:%d\n", __FILE__, __LINE__);
+		fprintf(stderr, "ERRO NO = 0x%x\n", rc);
 		exit(-1);
 	}
 
@@ -548,7 +550,7 @@ visrc_t *vs_open(const char *fname)
 	visrc_t *vs = new visrc_t;
 	vs->cfg = new KVConfig(fname);
 
-	vs->ch = atoi(vs->cfg->get_value("vi_ch", "28"));
+	vs->ch = atoi(vs->cfg->get_value("vi_ch", "12"));
 	zk_vi_init();	// FIXME:	
 
 	return vs;
@@ -559,15 +561,18 @@ bool vs_next_frame(visrc_t *vs, cv::Mat &m)
 	/** FIXME: 这里从 vi 读取一帧图像，如果超时，返回 false 
 	 */
 	VIDEO_FRAME_INFO_S frame;
+	fprintf(stderr, "begin reading\n");
 	int rc = HI_MPI_VI_GetFrame(SUBCHN(vs->ch), &frame);
 	if (rc != HI_SUCCESS) {
 		fprintf(stderr, "ERR: HI_MPI_VI_GetFrame err, code=%08x\n", rc);
 		return false; // 超时失败 ...
 	}
 
+	fprintf(stderr, "DEBUG: got frame\n");
+
 	// 通过 VIDEO_FRAME_INFO_S 构造 cv::Mat
 	vf2mat(frame, m);	
-
+	HI_MPI_VI_ReleaseFrame(vs->ch, &frame);
 	return true;
 }
 

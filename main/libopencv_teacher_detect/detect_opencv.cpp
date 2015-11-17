@@ -231,6 +231,7 @@ static bool next_frame(detect_t *ctx, cv::Mat &frame)
 {
 	/** TODO: 从vi得到下一帧图像 ...
 	 */
+	vs_next_frame(ctx->src, frame);
 	return false;
 }
 
