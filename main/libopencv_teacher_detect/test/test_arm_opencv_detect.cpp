@@ -41,7 +41,7 @@ int main(int argc, char **argv)
 	while (true) {
 		char c;
 		const char *message = det_detect(det);
-	//	printf("###### message %s\n", message);
+		printf("###### aims  %s\n", message);
 		std::string s(message);
 		int len = s.size();
 		if (s[len-3] == '[')
