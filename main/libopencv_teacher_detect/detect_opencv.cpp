@@ -133,9 +133,9 @@ static const char* det_detect(detect_t * ctx, Mat &img)
 	ftime(&pre);
 	Mat Img = img.clone();
 	Mat img_t = img.clone();
-	ftime(&cur);
-	double time = (cur.time-pre.time)*1000+(cur.millitm-pre.millitm);
-	fprintf(stderr,"clone time:%f\n",time);
+	//ftime(&cur);
+	//double time = (cur.time-pre.time)*1000+(cur.millitm-pre.millitm);
+	//fprintf(stderr,"clone time:%f\n",time);
 //	blur(img_t,img_t,Size(3,3));
 	if(ctx->t_m) 
 	{	
@@ -149,6 +149,7 @@ static const char* det_detect(detect_t * ctx, Mat &img)
 				r[i].x = r[i].x+box.x;
 				r[i].y = r[i].y+box.y;
 				r[i] &= cv::Rect(0,0,Img.cols,Img.rows);
+				printf("obj_width = %d; obj_height = %d\n", r[i].width, r[i].height);
 		}
 	
 		cv::Rect upbody;
@@ -219,6 +220,10 @@ static const char* det_detect(detect_t * ctx, Mat &img)
 //		}
 	}
 	ctx->result_str = str;
+	ftime(&cur);
+	double time = (cur.time - pre.time) * 1000 + (cur.millitm - pre.millitm);
+	printf("all the detect time = %f\n", time);
+
 	return ctx->result_str.c_str();
 }
 
@@ -231,8 +236,7 @@ static bool next_frame(detect_t *ctx, cv::Mat &frame)
 {
 	/** TODO: 从vi得到下一帧图像 ...
 	 */
-	vs_next_frame(ctx->src, frame);
-	return false;
+	return vs_next_frame(ctx->src, frame);
 }
 
 const char *det_detect(detect_t *ctx)
