@@ -5,6 +5,7 @@
 #include <string>
 #include <sstream>
 #include "sys/timeb.h"
+#include "vi_src.h"
 
 struct detect_t
 {
@@ -16,6 +17,8 @@ struct detect_t
 	bool b_m;
 
 	std::string result_str;	
+
+	visrc_t *src;
 };
 
 detect_t *det_open(const char *cfg_name)
@@ -33,11 +36,13 @@ detect_t *det_open(const char *cfg_name)
 	if (strcmp(method, "teacher") == 0) {
 		ctx->t_m = true;
 		ctx->detect_ = new TeacherDetecting(ctx->cfg_);
+		fprintf(stderr, "INFO: using Teacher Mode...\n");
 	}	
 	else if (strcmp(method, "blackboard") == 0) {
 		ctx->b_m = true;
 		ctx->bd_detect_ = new BlackboardDetecting(ctx->cfg_);//+++++++;
 	}
+	ctx->src = vs_open(cfg_name);
 	//++++++++++
 	return ctx;
 }
@@ -49,6 +54,7 @@ void det_close(detect_t * ctx)
 	if(ctx->t_m ) { delete ctx->detect_; }
 	else if(ctx->b_m ) { delete ctx->bd_detect_; }
 	//+++++++;
+	vs_close(ctx->src);
 	delete ctx;
 }
 

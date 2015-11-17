@@ -561,6 +561,7 @@ bool vs_next_frame(visrc_t *vs, cv::Mat &m)
 	VIDEO_FRAME_INFO_S frame;
 	int rc = HI_MPI_VI_GetFrame(SUBCHN(vs->ch), &frame);
 	if (rc != HI_SUCCESS) {
+		fprintf(stderr, "ERR: HI_MPI_VI_GetFrame err, code=%08x\n", rc);
 		return false; // 超时失败 ...
 	}
 
