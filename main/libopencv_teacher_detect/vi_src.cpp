@@ -244,7 +244,6 @@ static void save_rgb(int stride, int width, int height, void* data)
 		fprintf(stdout, "$$$$$$$$p length %d\n", strlen(p));
 		for(int i = 0; i<height; i++)
 		{
-			fprintf(stdout, "$$$$$$$line = %d\n", i);
 			fwrite(p, width * 3, 1, fp);
 			p += stride;
 		}
