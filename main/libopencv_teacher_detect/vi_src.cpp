@@ -350,14 +350,20 @@ static void vf2mat(VIDEO_FRAME_INFO_S &frame, cv::Mat &m)
 
 	// 将rgb数据复制到 mat 中 ...
 	m.create(height, width, CV_8UC3);
+#if 0
 	char *s = (char*)rgb_vir, *d = (char*)m.data;
 	for (int i = 0; i < height; i++) {
 		memcpy(d, s, width*3);
 		s += rgb.u32Stride;
 		d += m.cols*3;		// FIXME: Mat 应该有 stride 的概念把 ..
 	}
+#else
+	memcpy(m.data, rgb_vir, width*height*3);
+#endif
 
-	save_rgb(src.stSrcMem.u32Stride, width, height, (void*)m.data);
+	save_rgb(width*3, width, height, (void*)m.data);
+	fprintf(stderr, "DEBUG: rgb saved!\n");
+	exit(-1);
 
 	HI_MPI_SYS_MmzFree(rgb.u32PhyAddr, rgb_vir);
 }
