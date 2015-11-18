@@ -236,6 +236,7 @@ static void save_rgb(int stride, int width, int height, void* data)
 		fwrite(data, 1, width*height*3, fp);
 #if 0
 		uchar* p = (uchar*)data;
+		fprintf(stdout, "$$$$$$$$p length %d\n", strlen(p));
 		for(int i = 0; i<height; i++)
 		{
 			fwrite(p, width * 3, 1, fp);
