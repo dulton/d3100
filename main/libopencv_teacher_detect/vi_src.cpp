@@ -204,37 +204,31 @@ static void save_nv12(int ch, int cnt, VIDEO_FRAME_S *frame)
 	HI_MPI_SYS_Munmap(y, frame->u32Stride[0] * frame->u32Height);
 }
 
-static void save_nv1(IVE_SRC_INFO_S *stSrc, HI_VOID *pVirtSrc)
+static void save_nv1(const char *fname, IVE_SRC_INFO_S *stSrc, HI_VOID *pVirtSrc)
 {
 	// sp420 相当于 ffmpeg 中的 nv21，使用命令:
 	// ffmpeg -f rawvideo -s 480x270 -pix_fmt nv21 -i xxxx.yuv output.jpg
 	// 转化为 jpg 文件，方便查看 ..
 	// 注意：VIDEO_FRAME_S 中的 pVirAddr 是忽悠人的，不能使用，需要自己 mmap
 
-	char fname[128];
-	snprintf(fname, sizeof(fname), "saved1/yuv_image.yuv");
-
 	unsigned char *y = (uchar *)pVirtSrc;
-	unsigned char *uv = (uchar *)pVirtSrc + (stSrc->u32Height * stSrc->u32Width);
+	unsigned char *uv = (uchar *)pVirtSrc + (stSrc->u32Height * stSrc->stSrcMem.u32Stride);
 
 	FILE *fp = fopen(fname, "wb");
 	if (fp) {
 		// save YUV
 		fwrite(y, 1, stSrc->stSrcMem.u32Stride * stSrc->u32Height, fp);
-
 		fwrite(uv, 1, stSrc->stSrcMem.u32Stride * (stSrc->u32Height / 2), fp);
-
 		fclose(fp);
 	}
 	else {
 		fprintf(stderr, "---- can't open %s\n", fname);
 	}
-
 }
 
 static void save_rgb(int stride, int width, int height, void* data)
 {
-	const char* filename = "test_image.rgb";
+	const char* filename = "saved/test_image.rgb";
 
 	FILE *fp = fopen(filename, "wb");
 	if(fp)
@@ -252,6 +246,19 @@ static void save_rgb(int stride, int width, int height, void* data)
 	}
 }
 
+static void save_mat(const cv::Mat &m, const char *fname)
+{
+	fprintf(stderr, "DEBUG: m: (%d,%d)\n", m.cols, m.rows);
+	FILE *fp = fopen(fname, "wb");
+	if (fp) {
+		for (int y = 0; y < m.rows; y++) {
+			const unsigned char *p = m.ptr<unsigned char>(y);
+			fwrite(p, 1, m.elemSize() * m.cols, fp);
+		}
+
+		fclose(fp);
+	}
+}
 // VIDEO_FRAME_INFO_S转化为Mat矩阵;
 // 处理一：模糊处理;
 // 处理二：YUV->RGB;
@@ -288,6 +295,8 @@ static void vf2mat(VIDEO_FRAME_INFO_S &frame, cv::Mat &m)
 	memcpy(src_vir, p, yuvsize);
 	HI_MPI_SYS_Munmap(p, yuvsize);
 
+	//save_nv1("saved/src.yuv", &src, src_vir);
+
 	// 准备 ive dst 内存 ..
 	IVE_MEM_INFO_S dst;
 	dst.u32Stride = frame.stVFrame.u32Stride[0];
@@ -312,6 +321,8 @@ static void vf2mat(VIDEO_FRAME_INFO_S &frame, cv::Mat &m)
 	pstFilterCtrl.as8Mask[7] = 1;
 	pstFilterCtrl.as8Mask[8] = 1;
 
+	// XXX: FlushCache 保证 src_vir 中是可靠的数据 ...
+	HI_MPI_SYS_MmzFlushCache(src.stSrcMem.u32PhyAddr, src_vir, yuvsize);
 	rc = HI_MPI_IVE_FILTER(&IveHandle, &src, &dst, &pstFilterCtrl, bInstant);
 	if(rc != HI_SUCCESS) {
 		fprintf(stderr, "FATAL: HI_MPI_IVE_FILTER err %s:%d\n", __FILE__, __LINE__);
@@ -329,7 +340,7 @@ static void vf2mat(VIDEO_FRAME_INFO_S &frame, cv::Mat &m)
 		fprintf(stderr, "FATAL: HI_MPI_SYS_MmzAlloc_Cached err %s:%s\n", __FILE__, __LINE__);
 		exit(-1);
 	}
-	rgb.u32Stride = width * 3;
+	rgb.u32Stride = width; // XXX: IVE 中的 stride 与众不同 ..
 
 	IVE_SRC_INFO_S yuv; // 直接使用滤波后的 dst
 	yuv.u32Width = width;
@@ -341,6 +352,9 @@ static void vf2mat(VIDEO_FRAME_INFO_S &frame, cv::Mat &m)
 	pstCscCtrl.enOutFmt = IVE_CSC_OUT_FMT_PACKAGE;
 	pstCscCtrl.enCscMode = IVE_CSC_MODE_VIDEO_BT601_AND_BT656;
 
+	save_nv1("saved/filtered.yuv", &yuv, dst_vir);
+
+	//HI_MPI_SYS_MmzFlushCache(dst.u32PhyAddr, dst_vir, yuvsize);
 	rc = HI_MPI_IVE_CSC(&IveHandle, &yuv, &rgb, &pstCscCtrl, bInstant);
 	if (rc != HI_SUCCESS) {
 		fprintf(stderr, "FATAL: HI_MPI_IVE_CSC err %s:%d\n", __FILE__, __LINE__);
@@ -353,16 +367,17 @@ static void vf2mat(VIDEO_FRAME_INFO_S &frame, cv::Mat &m)
 
 	// 将rgb数据复制到 mat 中 ...
 	m.create(height, width, CV_8UC3);
-#if 0
-	char *s = (char*)rgb_vir, *d = (char*)m.data;
+
+	//save_rgb(0, width, height, rgb_vir);
+
+	char *s = (char*)rgb_vir;
 	for (int i = 0; i < height; i++) {
-		memcpy(d, s, width*3);
-		s += rgb.u32Stride;
-		d += m.cols*3;		// FIXME: Mat 应该有 stride 的概念把 ..
+		unsigned char *d = m.ptr<unsigned char>(i);
+		memcpy(d, s, m.elemSize() * m.cols);
+		s += width * 3;	// FIXME:
 	}
-#else
-	memcpy(m.data, rgb_vir, rgbsize); // FIXME: 这里没有考虑 Mat 的 stride，但width=480， ...
-#endif
+
+	//save_mat(m, "saved/mat.rgb");
 
 	HI_MPI_SYS_MmzFree(rgb.u32PhyAddr, rgb_vir);
 }
