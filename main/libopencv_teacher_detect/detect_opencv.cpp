@@ -121,7 +121,7 @@ void vector_to_json(std::vector < Rect > r, char *buf)
 
 }
 
-#define BUFSIZE 100
+#define BUFSIZE 400
 
 static const char* det_detect(detect_t * ctx, Mat &img)
 {
@@ -149,9 +149,10 @@ static const char* det_detect(detect_t * ctx, Mat &img)
 				r[i].x = r[i].x+box.x;
 				r[i].y = r[i].y+box.y;
 				r[i] &= cv::Rect(0,0,Img.cols,Img.rows);
-				printf("obj_width = %d; obj_height = %d\n", r[i].width, r[i].height);
+				//printf("obj_width = %d; obj_height = %d\n", r[i].width, r[i].height);
 		}
 	
+#if 0
 		cv::Rect upbody;
 		bool is_up_body = false;
 		if(atoi(ctx->cfg_->get_value("Upbody_Detect", "0"))>0)
@@ -173,6 +174,7 @@ static const char* det_detect(detect_t * ctx, Mat &img)
 			}
 		
 		}
+#endif
 //		vector_to_json_t(r, upbody,is_up_body,isrect,str);	
 		//***********************************
 		//***************调试****************
@@ -188,7 +190,7 @@ static const char* det_detect(detect_t * ctx, Mat &img)
 				first_r[i].height = first_r[i].height+box.y + 40;
 				first_r[i] &= cv::Rect(0,0,Img.cols,Img.rows);
 				rectangle(Img, first_r[i], Scalar(255, 0, 0), 2);			}
-    			rectangle(Img, upbody, Scalar(255, 255, 255), 2);
+    			//rectangle(Img, upbody, Scalar(255, 255, 255), 2);
 		}
 			
 	}
@@ -222,7 +224,7 @@ static const char* det_detect(detect_t * ctx, Mat &img)
 	ctx->result_str = str;
 	ftime(&cur);
 	double time = (cur.time - pre.time) * 1000 + (cur.millitm - pre.millitm);
-	printf("all the detect time = %f\n", time);
+	//printf("all the detect time = %f\n", time);
 
 	return ctx->result_str.c_str();
 }

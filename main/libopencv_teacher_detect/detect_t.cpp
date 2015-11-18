@@ -66,7 +66,7 @@ HI_S32 TeacherDetecting::SAMPLE_IVE_INIT( )
 	HI_BOOL bMpiInit=HI_FALSE;
     if(HI_TRUE == bMpiInit)
     {
-        printf("MPI has been inited \n ");
+        //printf("MPI has been inited \n ");
         return sRet;
     }
     /*初始化之前先确定系统已退出*/
@@ -78,14 +78,14 @@ HI_S32 TeacherDetecting::SAMPLE_IVE_INIT( )
     sRet = HI_MPI_SYS_SetConf(&stSysConf);
     if(HI_SUCCESS != sRet)
     {
-        printf("Config sys fail!\n");
+        //printf("Config sys fail!\n");
         return sRet;
     }
 
     sRet = HI_MPI_SYS_Init();
      if(HI_SUCCESS != sRet)
     {
-        printf("Init sys fail!\n");
+        //printf("Init sys fail!\n");
         return sRet;
     }
 
@@ -96,7 +96,7 @@ HI_S32 TeacherDetecting::SAMPLE_IVE_INIT( )
 
 HI_S32 TeacherDetecting::hi_luv_method( std::vector<Mat> img, std::vector<Mat> bg, Mat &dst)
 {
-	printf("width:%d,height:%d\n",img[0].cols,img[0].rows);
+	//printf("width:%d,height:%d\n",img[0].cols,img[0].rows);
 
 	timeb pre_last, cur_last;
 	ftime(&pre_last);
@@ -163,7 +163,7 @@ HI_S32 TeacherDetecting::hi_luv_method( std::vector<Mat> img, std::vector<Mat> b
 		"User",HI_NULL,stSrc_bg2.u32Height*stSrc_bg2.stSrcMem.u32Stride);
 	/*ftime(&cur);
 	double time = (cur.time-pre.time)*1000+cur.millitm-pre.millitm;
-	printf("src cached time:***%f\n",time);*/
+	//printf("src cached time:***%f\n",time);*/
 
 	/*timeb pre1,cur1;
 	ftime(&pre1);*/
@@ -196,7 +196,7 @@ HI_S32 TeacherDetecting::hi_luv_method( std::vector<Mat> img, std::vector<Mat> b
 	}
 	/*ftime(&cur1);
 	double time1 = (cur1.time-pre1.time)*1000+cur1.millitm-pre1.millitm;
-	printf("memcpy time:***%f\n",time1);*/
+	//printf("memcpy time:***%f\n",time1);*/
 
 	/*timeb pre2,cur2;
 	ftime(&pre2);*/
@@ -217,7 +217,7 @@ HI_S32 TeacherDetecting::hi_luv_method( std::vector<Mat> img, std::vector<Mat> b
 	stDst_V.u32Stride = stSrc_img0.stSrcMem.u32Stride;
     /*ftime(&cur2);
 	double time2 = (cur2.time-pre2.time)*1000+cur2.millitm-pre2.millitm;
-	printf("dst cached time:***%f\n",time2);*/
+	//printf("dst cached time:***%f\n",time2);*/
 
 	timeb pre3,cur3;
 	ftime(&pre3);
@@ -267,7 +267,7 @@ HI_S32 TeacherDetecting::hi_luv_method( std::vector<Mat> img, std::vector<Mat> b
 	}
 	ftime(&cur3);
 	double time3 = (cur3.time-pre3.time)*1000+cur3.millitm-pre3.millitm;
-	printf("hi_luv_method sub/threshold/or time:***%f\n",time3);
+	//printf("hi_luv_method sub/threshold/or time:***%f\n",time3);
 
 	HI_MPI_SYS_MmzFree(stSrc_img0.stSrcMem.u32PhyAddr,pVirtSrc_img0);
 	HI_MPI_SYS_MmzFree(stSrc_img1.stSrcMem.u32PhyAddr,pVirtSrc_img1);
@@ -282,7 +282,7 @@ HI_S32 TeacherDetecting::hi_luv_method( std::vector<Mat> img, std::vector<Mat> b
 
 	ftime(&cur_last);
 	double lasttime = (cur_last.time-pre_last.time)*1000+cur_last.millitm-pre_last.millitm;
-	printf("hi_luv_method time:***%f\n",lasttime);
+	//printf("hi_luv_method time:***%f\n",lasttime);
 }
 
 
@@ -316,7 +316,7 @@ HI_S32 TeacherDetecting::hi_dilate( Mat src, Mat &dst)
 		"User",HI_NULL,stSrc.u32Height*stSrc.stSrcMem.u32Stride);
 	 if(s32Ret != HI_SUCCESS)
 	{
-		printf("can't alloc intergal memory for %x\n",s32Ret);
+		//printf("can't alloc intergal memory for %x\n",s32Ret);
 	    return HI_NULL;
 	}
 
@@ -334,7 +334,7 @@ HI_S32 TeacherDetecting::hi_dilate( Mat src, Mat &dst)
 	stDst.u32Stride = stSrc.stSrcMem.u32Stride;
     if(s32Ret != HI_SUCCESS)
 	{
-		printf("can't alloc intergal memory for %x\n",s32Ret);
+		//printf("can't alloc intergal memory for %x\n",s32Ret);
 	    return HI_NULL;
 	}
 
@@ -834,7 +834,7 @@ std::vector < Rect > TeacherDetecting::refineSegments2(Mat img, Mat & mask,
 	hi_dilate(mask,mask);
 	ftime(&cur);
 	double time = (double)(cur.time-pre.time)*1000+(cur.millitm-pre.millitm);
-	printf("refineSeg time:%f\n",time);
+	//printf("refineSeg time:%f\n",time);
 	//如果行或列是奇数要加一变成偶数处理，因为cvPyrUp和cvPyrDown只支持偶数;
 	//IplImage* pyr=cvCreateImage(cvSize((mask.cols&-2)/2,(mask.rows&-2)/2),IPL_DEPTH_8U,1);
 	////IplImage* pyr=cvCreateImage(cvSize(mask.cols/2,mask.rows/2),IPL_DEPTH_8U,1);
@@ -849,13 +849,13 @@ std::vector < Rect > TeacherDetecting::refineSegments2(Mat img, Mat & mask,
 	findContours(mask, contours, hierarchy, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_SIMPLE);
 	ftime(&cur1);
 	double time1 = (double)(cur1.time - pre1.time) * 1000 + (cur1.millitm - pre1.millitm);
-	printf("^^^^^^^^^^findContours time:%f\n",time1);
+	//printf("^^^^^^^^^^findContours time:%f\n",time1);
 	dst = Mat::zeros(img.size(), CV_8UC3);
 
 	timeb pre2,cur2;
 	ftime(&pre2);
 	if (contours.size() > 0) {
-		printf("^^^^^^^^^^contours num:%d\n",contours.size());
+		//printf("^^^^^^^^^^contours num:%d\n",contours.size());
 		Scalar color(255, 255, 255);
 		for (int idx = 0; idx < contours.size(); idx++) {
 			const vector < Point > &c = contours[idx];
@@ -877,7 +877,7 @@ std::vector < Rect > TeacherDetecting::refineSegments2(Mat img, Mat & mask,
 	}
 	ftime(&cur2);
 	double time2 = (double)(cur2.time-pre2.time)*1000+(cur2.millitm-pre2.millitm);
-	printf("^^^^^^^^^^contours time:%f\n",time2);
+	//printf("^^^^^^^^^^contours time:%f\n",time2);
 
 	if (right_rect.size() > 1) {
 		rect_fusion2(right_rect, interval);
@@ -1004,7 +1004,9 @@ void TeacherDetecting::is_need_fillbg_twice(Mat img)
 		{
 			fillbg_struct.filltwice_num++;
 			if (atoi(cfg_->get_value("debug", "0")) > 0)
-			{fprintf(stderr,"%d\n",fillbg_struct.filltwice_num);}		
+			{
+				//fprintf(stderr,"%d\n",fillbg_struct.filltwice_num);
+			}		
 		}
 		if(fillbg_struct.filltwice_num>=5)
 		{
@@ -1254,7 +1256,7 @@ void TeacherDetecting::is_teacher_down(Mat raw_img,Mat img2)
 			&&(frame_s.frame_rect[k].x+frame_s.frame_rect[k].width)<=(temp.x+temp.width))//&& frame_s.frame_rect.size()==1
 			{
 				frame_s.is_body_down = true;
-				fprintf(stderr,"teacher is down!\n");
+				//fprintf(stderr,"teacher is down!\n");
 				break;
 			}	
 		}	
@@ -1302,7 +1304,9 @@ void TeacherDetecting::is_teacher_down(Mat raw_img,Mat img2)
 		if(atoi(cfg_->get_value("debug","0"))>0)
 		{
 			if(interval_t>0)
-		    {fprintf(stderr,"teacher_down_time = %f\n",interval_t);}
+		    {
+				//fprintf(stderr,"teacher_down_time = %f\n",interval_t);
+			}
 		}	
 		//更新蓝框区域背景;
 		if(interval_t>fillbg_struct.mog2_s.continued_time)
@@ -1357,7 +1361,7 @@ void TeacherDetecting::two_frame_method(Mat img,Mat &silh,Mat Y)
 	ftime(&cur);
 	double time = (cur.time-pre.time)*1000+(cur.millitm-pre.millitm);
 	double time1 = (cur.time-pre1.time)*1000+(cur.millitm-pre1.millitm);
-	printf("two frame method time:%f   hi_time:%f\n",time,time1);
+	//printf("two frame method time:%f   hi_time:%f\n",time,time1);
 	for(int i = 0;i<frame_s.N-1;i++)
 	{
 		frame_s.buffer[i] = frame_s.buffer[i+1].clone();
@@ -1461,7 +1465,7 @@ void TeacherDetecting::frame_difference_method (Mat image,std::vector<Rect> &mas
 	two_frame_method(image,silh,Y);
 	ftime(&cur);
 	double time = (cur.time-pre.time)*1000+(cur.millitm-pre.millitm);
-	printf("^^^^^^^^^^^^^two frame method time:%f\n",time);
+	//printf("^^^^^^^^^^^^^two frame method time:%f\n",time);
 	//------------------------------------------
 	//掩码部分帧差;
 	timeb pre1,cur1;
@@ -1477,7 +1481,7 @@ void TeacherDetecting::frame_difference_method (Mat image,std::vector<Rect> &mas
 	}
 	ftime(&cur1);
 	double time1 = (cur1.time-pre1.time)*1000+(cur1.millitm-pre1.millitm);
-	printf("^^^^^^^^^^^^^refineSegments2 time:%f\n",time1);
+//	printf("^^^^^^^^^^^^^refineSegments2 time:%f\n",time1);
 }
 
 
@@ -1865,7 +1869,7 @@ bool TeacherDetecting::one_frame_luv(Mat raw_img, Mat img, vector < Rect > &r,
 	cvtColor(img, img_t, CV_BGR2YUV);
 	ftime(& _cur);
 	double _time = (_cur.time - _pre.time) * 1000 + (_cur.millitm - _pre.millitm);
-	printf("cvColor time: %f", _time);
+	//printf("cvColor time: %f", _time);
 
 	std::vector<Mat> img_vector;
 	split(img_t,img_vector);
@@ -1884,7 +1888,7 @@ bool TeacherDetecting::one_frame_luv(Mat raw_img, Mat img, vector < Rect > &r,
 		luv_method(img, img_vector);
 		ftime(&cur);
 		double time = (cur.time - pre.time) * 1000 + cur.millitm - pre.millitm;
-		printf("luv_method time:%f\n", time);
+		//printf("luv_method time:%f\n", time);
 	}
 	
 	//原始图像帧差法;
@@ -1894,7 +1898,7 @@ bool TeacherDetecting::one_frame_luv(Mat raw_img, Mat img, vector < Rect > &r,
 	frame_difference_method(img,frame_s.masked_frame_rect, Y);
 	ftime(&cur1);
 	double time1 = (cur1.time - pre1.time) * 1000 + cur1.millitm - pre1.millitm;
-	printf("frame_diff_method time:%f\n", time1);
+	//printf("frame_diff_method time:%f\n", time1);
 	 
 	////判定人是否走下讲台区;
 	//if(fillbg_struct.nframe >1 && !fillbg_struct.isfillok_end)
