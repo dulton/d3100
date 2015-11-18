@@ -290,7 +290,7 @@ HI_S32 TeacherDetecting::hi_luv_method(std::vector < Mat > img,
 	pstThreshCtrl.u32MinVal = 0;
 	pstThreshCtrl.u32Thresh = 55;
 
-	// XXX: 必须调用更新 ...
+	// XXX: 必须刷新cache !!!!!
 	HI_MPI_SYS_MmzFlushCache(stSrc_img0.stSrcMem.u32PhyAddr, pVirtSrc_img0, cachesize);
 	HI_MPI_SYS_MmzFlushCache(stSrc_bg0.stSrcMem.u32PhyAddr, pVirtSrc_bg0, cachesize);
 
@@ -644,8 +644,11 @@ HI_S32 TeacherDetecting::hi_two_frame_method(Mat src, Mat & dst)
 	pstThreshCtrl.u32MaxVal = 255;
 	pstThreshCtrl.u32MinVal = 0;
 	pstThreshCtrl.u32Thresh = 25;
-	s32Ret =
-	    HI_MPI_IVE_THRESH(&IveHandle, &stSrc, &stDst, &pstThreshCtrl,
+
+	size_t cachesize = stSrc.stSrcMem.u32Stride * stSrc.u32Height;
+	HI_MPI_SYS_MmzFlushCache(stSrc.stSrcMem.u32PhyAddr, pVirtSrc, cachesize);
+
+	s32Ret =HI_MPI_IVE_THRESH(&IveHandle, &stSrc, &stDst, &pstThreshCtrl,
 			      bInstant);
 	if (s32Ret != HI_SUCCESS) {
 		HI_MPI_SYS_MmzFree(stDst.u32PhyAddr, pVirtDst);
@@ -669,9 +672,7 @@ HI_S32 TeacherDetecting::hi_two_frame_method(Mat src, Mat & dst)
 	pstFilterCtrl.as8Mask[7] = 1;
 	pstFilterCtrl.as8Mask[8] = 1;
 
-	s32Ret =
-	    HI_MPI_IVE_FILTER(&IveHandle, &stFilterInfo, &stDst, &pstFilterCtrl,
-			      bInstant);
+	s32Ret = HI_MPI_IVE_FILTER(&IveHandle, &stFilterInfo, &stDst, &pstFilterCtrl,bInstant);
 	if (s32Ret != HI_SUCCESS) {
 		HI_MPI_SYS_MmzFree(stDst.u32PhyAddr, pVirtDst);
 		printf(" ive filter function can't submmit for %x\n", s32Ret);
