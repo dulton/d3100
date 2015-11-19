@@ -27,5 +27,5 @@ class hiMat
 		unsigned int* get_phy_addr_p() const;
 		void* get_vir_addr_p() const;
 		int get_stride() const;
-		void set_ive_src(IVE_SRC_INFO_S& info);
+		void get_ive_src(IVE_SRC_INFO_S& info);
 }
