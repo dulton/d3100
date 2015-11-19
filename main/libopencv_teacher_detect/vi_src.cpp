@@ -101,31 +101,68 @@ static int zk_mpi_uninit()
 	return 0;
 }
 
-VI_DEV_ATTR_S DEV_ATTR_7441_BT1120_1080P =
+static void vi_setmask(int ViDev, VI_DEV_ATTR_S *pstDevAttr)
 {
-    VI_MODE_BT1120_STANDARD,
-    VI_WORK_MODE_1Multiplex,
+	switch (ViDev % 4) {
+		case 0:
+			pstDevAttr->au32CompMask[0] = 0xFF000000;
+			if (VI_MODE_BT1120_STANDARD == pstDevAttr->enIntfMode)
+				pstDevAttr->au32CompMask[1] = 0x00FF0000;
+			else if (VI_MODE_BT1120_INTERLEAVED == pstDevAttr->enIntfMode)
+				pstDevAttr->au32CompMask[1] = 0x0;
+			break;
+		case 1:
+			pstDevAttr->au32CompMask[0] = 0xFF0000;
+			if (VI_MODE_BT1120_INTERLEAVED == pstDevAttr->enIntfMode)
+				pstDevAttr->au32CompMask[1] = 0x0;
+			break;
+		case 2:
+			pstDevAttr->au32CompMask[0] = 0xFF00;
+			if (VI_MODE_BT1120_STANDARD == pstDevAttr->enIntfMode)
+				pstDevAttr->au32CompMask[1] = 0xFF;
+			else if (VI_MODE_BT1120_INTERLEAVED == pstDevAttr->enIntfMode)
+				pstDevAttr->au32CompMask[1] = 0x0;
+			break;
+		case 3:
+			pstDevAttr->au32CompMask[0] = 0xFF;
+			if (VI_MODE_BT1120_INTERLEAVED == pstDevAttr->enIntfMode)
+				pstDevAttr->au32CompMask[1] = 0x0;
+			break;
+		default:
+			HI_ASSERT(0);
+	}
+}
+
+
+static VI_DEV_ATTR_S DEV_ATTR_7441_BT1120_1080P =
+{
+	VI_MODE_BT1120_STANDARD,
+	VI_WORK_MODE_1Multiplex,
+	{0xFF000000,    0xFF0000},
+	VI_SCAN_PROGRESSIVE,
+	{-1, -1, -1, -1},
+	VI_INPUT_DATA_UVUV,
+     
     {
-		0xFF000000,    0xFF0000
-	},
-    VI_SCAN_PROGRESSIVE,
-    {-1, -1, -1, -1},
-    VI_INPUT_DATA_UVUV,
-    {
-    	VI_VSYNC_PULSE, VI_VSYNC_NEG_HIGH, VI_HSYNC_VALID_SINGNAL,VI_HSYNC_NEG_HIGH,VI_VSYNC_NORM_PULSE,VI_VSYNC_VALID_NEG_HIGH,
+    VI_VSYNC_PULSE, VI_VSYNC_NEG_HIGH, 
+	VI_HSYNC_VALID_SINGNAL,VI_HSYNC_NEG_HIGH,
+	VI_VSYNC_NORM_PULSE,VI_VSYNC_VALID_NEG_HIGH,
     
-		{
-			0,            1920,        0,
-			0,            1080,        0,
-			0,            0,           0
-		}
+    {0,            1920,        0,
+     0,            1080,        0,
+     0,            0,            0}
     }
 };
 
 static int vi_start_dev(int devid)
 {
+	fprintf(stderr, "DEBUG: %s: devid=%d\n", __func__, devid);
 	VI_DEV_ATTR_S vdas;
+	memset(&vdas, 0, sizeof(vdas));
+
 	memcpy(&vdas, &DEV_ATTR_7441_BT1120_1080P, sizeof(vdas));
+	vi_setmask(devid, &vdas);
+
 	int rc = HI_MPI_VI_SetDevAttr(devid, &vdas);
 	if (rc != HI_SUCCESS) {
 		FATAL(__func__, __FILE__, __LINE__);
@@ -141,6 +178,8 @@ static int vi_start_dev(int devid)
 
 static int vi_start_ch(int ch, int width, int height)
 {
+	fprintf(stderr, "DEBUG: %s: ch=%d, w,h=%d,%d\n", __func__, ch, width, height);
+
 	VI_CHN_ATTR_S attr;
 	attr.stCapRect.s32X = 0;  // FIXME: 应该合理设置cap rect
 	attr.stCapRect.s32Y = 0;
@@ -169,73 +208,49 @@ static int vi_start_ch(int ch, int width, int height)
 	return 0;
 }
 
-/** FIXME: 应该仅仅初始化指定的通道就行了 ... */
-static int zk_vi_init(int ch = 0)
+static int sys_mem_conf(int ch)
 {
-	/** 使用 subchannel，可以利用其“拉伸”功能 */
-
-	// set mem conf
-	// main channel 
 	MPP_CHN_S mcs;
 	mcs.enModId = HI_ID_VIU;
-	mcs.s32DevId = 0;
-	mcs.s32ChnId = ch * 4;	// FIXME: 4路1080 ...
-	int rc = HI_MPI_SYS_SetMemConf(&mcs, 0);
+	mcs.s32DevId = 0; // VIU 必须使用 0
+	mcs.s32ChnId = ch;
+	
+	int rc = HI_MPI_SYS_SetMemConf(&mcs, 0); // ddr0
 	if (rc != HI_SUCCESS) {
 		FATAL(__func__, __FILE__, __LINE__);
 	}
 
-	// sub channel
-	mcs.s32ChnId = ch + 16;	// sub chid
-	rc = HI_MPI_SYS_SetMemConf(&mcs, 0);
-	if (rc != HI_SUCCESS) {
-		FATAL(__func__, __FILE__, __LINE__);
-	}
+	return 0;
+}
+
+/** FIXME: 应该仅仅初始化指定的通道就行了 ... */
+static int zk_vi_init(int ch)
+{
+	/** 使用 subchannel，可以利用其“拉伸”功能 */
+	int rc;
+	int devid = ch / 2; // FIXME: 	devid = { 0, 2, 4, 6}
+						//			chid = { 0, 4, 8, 12 }
+						//			subchid = { 16, 20, 24, 28 }
+	int subch = ch + 16;
+
+	// mem conf
+	sys_mem_conf(ch);
+	sys_mem_conf(subch);
 
 	// start dev
-	vi_start_dev(ch);
+	vi_start_dev(devid);
 
 	// start channel
-	// FIXME: 直接启动子通道行不行???
-	vi_start_ch(ch + 16, 480, 270);
+	vi_start_ch(ch, 1920, 1080);
+	vi_start_ch(subch, 480, 270);
 
+	// ???
 	rc = HI_MPI_VI_SetFrameDepth(ch+16, 4);
 	if (rc != HI_SUCCESS) {
 		FATAL(__func__, __FILE__, __LINE__);
 	}
 
 	return 0;
-	
-#if 0
-	int rc = SAMPLE_COMM_VI_MemConfig(SAMPLE_VI_MODE_4_1080P);
-	if (rc != HI_SUCCESS) {
-		fprintf(stderr, "SAMPLE_COMM_VI_MemConfig err, code=%08x\n", rc);
-		return -1;
-	}
-
-	// start ...
-	int dev_result[8], ch_result[16], subch_result[16];
-	rc = SAMPLE_COMM_VI_Start(SAMPLE_VI_MODE_4_1080P, VIDEO_ENCODING_MODE_PAL);
-	if (rc != HI_SUCCESS) {
-		fprintf(stderr, "SAMPLE_COMM_VI_Start err, code=%08x\n", rc);
-		return -1;
-	}
-	
-	// 不需要读 main channels 
-    //rc = HI_MPI_VI_SetFrameDepth(0, 2);
-    //rc = HI_MPI_VI_SetFrameDepth(4, 2);
-    //rc = HI_MPI_VI_SetFrameDepth(8, 2);
-    //rc = HI_MPI_VI_SetFrameDepth(12, 2);
-
-	// 为了读 sub channels，否则，会出现 0xa010800e 错误
-	rc = HI_MPI_VI_SetFrameDepth(16, 4);
-	//rc = HI_MPI_VI_SetFrameDepth(20, 4);
-	//rc = HI_MPI_VI_SetFrameDepth(24, 4);
-	rc = HI_MPI_VI_SetFrameDepth(28, 4);
-#endif
-
-	return 0;
-
 }
 
 static int zk_vi_uninit()
@@ -370,8 +385,7 @@ static void vf2mat(VIDEO_FRAME_INFO_S &frame, cv::Mat &m)
 	memcpy(src_vir, p, yuvsize);
 	HI_MPI_SYS_Munmap(p, yuvsize);
 
-	save_nv1("saved/src.yuv", &src, src_vir);
-	exit(-1);
+//	save_nv1("saved/src000.yuv", &src, src_vir);
 
 	// 准备 ive dst 内存 ..
 	IVE_MEM_INFO_S dst;
@@ -479,7 +493,7 @@ visrc_t *vs_open(const char *fname)
 	vs->cfg = new KVConfig(fname);
 
 	vs->ch = atoi(vs->cfg->get_value("vi_ch", "12"));
-	zk_vi_init();	// FIXME:	
+	zk_vi_init(vs->ch);	// FIXME:	
 
 	return vs;
 }
