@@ -8,7 +8,6 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <sys/ioctl.h>
-#include "sample_comm.h"
 #include <errno.h>
 #include "mpi_vi.h"
 
@@ -28,20 +27,10 @@ using namespace std;
 
 #include "sys/timeb.h"
 
-//问题1： string str返回是否正确 ...
-//问题2：VIDEO_FRAME_INFO_S frame 是否可直接赋值 ...
+#define FATAL(func, file, line) { fprintf(stderr, "FATAL: exit %s, %s:%d\n", func, file, line);  exit(-1);  }
 
-
-struct hi_detect_t
-{
-	bool is_quit;
-	//det_t *det;
-	string str;
-    int ch; // 通道 ...
-	VIDEO_FRAME_INFO_S frame;
-	pthread_t thread_id;
-	pthread_mutex_t mutex;
-};
+/** TODO: 去掉所有 SAMPLE_XXX 的调用,恢复 MPI 本来面目 ....
+ */
 
 static int zk_mpi_init()
 {
@@ -77,12 +66,30 @@ static int zk_mpi_init()
     stVbConf.astCommPool[3].u32BlkCnt = sdcnt;
     strcpy(stVbConf.astCommPool[3].acMmzName,"ddr1");
 
-    int rc = SAMPLE_COMM_SYS_Init(&stVbConf);
-    if (HI_SUCCESS != rc)
-    {
-        SAMPLE_PRT("system init failed with %d!\n", rc);
-		return -1;
-    }
+	HI_MPI_SYS_Exit();
+	HI_MPI_VB_Exit();
+
+	int rc = HI_MPI_VB_SetConf(&stVbConf);
+	if (rc != HI_SUCCESS) {
+		FATAL(__func__, __FILE__, __LINE__);
+	}
+
+	rc = HI_MPI_VB_Init();
+	if (rc != HI_SUCCESS) {
+		FATAL(__func__, __FILE__, __LINE__);
+	}
+
+	MPP_SYS_CONF_S sc;
+	sc.u32AlignWidth = 16;
+	rc = HI_MPI_SYS_SetConf(&sc);
+	if (rc != HI_SUCCESS) {
+		FATAL(__func__, __FILE__, __LINE__);
+	}
+
+	rc = HI_MPI_SYS_Init();
+	if (rc != HI_SUCCESS) {
+		FATAL(__func__, __FILE__, __LINE__);
+	}
 
 	return 0;
 }
@@ -94,12 +101,112 @@ static int zk_mpi_uninit()
 	return 0;
 }
 
+VI_DEV_ATTR_S DEV_ATTR_7441_BT1120_1080P =
+{
+    VI_MODE_BT1120_STANDARD,
+    VI_WORK_MODE_1Multiplex,
+    {
+		0xFF000000,    0xFF0000
+	},
+    VI_SCAN_PROGRESSIVE,
+    {-1, -1, -1, -1},
+    VI_INPUT_DATA_UVUV,
+    {
+    	VI_VSYNC_PULSE, VI_VSYNC_NEG_HIGH, VI_HSYNC_VALID_SINGNAL,VI_HSYNC_NEG_HIGH,VI_VSYNC_NORM_PULSE,VI_VSYNC_VALID_NEG_HIGH,
+    
+		{
+			0,            1920,        0,
+			0,            1080,        0,
+			0,            0,           0
+		}
+    }
+};
+
+static int vi_start_dev(int devid)
+{
+	VI_DEV_ATTR_S vdas;
+	memcpy(&vdas, &DEV_ATTR_7441_BT1120_1080P, sizeof(vdas));
+	int rc = HI_MPI_VI_SetDevAttr(devid, &vdas);
+	if (rc != HI_SUCCESS) {
+		FATAL(__func__, __FILE__, __LINE__);
+	}
+
+	rc = HI_MPI_VI_EnableDev(devid);
+	if (rc != HI_SUCCESS) {
+		FATAL(__func__, __FILE__, __LINE__);
+	}
+
+	return 0;
+}
+
+static int vi_start_ch(int ch, int width, int height)
+{
+	VI_CHN_ATTR_S attr;
+	attr.stCapRect.s32X = 0;  // FIXME: 应该合理设置cap rect
+	attr.stCapRect.s32Y = 0;
+	attr.stCapRect.u32Width = 1920;
+	attr.stCapRect.u32Height = 1080;
+	attr.stDestSize.u32Width = width;
+	attr.stDestSize.u32Height = height;
+	attr.enCapSel = VI_CAPSEL_BOTH;
+	attr.enPixFormat = PIXEL_FORMAT_YUV_SEMIPLANAR_420;
+	attr.bMirror = HI_FALSE;
+	attr.bFlip = HI_FALSE;
+	attr.bChromaResample = HI_FALSE;
+	attr.s32SrcFrameRate = -1;
+	attr.s32FrameRate = -1;
+
+	int rc = HI_MPI_VI_SetChnAttr(ch, &attr);
+	if (rc != HI_SUCCESS) {
+		FATAL(__func__, __FILE__, __LINE__);
+	}
+
+	rc = HI_MPI_VI_EnableChn(ch);
+	if (rc != HI_SUCCESS) {
+		FATAL(__func__, __FILE__, __LINE__);
+	}
+
+	return 0;
+}
+
 /** FIXME: 应该仅仅初始化指定的通道就行了 ... */
-static int zk_vi_init()
+static int zk_vi_init(int ch = 0)
 {
 	/** 使用 subchannel，可以利用其“拉伸”功能 */
 
 	// set mem conf
+	// main channel 
+	MPP_CHN_S mcs;
+	mcs.enModId = HI_ID_VIU;
+	mcs.s32DevId = 0;
+	mcs.s32ChnId = ch * 4;	// FIXME: 4路1080 ...
+	int rc = HI_MPI_SYS_SetMemConf(&mcs, 0);
+	if (rc != HI_SUCCESS) {
+		FATAL(__func__, __FILE__, __LINE__);
+	}
+
+	// sub channel
+	mcs.s32ChnId = ch + 16;	// sub chid
+	rc = HI_MPI_SYS_SetMemConf(&mcs, 0);
+	if (rc != HI_SUCCESS) {
+		FATAL(__func__, __FILE__, __LINE__);
+	}
+
+	// start dev
+	vi_start_dev(ch);
+
+	// start channel
+	// FIXME: 直接启动子通道行不行???
+	vi_start_ch(ch + 16, 480, 270);
+
+	rc = HI_MPI_VI_SetFrameDepth(ch+16, 4);
+	if (rc != HI_SUCCESS) {
+		FATAL(__func__, __FILE__, __LINE__);
+	}
+
+	return 0;
+	
+#if 0
 	int rc = SAMPLE_COMM_VI_MemConfig(SAMPLE_VI_MODE_4_1080P);
 	if (rc != HI_SUCCESS) {
 		fprintf(stderr, "SAMPLE_COMM_VI_MemConfig err, code=%08x\n", rc);
@@ -125,6 +232,7 @@ static int zk_vi_init()
 	//rc = HI_MPI_VI_SetFrameDepth(20, 4);
 	//rc = HI_MPI_VI_SetFrameDepth(24, 4);
 	rc = HI_MPI_VI_SetFrameDepth(28, 4);
+#endif
 
 	return 0;
 
@@ -134,40 +242,6 @@ static int zk_vi_uninit()
 {
 	return 0;
 }
-
-void hi_init(hi_detect_t* hi_det, const char *kvfname)
-{
-	hi_det->is_quit = false;
-
-	hi_det->ch = 16; // 设置输入主通道 ...
-
-	int rc = zk_mpi_init();
-	if (rc != 0) {
-		 fprintf(stderr, "hi_mpi initialization failed!\n");
-	}
-   
-	rc = zk_vi_init();
-	if (rc != 0) {
-		fprintf(stderr, "hi_vi initialization failed!\n");
-	}
-
-	//hi_det->det = det_open(kvfname);
-
-}
-
-void hi_uninit(hi_detect_t *hi_det)
-{
-	hi_det->is_quit = true;	
-
-	int rc = zk_mpi_uninit();
-
-	rc = zk_vi_uninit();
-
-//	det_close(hi_det->det);
-
-	HI_MPI_VI_ReleaseFrame(hi_det->ch, &hi_det->frame);
-}
-
 
 static void save_nv12(int ch, int cnt, VIDEO_FRAME_S *frame)
 {
@@ -296,7 +370,8 @@ static void vf2mat(VIDEO_FRAME_INFO_S &frame, cv::Mat &m)
 	memcpy(src_vir, p, yuvsize);
 	HI_MPI_SYS_Munmap(p, yuvsize);
 
-	//save_nv1("saved/src.yuv", &src, src_vir);
+	save_nv1("saved/src.yuv", &src, src_vir);
+	exit(-1);
 
 	// 准备 ive dst 内存 ..
 	IVE_MEM_INFO_S dst;
@@ -381,193 +456,6 @@ static void vf2mat(VIDEO_FRAME_INFO_S &frame, cv::Mat &m)
 	//save_mat(m, "saved/mat.rgb");
 
 	HI_MPI_SYS_MmzFree(rgb.u32PhyAddr, rgb_vir);
-}
-
-static string process_frame(hi_detect_t *hi_det)
-{
-	timeb pre,cur;
-    ftime(&pre);
-
-	VIDEO_FRAME_INFO_S *stFrame = &hi_det->frame; // ????...
-
-	HI_S32 s32Ret;
-	IVE_SRC_INFO_S stSrc;
-	IVE_MEM_INFO_S stDst;
-	IVE_HANDLE IveHandle;
-	HI_BOOL bInstant;
-	HI_VOID *pVirtSrc;
-	HI_VOID *pVirtDst;
-
-	// *********** stFrame中的数据转存到stSrc中 ***********;
-	stSrc.u32Width = stFrame->stVFrame.u32Width;
-	stSrc.u32Height = stFrame->stVFrame.u32Height;
-	stSrc.enSrcFmt = IVE_SRC_FMT_SP420;
-	//stSrc.stSrcMem.u32PhyAddr = stFrame->stVFrame.u32PhyAddr[0];//????;
-	stSrc.stSrcMem.u32Stride = stFrame->stVFrame.u32Stride[0];
-	bInstant = HI_TRUE;
-	s32Ret = HI_MPI_SYS_MmzAlloc_Cached(&stSrc.stSrcMem.u32PhyAddr, &pVirtSrc,
-		     "User", HI_NULL, (3 * stSrc.u32Height / 2.0) * stSrc.stSrcMem.u32Stride);
-	if(s32Ret != HI_SUCCESS)
-	{
-		printf("can't alloc intergal memory for %x\n",s32Ret);
-	    return HI_NULL;
-	}
-	
-	uchar * p = (uchar *)HI_MPI_SYS_Mmap(stFrame->stVFrame.u32PhyAddr[0], 
-		         stFrame->stVFrame.u32Stride[0] * (3 * stFrame->stVFrame.u32Height / 2.0));
-
-	memcpy((uchar *)pVirtSrc, p, stSrc.stSrcMem.u32Stride * (3 * stSrc.u32Height / 2.0));
-
-	// *********** 图像滤波 ***********;
-	s32Ret = HI_MPI_SYS_MmzAlloc_Cached(&stDst.u32PhyAddr, &pVirtDst, 
-			 "User", HI_NULL, (3 * stSrc.u32Height / 2) * stSrc.stSrcMem.u32Stride);
-	if(s32Ret != HI_SUCCESS)
-	{
-		printf("can't alloc intergal memory for %x\n", s32Ret);
-		return HI_NULL;
-	}			
-	stDst.u32Stride = stFrame->stVFrame.u32Stride[0];
-
-	IVE_FILTER_CTRL_S pstFilterCtrl;
-	pstFilterCtrl.u8Norm = 3;
-	pstFilterCtrl.as8Mask[0] = 1;
-	pstFilterCtrl.as8Mask[1] = 1;
-	pstFilterCtrl.as8Mask[2] = 1;
-	pstFilterCtrl.as8Mask[3] = 1;
-	pstFilterCtrl.as8Mask[4] = 0;
-	pstFilterCtrl.as8Mask[5] = 1;
-	pstFilterCtrl.as8Mask[6] = 1;
-	pstFilterCtrl.as8Mask[7] = 1;
-	pstFilterCtrl.as8Mask[8] = 1;
-	s32Ret = HI_MPI_IVE_FILTER(&IveHandle, &stSrc, &stDst, &pstFilterCtrl, bInstant);
-	if(s32Ret != HI_SUCCESS)
-	{
-		printf(" ive filter function can't submmit for %x\n", s32Ret);
-		return HI_NULL;
-	}
-	else
-	{
-		printf("sucess filter\n");
-		//save_nv1(&stSrc, pVirtDst);
-	}
-
-	// *********** YUV转到RGB空间 ***********;
-	// stSrc_rgb指向滤波后数据 ...
-	IVE_SRC_INFO_S stSrc_rgb;
-	memcpy(&stSrc_rgb, &stSrc, sizeof(IVE_SRC_INFO_S));
-	stSrc_rgb.stSrcMem.u32PhyAddr = stDst.u32PhyAddr;
-
-	IVE_MEM_INFO_S stDst_rgb;
-	HI_VOID *pVirtDst_rgb;
-
-	s32Ret = HI_MPI_SYS_MmzAlloc_Cached(&stDst_rgb.u32PhyAddr, &pVirtDst_rgb,
-			"User", HI_NULL, stSrc.u32Height * stSrc.stSrcMem.u32Stride * 3);
-	stDst_rgb.u32Stride = stSrc.stSrcMem.u32Stride;
-    if(s32Ret != HI_SUCCESS)
-	{
-		printf("can't alloc intergal memory for %x\n", s32Ret);
-		HI_MPI_SYS_MmzFree(stDst.u32PhyAddr, pVirtDst);
-	    return HI_NULL;
-	}
-
-	IVE_CSC_CTRL_S pstCscCtrl;
-	pstCscCtrl.enOutFmt = IVE_CSC_OUT_FMT_PACKAGE;
-	pstCscCtrl.enCscMode = IVE_CSC_MODE_VIDEO_BT601_AND_BT656;
-
-	s32Ret = HI_MPI_IVE_CSC(&IveHandle, &stSrc_rgb, &stDst_rgb, &pstCscCtrl, bInstant);
-	if(s32Ret != HI_SUCCESS)
-	{
-		printf(" ive CSC function can't submmit for %x\n", s32Ret);
-		return HI_NULL;
-	}
-	else
-	{
-		printf("sucess csc\n");
-	}
-
-	// *********** 创建RGB目标矩阵 ***********;
-	cv::Mat image;
-	image.create(stSrc.u32Height, stSrc.u32Width, CV_8UC3);
-	int buflen = stSrc.u32Height * stSrc.u32Width * 3;
-	memcpy(image.data, (uchar *)pVirtDst_rgb, buflen);
-
-	// *********** 目标探测算法 ***********;
-	//const char* s;
-	//s = det_detect(hi_det->det, image);    ftime(&cur);
-    double time = double((cur.time - pre.time) * 1000 + (cur.millitm - pre.millitm));
-	printf("&&&&&&&&&&detect time: %f\n", time);
-	
-	HI_MPI_SYS_MmzFree(stDst_rgb.u32PhyAddr, pVirtDst_rgb);
-    HI_MPI_SYS_MmzFree(stSrc.stSrcMem.u32PhyAddr, pVirtSrc);
-	//HI_MPI_SYS_MmzFree(stSrc_rgb.stSrcMem.u32PhyAddr, pVirtDst);
-	HI_MPI_SYS_MmzFree(stDst.u32PhyAddr, pVirtDst);	
-
-	return "";
-}
-
-
-void* thread_proc(void *pdet)
-{	
-	hi_detect_t *hi_det = (hi_detect_t*)pdet;
-
-	int rc = HI_SUCCESS;
-
-	while(!hi_det->is_quit){
-		VIDEO_FRAME_INFO_S frame;
-
-		rc = HI_MPI_VI_GetFrame(SUBCHN(hi_det->ch), &frame);
-		if(rc != HI_SUCCESS){
-			usleep(10 * 1000);
-			continue;
-		}
-
-		pthread_mutex_lock(&hi_det->mutex);
-		hi_det->frame = frame; // 结构体变量可相互赋值???????.....
-		pthread_mutex_unlock(&hi_det->mutex);
-
-		HI_MPI_VI_ReleaseFrame(hi_det->ch, &frame);
-
-		usleep(200 * 1000); // 每200ms探测一次 ...
-
-	}
-}
-
-// 初始化失败没有考虑呢 ??? ...
-static hi_detect_t* hi_det_open(const char *kvfname)
-{
-	hi_detect_t *hi_det = new hi_detect_t;
-
-	hi_init(hi_det, kvfname);
-
-	int rc = pthread_mutex_init(&hi_det->mutex, NULL);
-
-	if (rc != 0){
-		fprintf(stderr, "Mutex initialization failed!");
-	}
-
-	pthread_create(&hi_det->thread_id, 0, thread_proc, (void*)hi_det);
-
-	return hi_det;
-}
-
-static const char* hi_det_detect(hi_detect_t *hi_det)
-{
-	pthread_mutex_lock(&hi_det->mutex);
-	hi_det->str = process_frame(hi_det);
-	pthread_mutex_unlock(&hi_det->mutex);
-
-	return hi_det->str.c_str();	
-}
-
-static void hi_det_colse(hi_detect_t *hi_det)
-{
-	hi_uninit(hi_det);
-
-	pthread_join(hi_det->thread_id, 0);
-
-	pthread_mutex_destroy(&hi_det->mutex);
-
-	delete hi_det;
 }
 
 struct visrc_t
