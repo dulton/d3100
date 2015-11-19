@@ -84,9 +84,9 @@ static IVE_SRC_INFO_S get_src_info_s(const hiMat &src, IVE_SRC_FMT_E fmt)
 namespace hi
 {
 	// 建议所有函数都放到 hi 名字空间中 ...
-HI_S32 dilate(const hiMat &src, hiMat &dst)
+void dilate(const hiMat &src, hiMat &dst)
 {
-	HI_S32 s32Ret;
+	int s32Ret;
 
 	dst.create(src.cols, src.rows, CV_8UC1); // hiMat 负责处理失败情况 ...
 
@@ -114,7 +114,7 @@ HI_S32 dilate(const hiMat &src, hiMat &dst)
 		exit(-1);
 	}
 
-	return s32Ret;
 }
+
 } // namespace hi
 
