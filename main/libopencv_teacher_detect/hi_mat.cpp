@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include "hi_mat.h"
 #include "hi_comm_ive.h"
 #include "mpi_ive.h"
@@ -58,37 +59,36 @@ void *hiMat::get_vir_addr() const
 	return vir_addr_;
 }
 
-static HI_SRC_INFO_S get_src_info_s(const hiMat &src)
+static IVE_MEM_INFO_S get_mem_info_s(const hiMat &src)
 {
-	HI_MEM_INFO_S mem_info;
-	mem_info.u32PhyAddr = src.get_phy_addr_p();
-	mem_info.u32Stride = src.get_stride();
+	IVE_MEM_INFO_S mem_info;
 
-	HI_SRC_INFO_S src_info;
-	src_info.stSrcMem = mem_info;
-	src_info.u32Height = src.rows;
-	src_info.u32Width = src.cols;
-
-	//src_info.enSrcFmt =    ?????;
-
-	return src_info;
-}
-
-static HI_MEM_INFO_S get_mem_info_s(const hiMat &src)
-{
-	HI_MEM_INFO_S mem_info;
-
-	mem_info.u32PhyAddr = src.get_phy_addr_p();
+	mem_info.u32PhyAddr = src.get_phy_addr();
 	mem_info.u32Stride = src.get_stride();
 
 	return mem_info;
 }
 
-HI_S32 hiMat::hi_dilate(const hiMat &src, hiMat &dst)
+static IVE_SRC_INFO_S get_src_info_s(const hiMat &src, IVE_SRC_FMT_E fmt)
+{
+	IVE_SRC_INFO_S src_info;
+	src_info.stSrcMem = get_mem_info_s(src);
+	src_info.u32Height = src.rows;
+	src_info.u32Width = src.cols;
+	src_info.enSrcFmt = fmt;
+
+	return src_info;
+}
+
+///////////////////// 以下为对 hiMat 的操作 ////////////////////////
+namespace hi
+{
+	// 建议所有函数都放到 hi 名字空间中 ...
+HI_S32 dilate(const hiMat &src, hiMat &dst)
 {
 	HI_S32 s32Ret;
 
-	dst.creat(src.cols, src.rows, CV_8UC1); // hiMat 负责处理失败情况 ...
+	dst.create(src.cols, src.rows, CV_8UC1); // hiMat 负责处理失败情况 ...
 
 	IVE_DILATE_CTRL_S pstDilateCtrl;
 	pstDilateCtrl.au8Mask[0] = 255;
@@ -104,8 +104,8 @@ HI_S32 hiMat::hi_dilate(const hiMat &src, hiMat &dst)
 	HI_BOOL bInstant = HI_TRUE;
 	IVE_HANDLE IveHandle;
 
-	HI_SRC_INFO_S src_info = get_src_info_s(src);
-	HI_MEM_INFO_S dst_mem_info = get_mem_info_s(dst);
+	IVE_SRC_INFO_S src_info = get_src_info_s(src, IVE_SRC_FMT_SP420);
+	IVE_MEM_INFO_S dst_mem_info = get_mem_info_s(dst);
 
 	s32Ret = HI_MPI_IVE_DILATE(&IveHandle, &src_info, &dst_mem_info, &pstDilateCtrl, bInstant);
 	if(s32Ret != HI_SUCCESS)
@@ -116,3 +116,5 @@ HI_S32 hiMat::hi_dilate(const hiMat &src, hiMat &dst)
 
 	return s32Ret;
 }
+} // namespace hi
+
