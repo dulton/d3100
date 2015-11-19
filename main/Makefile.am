@@ -55,14 +55,7 @@ libopencv_detect_a_SOURCES= libopencv_teacher_detect/blackboard_detect.cpp \
 							libopencv_teacher_detect/KVConfig.cpp \
 							libopencv_teacher_detect/detect_opencv.cpp \
 							libopencv_teacher_detect/vi_src.cpp \
-							libopencv_teacher_detect/common/loadbmp.c \
-							libopencv_teacher_detect/common/sample_comm_audio.c \
-							libopencv_teacher_detect/common/sample_comm_sys.c \
-							libopencv_teacher_detect/common/sample_comm_vda.c \
-							libopencv_teacher_detect/common/sample_comm_vdec.c \
-							libopencv_teacher_detect/common/sample_comm_venc.c \
-							libopencv_teacher_detect/common/sample_comm_vi.c \
-							libopencv_teacher_detect/common/sample_comm_vpss.c 
+							libopencv_teacher_detect/common/loadbmp.c 
 
 libopencv_detect_a_CFLAGS= $(libopencv_detect_a_CXXFLAGS)
 
