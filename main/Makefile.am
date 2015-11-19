@@ -55,6 +55,7 @@ libopencv_detect_a_SOURCES= libopencv_teacher_detect/blackboard_detect.cpp \
 							libopencv_teacher_detect/KVConfig.cpp \
 							libopencv_teacher_detect/detect_opencv.cpp \
 							libopencv_teacher_detect/vi_src.cpp \
+							libopencv_teacher_detect/hi_mat.cpp \
 							libopencv_teacher_detect/common/loadbmp.c 
 
 libopencv_detect_a_CFLAGS= $(libopencv_detect_a_CXXFLAGS)

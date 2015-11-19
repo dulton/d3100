@@ -28,9 +28,8 @@ class hiMat
 	int rows;
 	int cols;
 
-	int get_strie() const;
-	unsigned int get_phy_addr_p() const;
-	void *get_vir_addr_p() const;
+	unsigned int get_phy_addr() const;
+	void *get_vir_addr() const;
 	int get_stride() const;
 };
 
