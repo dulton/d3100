@@ -7,8 +7,8 @@ class hiMat
 	int width_;
 	int height_;
 	int stride_;
-	int phy_addr_;
-	int vir_addr_;
+	unsigned int phy_addr_;
+	void *vir_addr_;
 	public:
 		hiMat();
 		// 开辟 mmz缓冲，初始化.
@@ -27,5 +27,4 @@ class hiMat
 		unsigned int* get_phy_addr_p() const;
 		void* get_vir_addr_p() const;
 		int get_stride() const;
-		void get_ive_src(IVE_SRC_INFO_S& info);
 }
