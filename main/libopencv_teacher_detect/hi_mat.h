@@ -1,5 +1,4 @@
 #pragma once
-#include "hi_comm_ive.h"
 #include <opencv2/opencv.hpp>
 
 class hiMat
