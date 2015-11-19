@@ -88,13 +88,7 @@ HI_S32 hiMat::hi_dilate(const hiMat &src, hiMat &dst)
 {
 	HI_S32 s32Ret;
 
-	s32Ret = dst.creat(src.cols, src.rows, CV_8UC1); // ??????;
-	if (s32Ret != HI_SUCCESS) 
-	{
-		fprintf(stderr, "FATAL: HI_MPI_SYS_MmzAlloc_Cached err %s:%s\n", __FILE__, __LINE__);
-		exit(-1);
-	}
-	dst.stride_ = src.get_stride(); 
+	dst.creat(src.cols, src.rows, CV_8UC1); // hiMat 负责处理失败情况 ...
 
 	IVE_DILATE_CTRL_S pstDilateCtrl;
 	pstDilateCtrl.au8Mask[0] = 255;
@@ -119,5 +113,6 @@ HI_S32 hiMat::hi_dilate(const hiMat &src, hiMat &dst)
 		fprintf(stderr, "FATAL: HI_MPI_IVE_DILATE err %s:%s\n", __FILE__, __LINE__);
 		exit(-1);
 	}
+
 	return s32Ret;
 }
