@@ -15,10 +15,13 @@ class hiMat
 	// 开辟 mmz缓冲，初始化.
 	hiMat(const cv::Mat & m);
 	~hiMat();
+
 	// 把数据赋于 m.
 	void download(cv::Mat & m);
+
 	// 为对象 开辟空间.
 	void create(int width, int height, int type);
+
 	hiMat & operator =(const hiMat & src);
 	hiMat & operator =(const cv::Mat & m);
 
