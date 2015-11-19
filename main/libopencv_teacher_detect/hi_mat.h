@@ -2,15 +2,16 @@
 #include "hi_comm_ive.h"
 #include <opencv2/opencv.hpp>
 
-class hiMat {
+class hiMat 
+{
 	int width_;
 	int height_;
 	int stride_;
 	unsigned int phy_addr_;
 	void *vir_addr_;
 
-	bool using_ref_; // 是否使用引用计数 ..
-	size_t ref_;	// 引用计数 ..
+	bool using_ref_;	// 是否使用引用计数 ..
+	size_t ref_;		// 引用计数 ..
 
  public:
 	 hiMat();
@@ -30,4 +31,5 @@ class hiMat {
 	unsigned int *get_phy_addr_p() const;
 	void *get_vir_addr_p() const;
 	int get_stride() const;
-}
+};
+
