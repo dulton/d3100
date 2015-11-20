@@ -33,3 +33,21 @@ class hiMat
 	int get_stride() const;
 };
 
+namespace hi
+{
+	void dilate(const hiMat &src, hiMat &dst);
+
+	void erode(const hiMat &src, hiMat &dst);
+
+	void filter(const hiMat &src, hiMat &dst);
+
+	void threshold(const hiMat &src, hiMat &dst, unsigned int threshold, 
+		           unsigned int max_value, IVE_THRESH_OUT_FMT_E type);
+
+	void absdiff(const hiMat &src1, const hiMat &src2, hiMat &dst);
+
+	void xor(const hiMat &src1, const hiMat &src2, hiMat &dst);
+
+	void yuv2rgb(const hiMat &src, hiMat &dst);
+}
+
