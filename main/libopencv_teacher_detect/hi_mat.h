@@ -8,7 +8,7 @@ class hiMat
 	void *vir_addr_;
 
 	bool using_ref_;	// 是否使用引用计数 ..
-	size_t ref_;		// 引用计数 ..
+	size_t *ref_;		// 引用计数 ..
 
  public:
 	hiMat();
