@@ -219,7 +219,7 @@ void dilate(const hiMat &src, hiMat &dst)
 	HI_BOOL bInstant = HI_TRUE;
 	IVE_HANDLE IveHandle;
 
-	IVE_SRC_INFO_S src_info = get_src_info_s(src, IVE_SRC_FMT_SP420);
+	IVE_SRC_INFO_S src_info = get_src_info_s(src, IVE_SRC_FMT_SINGLE);
 	IVE_MEM_INFO_S dst_mem_info = get_mem_info_s(dst);
 
 	s32Ret = HI_MPI_IVE_DILATE(&IveHandle, &src_info, &dst_mem_info, &pstDilateCtrl, bInstant);
@@ -230,6 +230,174 @@ void dilate(const hiMat &src, hiMat &dst)
 	}
 
 }
+
+void erode(const hiMat &src, hiMat &dst)
+{
+	int s32Ret;
+
+	dst.create(src.cols, src.rows, CV_8UC1); // hiMat 负责处理失败情况 ...
+
+	IVE_ERODE_CTRL_S pstErodeCtrl;
+	pstErodeCtrl.au8Mask[0] = 255;
+	pstErodeCtrl.au8Mask[1] = 255;
+	pstErodeCtrl.au8Mask[2] = 255;
+	pstErodeCtrl.au8Mask[3] = 255;
+	pstErodeCtrl.au8Mask[4] = 255;
+	pstErodeCtrl.au8Mask[5] = 255;
+	pstErodeCtrl.au8Mask[6] = 255;
+	pstErodeCtrl.au8Mask[7] = 255;
+	pstErodeCtrl.au8Mask[8] = 255;
+
+	HI_BOOL bInstant = HI_TRUE;
+	IVE_HANDLE IveHandle;
+
+	IVE_SRC_INFO_S src_info = get_src_info_s(src, IVE_SRC_FMT_SINGLE);
+	IVE_MEM_INFO_S dst_mem_info = get_mem_info_s(dst);
+
+	s32Ret = HI_MPI_IVE_ERODE(&IveHandle, &src_info, &dst_mem_info, &pstErodeCtrl, bInstant);
+	if(s32Ret != HI_SUCCESS)
+	{
+		fprintf(stderr, "FATAL: HI_MPI_IVE_DILATE err %s:%s\n", __FILE__, __LINE__);
+		exit(-1);
+	}
+
+}
+
+void filter(const hiMat &src, hiMat &dst)
+{
+	int s32Ret;
+
+	dst.create(src.cols, src.rows, CV_8UC1); // hiMat 负责处理失败情况 ...
+
+	IVE_FILTER_CTRL_S pstFilterCtrl;
+	pstFilterCtrl.u8Norm = 3;
+	pstFilterCtrl.as8Mask[0] = 1;
+	pstFilterCtrl.as8Mask[1] = 1;
+	pstFilterCtrl.as8Mask[2] = 1;
+	pstFilterCtrl.as8Mask[3] = 1;
+	pstFilterCtrl.as8Mask[4] = 0;
+	pstFilterCtrl.as8Mask[5] = 1;
+	pstFilterCtrl.as8Mask[6] = 1;
+	pstFilterCtrl.as8Mask[7] = 1;
+	pstFilterCtrl.as8Mask[8] = 1;
+
+	HI_BOOL bInstant = HI_TRUE;
+	IVE_HANDLE IveHandle;
+
+	IVE_SRC_INFO_S src_info = get_src_info_s(src, IVE_SRC_FMT_SINGLE);
+	IVE_MEM_INFO_S dst_mem_info = get_mem_info_s(dst);
+
+	s32Ret = HI_MPI_IVE_FILTER(&IveHandle, &src_info, &dst_mem_info, &pstFilterCtrl, bInstant);
+	if(s32Ret != HI_SUCCESS)
+	{
+		fprintf(stderr, "FATAL: HI_MPI_IVE_DILATE err %s:%s\n", __FILE__, __LINE__);
+		exit(-1);
+	}
+
+}
+
+// 这个阈值时不定值 ....???????...
+void threshold(const hiMat &src, hiMat &dst, unsigned int threshold, unsigned int max_value)
+{
+	int s32Ret;
+
+	dst.create(src.cols, src.rows, CV_8UC1); // hiMat 负责处理失败情况 ...
+
+	IVE_THRESH_CTRL_S pstThreshCtrl;
+	pstThreshCtrl.enOutFmt = IVE_THRESH_OUT_FMT_BINARY; // IVE_THRESH_OUT_FMT_BINARY;
+	pstThreshCtrl.u32MaxVal = max_value; // 255;
+	pstThreshCtrl.u32MinVal = 0;
+	pstThreshCtrl.u32Thresh = threshold; // 55/22;
+
+	HI_BOOL bInstant = HI_TRUE;
+	IVE_HANDLE IveHandle;
+
+	IVE_SRC_INFO_S src_info = get_src_info_s(src, IVE_SRC_FMT_SINGLE);
+	IVE_MEM_INFO_S dst_mem_info = get_mem_info_s(dst);
+
+	s32Ret = HI_MPI_IVE_THRESH(&IveHandle, &src_info, &dst_mem_info, &pstThreshCtrl, bInstant);
+	if(s32Ret != HI_SUCCESS)
+	{
+		fprintf(stderr, "FATAL: HI_MPI_IVE_DILATE err %s:%s\n", __FILE__, __LINE__);
+		exit(-1);
+	}
+
+}
+
+void sub(const hiMat &src1, const hiMat &src2, hiMat &dst)
+{
+	int s32Ret;
+
+	dst.create(src1.cols, src1.rows, CV_8UC1); // hiMat 负责处理失败情况 ...
+
+	IVE_SUB_OUT_FMT_E enOutFmt;
+	enOutFmt = IVE_SUB_OUT_FMT_ABS;
+
+	HI_BOOL bInstant = HI_TRUE;
+	IVE_HANDLE IveHandle;
+
+	IVE_SRC_INFO_S src_info1 = get_src_info_s(src1, IVE_SRC_FMT_SINGLE);
+	IVE_SRC_INFO_S src_info2 = get_src_info_s(src2, IVE_SRC_FMT_SINGLE);
+
+	IVE_MEM_INFO_S dst_mem_info = get_mem_info_s(dst);
+
+	s32Ret = HI_MPI_IVE_SUB(&IveHandle, &src_info1, &src_info2, &dst_mem_info, enOutFmt, bInstant);
+	if(s32Ret != HI_SUCCESS)
+	{
+		fprintf(stderr, "FATAL: HI_MPI_IVE_DILATE err %s:%s\n", __FILE__, __LINE__);
+		exit(-1);
+	}
+
+}
+
+void or(const hiMat &src1, const hiMat &src2, hiMat &dst)
+{
+	int s32Ret;
+
+	dst.create(src1.cols, src1.rows, CV_8UC1); // hiMat 负责处理失败情况 ...
+
+	HI_BOOL bInstant = HI_TRUE;
+	IVE_HANDLE IveHandle;
+
+	IVE_SRC_INFO_S src_info1 = get_src_info_s(src1, IVE_SRC_FMT_SINGLE);
+	IVE_SRC_INFO_S src_info2 = get_src_info_s(src2, IVE_SRC_FMT_SINGLE);
+
+	IVE_MEM_INFO_S dst_mem_info = get_mem_info_s(dst);
+
+	s32Ret = HI_MPI_IVE_OR(&IveHandle, &src_info1, &src_info2, &dst_mem_info, bInstant);
+	if(s32Ret != HI_SUCCESS)
+	{
+		fprintf(stderr, "FATAL: HI_MPI_IVE_DILATE err %s:%s\n", __FILE__, __LINE__);
+		exit(-1);
+	}
+
+}
+
+void yuv2rgb(const hiMat &src, hiMat &dst)
+{
+	int s32Ret;
+
+	dst.create(src.cols, src.rows, CV_8UC3); // hiMat 负责处理失败情况 ...
+
+	IVE_CSC_CTRL_S pstCscCtrl;
+	pstCscCtrl.enOutFmt = IVE_CSC_OUT_FMT_PACKAGE;
+	pstCscCtrl.enCscMode = IVE_CSC_MODE_VIDEO_BT601_AND_BT656;
+
+	HI_BOOL bInstant = HI_TRUE;
+	IVE_HANDLE IveHandle;
+
+	IVE_SRC_INFO_S src_info = get_src_info_s(src, IVE_SRC_FMT_SP420);
+	IVE_MEM_INFO_S dst_mem_info = get_mem_info_s(dst);
+
+	s32Ret = HI_MPI_IVE_THRESH(&IveHandle, &src_info, &dst_mem_info, &pstCscCtrl, bInstant);
+	if(s32Ret != HI_SUCCESS)
+	{
+		fprintf(stderr, "FATAL: HI_MPI_IVE_DILATE err %s:%s\n", __FILE__, __LINE__);
+		exit(-1);
+	}
+
+}
+
 } // namespace hi
 
 #endif // DEBUG_HIMAT

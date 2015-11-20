@@ -1287,67 +1287,19 @@ void TeacherDetecting::luv_method(const Mat & img,
 	Mat luv_m, luv_m_temp, fgimg;	//背景减除;
 	luv_m.create(Size(img.cols, img.rows), CV_8UC1);
 	luv_m.setTo(0);
-	Mat bg_t;
-
+	
 	//Mat img_t; 
 	//cvtColor(img, img_t, CV_BGR2YUV);
-	cvtColor(fillbg_struct.bg, bg_t, CV_BGR2YUV);
 	//std::vector<Mat> img_t_vec;
 	//split(img_t,img_t_vec);
+
+	Mat bg_t;
+	cvtColor(fillbg_struct.bg, bg_t, CV_BGR2YUV);
+
 	std::vector < Mat > bg_t_vec;
 	split(bg_t, bg_t_vec);
+
 	hi_luv_method(img_t_vec, bg_t_vec, luv_m);
-
-	//***********************************
-	//std::vector<Mat> img_t_vec;
-	//split(img_t,img_t_vec);
-	//Mat img0 = img_t_vec[0];Mat img1 = img_t_vec[1];Mat img2 = img_t_vec[2];
-	//std::vector<Mat>bg_t_vec;
-	//split(bg_t,bg_t_vec);
-	//Mat bg0 = bg_t_vec[0];Mat bg1 = bg_t_vec[1];Mat bg2 = bg_t_vec[2];
-	//Mat yuv0,yuv1,yuv2;
-	//cv::absdiff(img0,bg0,yuv0);
-	//cv::absdiff(img1,bg1,yuv1);
-	//cv::absdiff(img2,bg2,yuv2);
-	//Mat luv0,luv1,luv2;
-	//cv::threshold(yuv0,luv0,up_update.Y_value,255,CV_THRESH_BINARY);
-	//cv::threshold(yuv1,luv1,up_update.upbody_u_max,255,CV_THRESH_BINARY);
-	//cv::threshold(yuv2,luv2,up_update.upbody_v_max,255,CV_THRESH_BINARY);
-	//bitwise_or(luv0,luv1,luv_m);
-	//bitwise_or(luv2,luv_temp,luv_m);
-
-	//*******************************************
-	/*for (int i = 0; i < img.cols; i++) 
-	   {
-	   for (int j = 0; j < img.rows; j++) 
-	   {
-	   Vec3b bgr1 = img_t.at < Vec3b > (j, i);
-	   Vec3b bgr2 = bg_t.at < Vec3b > (j, i);
-	   double L =
-	   (abs) (bgr1.val[0] - bgr2.val[0]);
-	   double U =
-	   (abs) (bgr1.val[1] - bgr2.val[1]);
-	   double V =
-	   (abs) ((bgr1.val[2] - bgr2.val[2]));
-	   if ((U >= luv_u_max || V >= luv_v_max)&&(L >= luv_L))
-	   {
-	   luv_m.at < char >(j, i) = 255; luv_m_temp.at < Vec3b >(j, i) = Vec3b(0,0,0);
-	   }
-	   else if ((U >= luv_u_max || V >= luv_v_max)&&(L < luv_L))
-	   {
-	   luv_m.at < char >(j, i) = 255; luv_m_temp.at < Vec3b >(j, i) = Vec3b(0,0,255);
-	   }
-	   else if ((U < luv_u_max && V < luv_v_max)&&(L > luv_L))
-	   {
-	   luv_m.at < char >(j, i) = 255; luv_m_temp.at < Vec3b >(j, i) = Vec3b(255,0,0);
-	   }
-	   else
-	   {
-	   luv_m.at < char >(j, i) = 0;
-	   }
-
-	   }
-	   } */
 
 	fillbg_struct.rect_old =
 	    refineSegments2(img, luv_m, fgimg,
