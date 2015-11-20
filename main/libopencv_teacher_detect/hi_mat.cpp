@@ -159,7 +159,12 @@ void hiMat::addref()
 
 void hiMat::create(int rows, int cols, hiMat::Type type)
 {
-	release();
+	if (outer_) {
+		HI_MPI_SYS_Munmap(vir_addr_, rows * stride_);
+	}
+	else {
+		release();
+	}
 
 	this->rows = rows;
 	this->cols = cols;
@@ -190,7 +195,12 @@ hiMat &hiMat::operator = (const hiMat &m)
 	}
 
 	// release old
-	release();
+	if (outer_) {
+		HI_MPI_SYS_Munmap(vir_addr_, rows * stride_);
+	}
+	else {
+		release();
+	}
 
 	// cp
 	phy_addr_ = m.phy_addr_;
