@@ -368,7 +368,7 @@ void bit_or(const hiMat &src1, const hiMat &src2, hiMat &dst)
 {
 	int s32Ret;
 
-	dst.create(src1.cols, src1.rows, src.cols); // hiMat 负责处理失败情况 ...
+	dst.create(src1.cols, src1.rows, src1.cols); // hiMat 负责处理失败情况 ...
 
 	HI_BOOL bInstant = HI_TRUE;
 	IVE_HANDLE IveHandle;
