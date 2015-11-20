@@ -61,7 +61,7 @@ namespace hi
 
 	void absdiff(const hiMat &src1, const hiMat &src2, hiMat &dst);
 
-	void xor(const hiMat &src1, const hiMat &src2, hiMat &dst);
+	void bit_or(const hiMat &src1, const hiMat &src2, hiMat &dst);
 
 	void yuv2rgb(const hiMat &src, hiMat &dst);
 }
