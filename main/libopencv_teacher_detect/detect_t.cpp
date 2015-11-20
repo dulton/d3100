@@ -194,7 +194,7 @@ HI_S32 TeacherDetecting::hi_dilate(Mat src, Mat & dst)
 }
 
 //这里假定处理的图像都是单通道的;
-HI_S32 TeacherDetecting::hi_blur(Mat src, Mat & dst)
+/*HI_S32 TeacherDetecting::hi_blur(Mat src, Mat & dst)
 {
 	HI_S32 s32Ret = HI_SUCCESS;
 	IVE_HANDLE IveHandle;
@@ -285,7 +285,7 @@ HI_S32 TeacherDetecting::hi_blur(Mat src, Mat & dst)
 	HI_MPI_SYS_MmzFree(stSrc.stSrcMem.u32PhyAddr, pVirtSrc);
 	HI_MPI_SYS_MmzFree(stDst.u32PhyAddr, pVirtDst);
 	return s32Ret;
-}
+}*/
 
 //这里假定处理的图像都是单通道的;
 HI_S32 TeacherDetecting::hi_two_frame_method(Mat src, Mat & dst)
@@ -551,15 +551,6 @@ std::vector < Rect > TeacherDetecting::refineSegments2(Mat img, Mat & mask,
 	ftime(&cur);
 	double time =
 	    (double)(cur.time - pre.time) * 1000 + (cur.millitm - pre.millitm);
-	//printf("refineSeg time:%f\n",time);
-	//如果行或列是奇数要加一变成偶数处理，因为cvPyrUp和cvPyrDown只支持偶数;
-	//IplImage* pyr=cvCreateImage(cvSize((mask.cols&-2)/2,(mask.rows&-2)/2),IPL_DEPTH_8U,1);
-	////IplImage* pyr=cvCreateImage(cvSize(mask.cols/2,mask.rows/2),IPL_DEPTH_8U,1);
-	//cvPyrDown(&(IplImage)mask,pyr,CV_GAUSSIAN_5x5);
-	//cvDilate(pyr,pyr,0,1);
-	//cvPyrUp(pyr,&(IplImage)mask,CV_GAUSSIAN_5x5);
-	//cvReleaseImage(&pyr);
-
 	//找出画出超过一定面积的连通区域;
 	timeb pre1, cur1;
 	ftime(&pre1);
@@ -608,7 +599,7 @@ std::vector < Rect > TeacherDetecting::refineSegments2(Mat img, Mat & mask,
 
 }
 
-std::vector < Rect > TeacherDetecting::upbody_refineSegments2(Mat img,
+/*std::vector < Rect > TeacherDetecting::upbody_refineSegments2(Mat img,
 							      Mat & mask,
 							      Mat & dst,
 							      double interval,
@@ -651,7 +642,7 @@ std::vector < Rect > TeacherDetecting::upbody_refineSegments2(Mat img,
 	}
 	return right_rect;
 
-}
+}*/
 
 void TeacherDetecting::fillbg_LUV(Mat img)
 {
@@ -807,84 +798,84 @@ void TeacherDetecting::is_need_fillbg_twice(Mat img)
 //
 //}
 
-//YUV算法获取矩形框序列;
-void TeacherDetecting::upbody_luv_method(const Mat & img)
-{
-	Mat luv_m, luv_m_temp, fgimg;	//背景减除;
-	luv_m.create(Size(img.cols, img.rows), CV_8UC1);
-	luv_m.setTo(0);
-	luv_m_temp = img.clone();
-	luv_m_temp.setTo(Scalar::all(255));
-	Mat img_t;
-	Mat bg_t;
-	/*cvtColor(img, img_t, CV_BGR2Luv);
-	   cvtColor(fillbg_struct.bg, bg_t, CV_BGR2Luv); */
-	cvtColor(img, img_t, CV_BGR2YUV);
-	cvtColor(fillbg_struct.bg, bg_t, CV_BGR2YUV);
-
-	std::vector < Mat > img_t_vec;
-	split(img_t, img_t_vec);
-	Mat img0 = img_t_vec[0];
-	Mat img1 = img_t_vec[1];
-	Mat img2 = img_t_vec[2];
-	std::vector < Mat > bg_t_vec;
-	split(bg_t, bg_t_vec);
-	Mat bg0 = bg_t_vec[0];
-	Mat bg1 = bg_t_vec[1];
-	Mat bg2 = bg_t_vec[2];
-	Mat yuv0, yuv1, yuv2;
-	cv::absdiff(img0, bg0, yuv0);
-	cv::absdiff(img1, bg1, yuv1);
-	cv::absdiff(img2, bg2, yuv2);
-	Mat luv0, luv1, luv2;
-	cv::threshold(yuv0, luv0, up_update.Y_value, 255, CV_THRESH_BINARY);
-	cv::threshold(yuv1, luv1, up_update.upbody_u_max, 255,
-		      CV_THRESH_BINARY);
-	cv::threshold(yuv2, luv2, up_update.upbody_v_max, 255,
-		      CV_THRESH_BINARY);
-	Mat luv_temp;
-	bitwise_or(luv0, luv1, luv_temp);
-	bitwise_or(luv2, luv_temp, luv_temp);
-	//img_t = img;
-	//bg_t = fillbg_struct.bg;
-	/*for (int i = 0; i < img.cols; i++) 
-	   {
-	   for (int j = 0; j < img.rows; j++) 
-	   {
-	   Vec3b bgr1 = img_t.at < Vec3b > (j, i);
-	   Vec3b bgr2 = bg_t.at < Vec3b > (j, i);
-	   double L =
-	   (abs) (bgr1.val[0] - bgr2.val[0]);
-	   double U =
-	   (abs) (bgr1.val[1] - bgr2.val[1]);
-	   double V =
-	   (abs) ((bgr1.val[2] - bgr2.val[2]));
-	   if ((U >= luv_u_max || V >= luv_v_max)&&(L >= luv_L))
-	   {
-	   luv_m.at < char >(j, i) = 255; luv_m_temp.at < Vec3b >(j, i) = Vec3b(0,0,0);
-	   }
-	   else if ((U >= luv_u_max || V >= luv_v_max)&&(L < luv_L))
-	   {
-	   luv_m.at < char >(j, i) = 255; luv_m_temp.at < Vec3b >(j, i) = Vec3b(0,0,255);
-	   }
-	   else if ((U < luv_u_max && V < luv_v_max)&&(L > luv_L))
-	   {
-	   luv_m.at < char >(j, i) = 255; luv_m_temp.at < Vec3b >(j, i) = Vec3b(255,0,0);
-	   }
-	   else
-	   {
-	   luv_m.at < char >(j, i) = 0;
-	   }
-
-	   }
-	   } */
-
-	fillbg_struct.rect_old =
-	    refineSegments2(img, luv_temp, fgimg,
-			    fillbg_struct.mog2_interval2, min_area,
-			    min_rect_area);
-
-}
+////YUV算法获取矩形框序列;
+//void TeacherDetecting::upbody_luv_method(const Mat & img)
+//{
+//	Mat luv_m, luv_m_temp, fgimg;	//背景减除;
+//	luv_m.create(Size(img.cols, img.rows), CV_8UC1);
+//	luv_m.setTo(0);
+//	luv_m_temp = img.clone();
+//	luv_m_temp.setTo(Scalar::all(255));
+//	Mat img_t;
+//	Mat bg_t;
+//	/*cvtColor(img, img_t, CV_BGR2Luv);
+//	   cvtColor(fillbg_struct.bg, bg_t, CV_BGR2Luv); */
+//	cvtColor(img, img_t, CV_BGR2YUV);
+//	cvtColor(fillbg_struct.bg, bg_t, CV_BGR2YUV);
+//
+//	std::vector < Mat > img_t_vec;
+//	split(img_t, img_t_vec);
+//	Mat img0 = img_t_vec[0];
+//	Mat img1 = img_t_vec[1];
+//	Mat img2 = img_t_vec[2];
+//	std::vector < Mat > bg_t_vec;
+//	split(bg_t, bg_t_vec);
+//	Mat bg0 = bg_t_vec[0];
+//	Mat bg1 = bg_t_vec[1];
+//	Mat bg2 = bg_t_vec[2];
+//	Mat yuv0, yuv1, yuv2;
+//	cv::absdiff(img0, bg0, yuv0);
+//	cv::absdiff(img1, bg1, yuv1);
+//	cv::absdiff(img2, bg2, yuv2);
+//	Mat luv0, luv1, luv2;
+//	cv::threshold(yuv0, luv0, up_update.Y_value, 255, CV_THRESH_BINARY);
+//	cv::threshold(yuv1, luv1, up_update.upbody_u_max, 255,
+//		      CV_THRESH_BINARY);
+//	cv::threshold(yuv2, luv2, up_update.upbody_v_max, 255,
+//		      CV_THRESH_BINARY);
+//	Mat luv_temp;
+//	bitwise_or(luv0, luv1, luv_temp);
+//	bitwise_or(luv2, luv_temp, luv_temp);
+//	//img_t = img;
+//	//bg_t = fillbg_struct.bg;
+//	/*for (int i = 0; i < img.cols; i++) 
+//	   {
+//	   for (int j = 0; j < img.rows; j++) 
+//	   {
+//	   Vec3b bgr1 = img_t.at < Vec3b > (j, i);
+//	   Vec3b bgr2 = bg_t.at < Vec3b > (j, i);
+//	   double L =
+//	   (abs) (bgr1.val[0] - bgr2.val[0]);
+//	   double U =
+//	   (abs) (bgr1.val[1] - bgr2.val[1]);
+//	   double V =
+//	   (abs) ((bgr1.val[2] - bgr2.val[2]));
+//	   if ((U >= luv_u_max || V >= luv_v_max)&&(L >= luv_L))
+//	   {
+//	   luv_m.at < char >(j, i) = 255; luv_m_temp.at < Vec3b >(j, i) = Vec3b(0,0,0);
+//	   }
+//	   else if ((U >= luv_u_max || V >= luv_v_max)&&(L < luv_L))
+//	   {
+//	   luv_m.at < char >(j, i) = 255; luv_m_temp.at < Vec3b >(j, i) = Vec3b(0,0,255);
+//	   }
+//	   else if ((U < luv_u_max && V < luv_v_max)&&(L > luv_L))
+//	   {
+//	   luv_m.at < char >(j, i) = 255; luv_m_temp.at < Vec3b >(j, i) = Vec3b(255,0,0);
+//	   }
+//	   else
+//	   {
+//	   luv_m.at < char >(j, i) = 0;
+//	   }
+//
+//	   }
+//	   } */
+//
+//	fillbg_struct.rect_old =
+//	    refineSegments2(img, luv_temp, fgimg,
+//			    fillbg_struct.mog2_interval2, min_area,
+//			    min_rect_area);
+//
+//}
 
 //YUV算法获取矩形框序列;
 void TeacherDetecting::luv_method(const Mat & img,
@@ -1473,53 +1464,53 @@ void TeacherDetecting::frame_updatebg(Mat raw_img, Mat image)
 
 }
 
-void TeacherDetecting::upbody_bgupdate(Mat upbody_img)
-{
-	if (fillbg_struct.nframe >= 2 && fillbg_struct.rect_old.size() == 1) {
-		Rect t = fillbg_struct.rect_old[0];
-		if ((t.x + masked_rect.x) > upbody_masked_rect.x
-		    && (t.x + masked_rect.x) <=
-		    upbody_masked_rect.x + upbody_masked_rect.width) {
-			Rect temp =
-			    Rect(0, 0,
-				 ((t.x + masked_rect.x) - upbody_masked_rect.x),
-				 upbody_masked_rect.height);
-			upbody_updatebg_slow(upbody_img, temp, 0.7);
-			//rectangle(upbody_img, temp, Scalar(0, 0, 255), 2);
-		}
-		if ((t.x + masked_rect.x + t.width) <
-		    upbody_masked_rect.x + upbody_masked_rect.width
-		    && (t.x + masked_rect.x + t.width) > upbody_masked_rect.x) {
-			Rect temp =
-			    Rect(masked_rect.x + t.x + t.width -
-				 upbody_masked_rect.x, 0,
-				 (upbody_masked_rect.x +
-				  upbody_masked_rect.width - (t.x +
-							      masked_rect.x +
-							      t.width)),
-				 upbody_masked_rect.height);
-			upbody_updatebg_slow(upbody_img, temp, 0.7);
-			//rectangle(upbody_img, temp, Scalar(255, 0, 255), 2);
-
-		}
-
-	}
-}
-
-void TeacherDetecting::get_upbody(Mat img_upbody)
-{
-	if (up_update.upbody_bg.empty()) {
-		up_update.frame_num++;
-		if (up_update.frame_num == 10) {
-			img_upbody.copyTo(up_update.upbody_bg);
-		}
-	}
-	if (!up_update.upbody_bg.empty()) {
-		upbody_bgupdate(img_upbody);
-		upbody_luv_method(img_upbody);
-	}
-
-}
+//void TeacherDetecting::upbody_bgupdate(Mat upbody_img)
+//{
+//	if (fillbg_struct.nframe >= 2 && fillbg_struct.rect_old.size() == 1) {
+//		Rect t = fillbg_struct.rect_old[0];
+//		if ((t.x + masked_rect.x) > upbody_masked_rect.x
+//		    && (t.x + masked_rect.x) <=
+//		    upbody_masked_rect.x + upbody_masked_rect.width) {
+//			Rect temp =
+//			    Rect(0, 0,
+//				 ((t.x + masked_rect.x) - upbody_masked_rect.x),
+//				 upbody_masked_rect.height);
+//			upbody_updatebg_slow(upbody_img, temp, 0.7);
+//			//rectangle(upbody_img, temp, Scalar(0, 0, 255), 2);
+//		}
+//		if ((t.x + masked_rect.x + t.width) <
+//		    upbody_masked_rect.x + upbody_masked_rect.width
+//		    && (t.x + masked_rect.x + t.width) > upbody_masked_rect.x) {
+//			Rect temp =
+//			    Rect(masked_rect.x + t.x + t.width -
+//				 upbody_masked_rect.x, 0,
+//				 (upbody_masked_rect.x +
+//				  upbody_masked_rect.width - (t.x +
+//							      masked_rect.x +
+//							      t.width)),
+//				 upbody_masked_rect.height);
+//			upbody_updatebg_slow(upbody_img, temp, 0.7);
+//			//rectangle(upbody_img, temp, Scalar(255, 0, 255), 2);
+//
+//		}
+//
+//	}
+//}
+//
+//void TeacherDetecting::get_upbody(Mat img_upbody)
+//{
+//	if (up_update.upbody_bg.empty()) {
+//		up_update.frame_num++;
+//		if (up_update.frame_num == 10) {
+//			img_upbody.copyTo(up_update.upbody_bg);
+//		}
+//	}
+//	if (!up_update.upbody_bg.empty()) {
+//		upbody_bgupdate(img_upbody);
+//		upbody_luv_method(img_upbody);
+//	}
+//
+//}
 
 /** raw_img
   	img: masked
@@ -1549,7 +1540,6 @@ bool TeacherDetecting::one_frame_luv(Mat raw_img, Mat img, vector < Rect > &r,
 	//原始图像帧差法;
 	Mat Y = img_vector[0];
 	frame_difference_method(img, frame_s.masked_frame_rect, Y);
-
 
 	////判定人是否走下讲台区;
 	//if(fillbg_struct.nframe >1 && !fillbg_struct.isfillok_end)
