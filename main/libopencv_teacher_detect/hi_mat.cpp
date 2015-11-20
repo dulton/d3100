@@ -306,14 +306,14 @@ void filter(const hiMat &src, hiMat &dst)
 
 // 这个阈值时不定值 ....???????...
 void threshold(const hiMat &src, hiMat &dst, unsigned int threshold, 
-	           unsigned int max_value, IVE_THRESH_OUT_FMT_E type)
+	           unsigned int max_value) // , IVE_THRESH_OUT_FMT_E type)
 {
 	int s32Ret;
 
 	dst.create(src.cols, src.rows, src.cols); // hiMat 负责处理失败情况 ...
 
 	IVE_THRESH_CTRL_S pstThreshCtrl;
-	pstThreshCtrl.enOutFmt = type; // IVE_THRESH_OUT_FMT_BINARY;
+	pstThreshCtrl.enOutFmt = IVE_THRESH_OUT_FMT_BINARY;
 	pstThreshCtrl.u32MaxVal = max_value; // 255;
 	pstThreshCtrl.u32MinVal = 0;
 	pstThreshCtrl.u32Thresh = threshold; // 55/22;

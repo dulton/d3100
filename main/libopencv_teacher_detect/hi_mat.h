@@ -57,7 +57,7 @@ namespace hi
 	void filter(const hiMat &src, hiMat &dst);
 
 	void threshold(const hiMat &src, hiMat &dst, unsigned int threshold, 
-		           unsigned int max_value, IVE_THRESH_OUT_FMT_E type);
+		           unsigned int max_value); // , IVE_THRESH_OUT_FMT_E type);
 
 	void absdiff(const hiMat &src1, const hiMat &src2, hiMat &dst);
 

@@ -37,6 +37,7 @@ test_himat_SOURCES=	libopencv_teacher_detect/test/test_himat.cpp libopencv_teach
 test_himat_CXXFLAGS= ${OPENCV_CFLAGS}
 test_himat_LDADD= ${OPENCV_LIBS}
 endif
+
 else
 
 if OPENCV
@@ -74,6 +75,9 @@ bin_PROGRAMS += test_arm_opencv_detect
 test_arm_opencv_detect_SOURCES= libopencv_teacher_detect/test/test_arm_opencv_detect.cpp
 test_arm_opencv_detect_LDADD= libopencv_detect.a ${CCGNU2_LIBS} ${OPENCV_LIBS} ${HISLIBS}
 
+test_himat_SOURCES=	libopencv_teacher_detect/test/test_himat.cpp libopencv_teacher_detect/hi_mat.cpp
+test_himat_CXXFLAGS= ${OPENCV_CFLAGS} ${libopencv_detect_a_CXXFLAGS} 
+test_himat_LDADD= ${OPENCV_LIBS} ${HISLIBS}
 
 else
 
