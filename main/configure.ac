@@ -20,6 +20,7 @@ AC_PROG_RANLIB
 
 # Checks for library functions.
 
+AH_TEMPLATE([DEBUG_HIMAT], [to debug hiMat in x86])
 AH_TEMPLATE([ZDEBUG], [to show more info ...])
 AH_TEMPLATE([ZDEBUG_LOCK], [to enable thread death lock debug])
 
@@ -37,6 +38,7 @@ if test x$debug = xtrue; then
 	CFLAGS="-O0 -g"
 	LDFLAGS="-g -O0"
 	AC_DEFINE([ZDEBUG])
+	AC_DEFINE([DEBUG_HIMAT])
 else
 	AM_CXXFLAGS="-O2"
 fi
