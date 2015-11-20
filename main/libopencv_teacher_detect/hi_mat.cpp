@@ -64,9 +64,6 @@ hiMat::hiMat()
 
 hiMat::hiMat(const cv::Mat &m)
 {
-	ref_ = new size_t;
-	(*ref_) = 0;
-
 	*this = m;	
 }
 
