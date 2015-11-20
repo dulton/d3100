@@ -93,6 +93,11 @@ void hiMat::download(cv::Mat &m)
 void hiMat::release()
 {
 	if (ref_) {
+		if (*ref_ == 0) {
+			fprintf(stderr, "FATAL: %s: %s:%d\n",
+					__func__, __FILE__, __LINE__);
+			exit(-1);
+		}
 		(*ref_)--;
 		if (*ref_ == 0) {
 			hlp_free(phy_addr_, vir_addr_);
