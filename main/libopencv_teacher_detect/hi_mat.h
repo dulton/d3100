@@ -26,6 +26,8 @@ class hiMat
 	hiMat & operator =(const hiMat & src);
 	hiMat & operator =(const cv::Mat & m);
 
+	void dump_hdr() const;
+
 	int rows;
 	int cols;
 
@@ -33,7 +35,6 @@ class hiMat
 	void *get_vir_addr() const;
 	int get_stride() const;
 
-#ifdef DEBUG_HIMAT
 	size_t ref()
 	{
 		if (ref_)
@@ -41,7 +42,6 @@ class hiMat
 		else
 			return -10000;
 	}
-#endif
 
  private:
 	void release();
