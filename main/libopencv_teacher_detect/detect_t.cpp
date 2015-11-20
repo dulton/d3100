@@ -1,5 +1,6 @@
 #include"detect_t.h"
 #include "sys/timeb.h"
+using namespace hi;
 
 Static_s::Static_s()
 {
@@ -144,349 +145,50 @@ HI_S32 TeacherDetecting::SAMPLE_IVE_INIT()
 HI_S32 TeacherDetecting::hi_luv_method(std::vector < Mat > img,
 				       std::vector < Mat > bg, Mat & dst)
 {
-	Mat img0 = img[0];
-	Mat img1 = img[1];
-	Mat img2 = img[2];
-	Mat bg0 = bg[0];
-	Mat bg1 = bg[1];
-	Mat bg2 = bg[2];
-	Mat yuv0, yuv1, yuv2;
-	Mat luv0, luv1, luv2;
-	Mat src = img0;
+	hiMat hi_dst, hi_last_dst, hi_dst_y, hi_dst_u, hi_dst_v;
 
-	save_mat(img0, "saved/img0.x");
-	save_mat(bg0, "saved/bg0.x");
+	hiMat hi_img(img[0]);
+	hiMat hi_bg(bg[0]);
+	hi::adsdiff(hi_img, hi_bg, hi_dst);
+	hi::threshold(hi_dst, hi_dst_y);
 
-	//save_mat(img1, "saved/img1.x");
-	//save_mat(bg1, "saved/bg1.x");
+	hi_img(img[1]);
+	hi_bg(bg[1]);
+	hi::adsdiff(hi_img, hi_bg, hi_dst);
+	hi::threshold(hi_dst, hi_dst_u);
 
-	HI_S32 s32Ret = HI_SUCCESS;
-	IVE_HANDLE IveHandle;
-	IVE_SRC_INFO_S stSrc_img0, stSrc_img1, stSrc_img2;
-	IVE_SRC_INFO_S stSrc_bg0, stSrc_bg1, stSrc_bg2;
-	IVE_MEM_INFO_S stDst, stDst_L, stDst_U, stDst_V;
-	HI_BOOL bInstant;
-	HI_VOID *pVirtSrc_img0, *pVirtSrc_img1, *pVirtSrc_img2;
-	HI_VOID *pVirtSrc_bg0, *pVirtSrc_bg1, *pVirtSrc_bg2;
-	HI_VOID *pVirtDst, *pVirtDst_L, *pVirtDst_U, *pVirtDst_V;
-	HI_BOOL bFinish, bBlock;
-	IVE_MEM_INFO_S stDst1;
+	hi_img(img[2]);
+	hi_bg(bg[2]);
+	hi::adsdiff(hi_img, hi_bg, hi_dst);
+	hi::threshold(hi_dst, hi_dst_v);
 
-	stSrc_img0.u32Height = stSrc_img1.u32Height = stSrc_img2.u32Height = src.rows;
-	stSrc_bg0.u32Height = stSrc_bg1.u32Height = stSrc_bg2.u32Height = src.rows;
-	stSrc_img0.u32Width = stSrc_img1.u32Width = stSrc_img2.u32Width = src.cols;
-	stSrc_bg0.u32Width = stSrc_bg1.u32Width = stSrc_bg2.u32Width = src.cols;
-	stSrc_img0.enSrcFmt = stSrc_img1.enSrcFmt = stSrc_img2.enSrcFmt = IVE_SRC_FMT_SINGLE;
-	stSrc_bg0.enSrcFmt = stSrc_bg1.enSrcFmt = stSrc_bg2.enSrcFmt = IVE_SRC_FMT_SINGLE;
-	bInstant = HI_TRUE;
+	hi::bit_or(hi_dst_y, hi_dst_u, hi_dst);
+	hi::bit_or(hi_dst, hi_dst_v, hi_last_dst);
 
-	//跨度8字节对齐;
-	int width = src.cols;
-
-	stSrc_img0.stSrcMem.u32Stride = (width + 7) / 8 * 8;
-	stSrc_img1.stSrcMem.u32Stride = stSrc_img0.stSrcMem.u32Stride;
-	stSrc_img2.stSrcMem.u32Stride = stSrc_img0.stSrcMem.u32Stride;
-	stSrc_bg0.stSrcMem.u32Stride = stSrc_img0.stSrcMem.u32Stride;
-	stSrc_bg1.stSrcMem.u32Stride = stSrc_img0.stSrcMem.u32Stride;
-	stSrc_bg2.stSrcMem.u32Stride = stSrc_img0.stSrcMem.u32Stride;
-
-	s32Ret = HI_MPI_SYS_MmzAlloc_Cached(&stSrc_img0.stSrcMem.u32PhyAddr,
-				       &pVirtSrc_img0, "User", HI_NULL,
-				       stSrc_img0.u32Height *
-				       stSrc_img0.stSrcMem.u32Stride);
-	if (s32Ret != HI_SUCCESS) {
-		fprintf(stderr, "FATAL: alloc err!\n");
-		exit(-1);
-	}
-
-	s32Ret = HI_MPI_SYS_MmzAlloc_Cached(&stSrc_img1.stSrcMem.u32PhyAddr,
-				       &pVirtSrc_img1, "User", HI_NULL,
-				       stSrc_img1.u32Height *
-				       stSrc_img1.stSrcMem.u32Stride);
-
-	s32Ret = HI_MPI_SYS_MmzAlloc_Cached(&stSrc_img2.stSrcMem.u32PhyAddr,
-				       &pVirtSrc_img2, "User", HI_NULL,
-				       stSrc_img2.u32Height *
-				       stSrc_img2.stSrcMem.u32Stride);
-
-	s32Ret = HI_MPI_SYS_MmzAlloc_Cached(&stSrc_bg0.stSrcMem.u32PhyAddr,
-				       &pVirtSrc_bg0, "User", HI_NULL,
-				       stSrc_bg0.u32Height *
-				       stSrc_bg0.stSrcMem.u32Stride);
-
-	s32Ret = HI_MPI_SYS_MmzAlloc_Cached(&stSrc_bg1.stSrcMem.u32PhyAddr,
-				       &pVirtSrc_bg1, "User", HI_NULL,
-				       stSrc_bg1.u32Height *
-				       stSrc_bg1.stSrcMem.u32Stride);
-
-	s32Ret = HI_MPI_SYS_MmzAlloc_Cached(&stSrc_bg2.stSrcMem.u32PhyAddr,
-				       &pVirtSrc_bg2, "User", HI_NULL,
-				       stSrc_bg2.u32Height *
-				       stSrc_bg2.stSrcMem.u32Stride);
-
-	uchar *p1, *p2;
-	for (int i = 0; i < img0.rows; i++) {
-		//p1 = img0.data + i * img0.cols;
-		p1 = img0.ptr<uchar>(i);
-		p2 = (uchar *) pVirtSrc_img0 +
-		    i * stSrc_img0.stSrcMem.u32Stride;
-		memcpy(p2, p1, img0.cols);
-
-		p1 = img1.data + i * img1.cols;
-		p2 = (uchar *) pVirtSrc_img1 +
-		    i * stSrc_img1.stSrcMem.u32Stride;
-		memcpy(p2, p1, img1.cols);
-
-		p1 = img2.data + i * img2.cols;
-		p2 = (uchar *) pVirtSrc_img2 +
-		    i * stSrc_img2.stSrcMem.u32Stride;
-		memcpy(p2, p1, img2.cols);
-
-		//p1 = bg0.data + i * bg0.cols;
-		p1 = bg0.ptr<uchar>(i);
-		p2 = (uchar *) pVirtSrc_bg0 + i * stSrc_bg0.stSrcMem.u32Stride;
-		memcpy(p2, p1, bg0.cols);
-
-		p1 = bg1.data + i * bg1.cols;
-		p2 = (uchar *) pVirtSrc_bg1 + i * stSrc_bg1.stSrcMem.u32Stride;
-		memcpy(p2, p1, bg1.cols);
-
-		p1 = bg2.data + i * bg2.cols;
-		p2 = (uchar *) pVirtSrc_bg2 + i * stSrc_bg2.stSrcMem.u32Stride;
-		memcpy(p2, p1, bg2.cols);
-	}
-
-	size_t cachesize = stSrc_img0.u32Height * stSrc_img0.stSrcMem.u32Stride;
-
-	s32Ret = HI_MPI_SYS_MmzAlloc_Cached(&stDst.u32PhyAddr, &pVirtDst,
-					    "User", HI_NULL,
-					    stSrc_img0.u32Height *
-					    stSrc_img0.stSrcMem.u32Stride);
-	stDst.u32Stride = stSrc_img0.stSrcMem.u32Stride;
-
-	s32Ret = HI_MPI_SYS_MmzAlloc_Cached(&stDst_L.u32PhyAddr, &pVirtDst_L,
-					    "User", HI_NULL,
-					    stSrc_img0.u32Height *
-					    stSrc_img0.stSrcMem.u32Stride);
-	stDst_L.u32Stride = stSrc_img0.stSrcMem.u32Stride;
-
-	s32Ret = HI_MPI_SYS_MmzAlloc_Cached(&stDst_U.u32PhyAddr, &pVirtDst_U,
-					    "User", HI_NULL,
-					    stSrc_img0.u32Height *
-					    stSrc_img0.stSrcMem.u32Stride);
-	stDst_U.u32Stride = stSrc_img0.stSrcMem.u32Stride;
-
-	s32Ret = HI_MPI_SYS_MmzAlloc_Cached(&stDst_V.u32PhyAddr, &pVirtDst_V,
-					    "User", HI_NULL,
-					    stSrc_img0.u32Height *
-					    stSrc_img0.stSrcMem.u32Stride);
-	stDst_V.u32Stride = stSrc_img0.stSrcMem.u32Stride;
-
-	IVE_SUB_OUT_FMT_E enOutFmt;
-	enOutFmt = IVE_SUB_OUT_FMT_ABS;
-	IVE_THRESH_CTRL_S pstThreshCtrl;
-	pstThreshCtrl.enOutFmt = IVE_THRESH_OUT_FMT_BINARY;
-	pstThreshCtrl.u32MaxVal = 255;
-	pstThreshCtrl.u32MinVal = 0;
-	pstThreshCtrl.u32Thresh = 55;
-
-	// XXX: 必须刷新cache !!!!!
-	HI_MPI_SYS_MmzFlushCache(stSrc_img0.stSrcMem.u32PhyAddr, pVirtSrc_img0, cachesize);
-	HI_MPI_SYS_MmzFlushCache(stSrc_bg0.stSrcMem.u32PhyAddr, pVirtSrc_bg0, cachesize);
-
-	save_1("saved/sub0.x", &stSrc_img0, pVirtSrc_img0);
-	save_1("saved/sub1.x", &stSrc_bg0, pVirtSrc_bg0);
-	s32Ret = HI_MPI_IVE_SUB(&IveHandle, &stSrc_img0, &stSrc_bg0, &stDst,
-			   enOutFmt, bInstant);
-	save_2("saved/sub.x", &stDst, pVirtDst, img0.cols, img0.rows);
-
-	IVE_SRC_INFO_S stThInfo;
-	memcpy(&stThInfo, &stSrc_img0, sizeof(IVE_SRC_INFO_S));
-	stThInfo.stSrcMem.u32PhyAddr = stDst.u32PhyAddr;
-	s32Ret = HI_MPI_IVE_THRESH(&IveHandle, &stThInfo, &stDst_L, &pstThreshCtrl,
-			      bInstant);
-
-	HI_MPI_IVE_SUB(&IveHandle, &stSrc_img1, &stSrc_bg1, &stDst, enOutFmt,
-		       bInstant);
-	pstThreshCtrl.u32Thresh = 22;
-	s32Ret =
-	    HI_MPI_IVE_THRESH(&IveHandle, &stThInfo, &stDst_U, &pstThreshCtrl,
-			      bInstant);
-
-	HI_MPI_IVE_SUB(&IveHandle, &stSrc_img2, &stSrc_bg2, &stDst, enOutFmt,
-		       bInstant);
-	pstThreshCtrl.u32Thresh = 22;
-	s32Ret =
-	    HI_MPI_IVE_THRESH(&IveHandle, &stThInfo, &stDst_V, &pstThreshCtrl,
-			      bInstant);
-
-	IVE_SRC_INFO_S stThInfo_L;
-	memcpy(&stThInfo_L, &stSrc_img0, sizeof(IVE_SRC_INFO_S));
-	stThInfo_L.stSrcMem.u32PhyAddr = stDst_L.u32PhyAddr;
-	IVE_SRC_INFO_S stThInfo_U;
-	memcpy(&stThInfo_U, &stSrc_img0, sizeof(IVE_SRC_INFO_S));
-	stThInfo_U.stSrcMem.u32PhyAddr = stDst_U.u32PhyAddr;
-	IVE_SRC_INFO_S stThInfo_V;
-	memcpy(&stThInfo_V, &stSrc_img0, sizeof(IVE_SRC_INFO_S));
-	stThInfo_V.stSrcMem.u32PhyAddr = stDst_V.u32PhyAddr;
-
-	HI_MPI_IVE_OR(&IveHandle, &stThInfo_L, &stThInfo_U, &stDst, bInstant);
-	HI_MPI_IVE_OR(&IveHandle, &stThInfo_V, &stThInfo, &stDst, bInstant);
-
-	//把stDst数据转移到Mat矩阵中,假定是单通道;
-	uchar *pdst = dst.data;
-	uchar *psrc;
-	for (int i = 0; i < dst.rows; i++) {
-		pdst = dst.data + i * dst.cols;
-		psrc = (uchar *) pVirtDst_L + i * stDst_L.u32Stride;
-		memcpy(pdst, psrc, dst.cols);
-	}
-
-	save_mat(dst, "saved/bin.yuv");
-
-	HI_MPI_SYS_MmzFree(stSrc_img0.stSrcMem.u32PhyAddr, pVirtSrc_img0);
-	HI_MPI_SYS_MmzFree(stSrc_img1.stSrcMem.u32PhyAddr, pVirtSrc_img1);
-	HI_MPI_SYS_MmzFree(stSrc_img2.stSrcMem.u32PhyAddr, pVirtSrc_img2);
-	HI_MPI_SYS_MmzFree(stSrc_bg0.stSrcMem.u32PhyAddr, pVirtSrc_bg0);
-	HI_MPI_SYS_MmzFree(stSrc_bg1.stSrcMem.u32PhyAddr, pVirtSrc_bg1);
-	HI_MPI_SYS_MmzFree(stSrc_bg2.stSrcMem.u32PhyAddr, pVirtSrc_bg2);
-	HI_MPI_SYS_MmzFree(stDst.u32PhyAddr, pVirtDst);
-	HI_MPI_SYS_MmzFree(stDst_L.u32PhyAddr, pVirtDst_L);
-	HI_MPI_SYS_MmzFree(stDst_U.u32PhyAddr, pVirtDst_U);
-	HI_MPI_SYS_MmzFree(stDst_V.u32PhyAddr, pVirtDst_V);
+	hi_last_dst.download(dst);
+	
 }
 
 //这里假定处理的图像都是单通道的;
 HI_S32 TeacherDetecting::hi_dilate(Mat src, Mat & dst)
 {
 	HI_S32 s32Ret = HI_SUCCESS;
-	IVE_HANDLE IveHandle;
-	IVE_SRC_INFO_S stSrc;
-	IVE_MEM_INFO_S stDst;
-	HI_BOOL bInstant;
-	HI_VOID *pVirtSrc;
-	HI_VOID *pVirtDst;
-	HI_BOOL bFinish, bBlock;
+    
+	hiMat hi_src(src);
+	hiMat hi_dst;
 
-	stSrc.u32Height = src.rows;
-	stSrc.u32Width = src.cols;
-	stSrc.enSrcFmt = IVE_SRC_FMT_SINGLE;
-	bInstant = HI_TRUE;
+	hi::dilate(hi_src, hi_dst);
 
-	//跨度字节对齐;
-	int width = src.cols;
-	int src_addr = (int)src.data;	//?????这个不知道理解的正不正确;
-	int stride_t =
-	    { 8 - ((width + (src_addr % 8)) % 8) % 8 + (src_addr % 8) + width };
-	int stride = src.cols;
-	if (stride < stride_t)
-		stSrc.stSrcMem.u32Stride = (stride_t / 8) * 8 + (stride_t % 8);
-	else
-		stSrc.stSrcMem.u32Stride = (stride / 8) * 8 + (stride % 8);
+	hi::erode(hi_dst, hi_src);
 
-	s32Ret =
-	    HI_MPI_SYS_MmzAlloc_Cached(&stSrc.stSrcMem.u32PhyAddr, &pVirtSrc,
-				       "User", HI_NULL,
-				       stSrc.u32Height *
-				       stSrc.stSrcMem.u32Stride);
-	if (s32Ret != HI_SUCCESS) {
-		//printf("can't alloc intergal memory for %x\n",s32Ret);
-		return HI_NULL;
-	}
-	//把Mat_src矩阵里的数据转移到stSrc中,假定是单通道;
-	uchar *p1, *p2;
-	for (int i = 0; i < src.rows; i++) {
-		p1 = src.data + i * src.cols;
-		p2 = (uchar *) pVirtSrc + i * stSrc.stSrcMem.u32Stride;
-		memcpy(p2, p1, src.cols);
-	}
+	hi::dilate(hi_src, hi_dst);
+	hi::dilate(hi_dst, hi_src);
+	hi::dilate(hi_src, hi_dst);
+	hi::dilate(hi_dst, hi_src);
+	hi::dilate(hi_src, hi_dst);
 
-	s32Ret = HI_MPI_SYS_MmzAlloc_Cached(&stDst.u32PhyAddr, &pVirtDst,
-					    "User", HI_NULL,
-					    stSrc.u32Height *
-					    stSrc.stSrcMem.u32Stride);
-	stDst.u32Stride = stSrc.stSrcMem.u32Stride;
-	if (s32Ret != HI_SUCCESS) {
-		//printf("can't alloc intergal memory for %x\n",s32Ret);
-		return HI_NULL;
-	}
+	hi_dst.dowload(dst);
 
-	IVE_DILATE_CTRL_S pstDilateCtrl;
-	pstDilateCtrl.au8Mask[0] = 255;
-	pstDilateCtrl.au8Mask[1] = 255;
-	pstDilateCtrl.au8Mask[2] = 255;
-	pstDilateCtrl.au8Mask[3] = 255;
-	pstDilateCtrl.au8Mask[4] = 255;
-	pstDilateCtrl.au8Mask[5] = 255;
-	pstDilateCtrl.au8Mask[6] = 255;
-	pstDilateCtrl.au8Mask[7] = 255;
-	pstDilateCtrl.au8Mask[8] = 255;
-
-	IVE_ERODE_CTRL_S pstErodeCtrl;
-	pstErodeCtrl.au8Mask[0] = 255;
-	pstErodeCtrl.au8Mask[1] = 255;
-	pstErodeCtrl.au8Mask[2] = 255;
-	pstErodeCtrl.au8Mask[3] = 255;
-	pstErodeCtrl.au8Mask[4] = 255;
-	pstErodeCtrl.au8Mask[5] = 255;
-	pstErodeCtrl.au8Mask[6] = 255;
-	pstErodeCtrl.au8Mask[7] = 255;
-	pstErodeCtrl.au8Mask[8] = 255;
-
-	s32Ret =
-	    HI_MPI_IVE_DILATE(&IveHandle, &stSrc, &stDst, &pstDilateCtrl,
-			      bInstant);
-	if (s32Ret != HI_SUCCESS) {
-		HI_MPI_SYS_MmzFree(stDst.u32PhyAddr, pVirtDst);
-		printf(" ive dilate function can't submmit for %x\n", s32Ret);
-		return HI_NULL;
-	}
-
-	/*IVE_HANDLE erode_handle;
-	   IVE_SRC_INFO_S stErode1Info;
-	   memcpy(&stErode1Info, &stSrc, sizeof(IVE_SRC_INFO_S));
-	   stErode1Info.stSrcMem.u32PhyAddr = stDst.u32PhyAddr;
-	   s32Ret = HI_MPI_IVE_ERODE(&erode_handle,&stErode1Info,&stDst,&pstErodeCtrl,bInstant);
-	 */
-	//IVE_HANDLE dilate_handle;
-	IVE_SRC_INFO_S stDilate1Info;
-	memcpy(&stDilate1Info, &stSrc, sizeof(IVE_SRC_INFO_S));
-	stDilate1Info.stSrcMem.u32PhyAddr = stDst.u32PhyAddr;
-	s32Ret =
-	    HI_MPI_IVE_ERODE(&IveHandle, &stDilate1Info, &stDst, &pstErodeCtrl,
-			     bInstant);
-	s32Ret =
-	    HI_MPI_IVE_DILATE(&IveHandle, &stDilate1Info, &stDst,
-			      &pstDilateCtrl, bInstant);
-	s32Ret =
-	    HI_MPI_IVE_DILATE(&IveHandle, &stDilate1Info, &stDst,
-			      &pstDilateCtrl, bInstant);
-	s32Ret =
-	    HI_MPI_IVE_DILATE(&IveHandle, &stDilate1Info, &stDst,
-			      &pstDilateCtrl, bInstant);
-	s32Ret =
-	    HI_MPI_IVE_DILATE(&IveHandle, &stDilate1Info, &stDst,
-			      &pstDilateCtrl, bInstant);
-	s32Ret =
-	    HI_MPI_IVE_DILATE(&IveHandle, &stDilate1Info, &stDst,
-			      &pstDilateCtrl, bInstant);
-
-	bBlock = HI_FALSE;
-	s32Ret = HI_MPI_IVE_Query(IveHandle, &bFinish, bBlock);
-	if (s32Ret != HI_SUCCESS) {
-		printf("hidilate not finish\n");
-	}
-	//把stDst数据转移到Mat矩阵中,假定是单通道;
-	uchar *pd1;
-	uchar *pd2;
-	for (int i = 0; i < dst.rows; i++) {
-		pd1 = dst.data + i * dst.cols;
-		pd2 = (uchar *) pVirtDst + i * stDst.u32Stride;
-		memcpy(p1, p2, dst.cols);
-	}
-
-	HI_MPI_SYS_MmzFree(stSrc.stSrcMem.u32PhyAddr, pVirtSrc);
-	HI_MPI_SYS_MmzFree(stDst.u32PhyAddr, pVirtDst);
 	return s32Ret;
 }
 
@@ -588,113 +290,16 @@ HI_S32 TeacherDetecting::hi_blur(Mat src, Mat & dst)
 HI_S32 TeacherDetecting::hi_two_frame_method(Mat src, Mat & dst)
 {
 	HI_S32 s32Ret = HI_SUCCESS;
-	IVE_HANDLE IveHandle;
-	IVE_SRC_INFO_S stSrc;
-	IVE_MEM_INFO_S stDst;
-	HI_BOOL bInstant;
-	HI_VOID *pVirtSrc;
-	HI_VOID *pVirtDst;
-	HI_BOOL bFinish, bBlock;
-	timeb pre2, cur2;
-	stSrc.u32Height = src.rows;
-	stSrc.u32Width = src.cols;
-	stSrc.enSrcFmt = IVE_SRC_FMT_SINGLE;
-	bInstant = HI_TRUE;
 
-	//跨度字节对齐;
-	int width = src.cols;
-	int src_addr = (int)src.data;	//?????这个不知道理解的正不正确;
-	int stride_t =
-	    { 8 - ((width + (src_addr % 8)) % 8) % 8 + (src_addr % 8) + width };
-	int stride = src.cols;
-	if (stride < stride_t)
-		stSrc.stSrcMem.u32Stride = (stride_t / 8) * 8 + (stride_t % 8);
-	else
-		stSrc.stSrcMem.u32Stride = (stride / 8) * 8 + (stride % 8);
+	hiMat hi_src(src);
+	hiMat hi_dst;
 
-	s32Ret =
-	    HI_MPI_SYS_MmzAlloc_Cached(&stSrc.stSrcMem.u32PhyAddr, &pVirtSrc,
-				       "User", HI_NULL,
-				       stSrc.u32Height *
-				       stSrc.stSrcMem.u32Stride);
-	if (s32Ret != HI_SUCCESS) {
-		printf("can't alloc intergal memory for %x\n", s32Ret);
-		return HI_NULL;
-	}
-	//把Mat_src矩阵里的数据转移到stSrc中,假定是单通道;
-	uchar *p1, *p2;
-	for (int i = 0; i < src.rows; i++) {
-		p1 = src.data + i * src.cols;
-		p2 = (uchar *) pVirtSrc + i * stSrc.stSrcMem.u32Stride;
-		memcpy(p2, p1, src.cols);
-	}
+	hi::threshold(hi_src, hi_dst, 25, 255);
 
-	s32Ret = HI_MPI_SYS_MmzAlloc_Cached(&stDst.u32PhyAddr, &pVirtDst,
-					    "User", HI_NULL,
-					    stSrc.u32Height *
-					    stSrc.stSrcMem.u32Stride);
-	stDst.u32Stride = stSrc.stSrcMem.u32Stride;
-	if (s32Ret != HI_SUCCESS) {
-		printf("can't alloc intergal memory for %x\n", s32Ret);
-		return HI_NULL;
-	}
+	hi::filter(hi_dst, hi_src);
 
-	IVE_THRESH_CTRL_S pstThreshCtrl;
-	pstThreshCtrl.enOutFmt = IVE_THRESH_OUT_FMT_BINARY;
-	pstThreshCtrl.u32MaxVal = 255;
-	pstThreshCtrl.u32MinVal = 0;
-	pstThreshCtrl.u32Thresh = 25;
+	hi_src.download(dst);
 
-	size_t cachesize = stSrc.stSrcMem.u32Stride * stSrc.u32Height;
-	HI_MPI_SYS_MmzFlushCache(stSrc.stSrcMem.u32PhyAddr, pVirtSrc, cachesize);
-
-	s32Ret =HI_MPI_IVE_THRESH(&IveHandle, &stSrc, &stDst, &pstThreshCtrl,
-			      bInstant);
-	if (s32Ret != HI_SUCCESS) {
-		HI_MPI_SYS_MmzFree(stDst.u32PhyAddr, pVirtDst);
-		printf(" ive threshold function can't submmit for %x\n",
-		       s32Ret);
-		return HI_NULL;
-	}
-	IVE_SRC_INFO_S stFilterInfo;
-	memcpy(&stFilterInfo, &stSrc, sizeof(IVE_SRC_INFO_S));
-	stFilterInfo.stSrcMem.u32PhyAddr = stDst.u32PhyAddr;
-
-	IVE_FILTER_CTRL_S pstFilterCtrl;
-	pstFilterCtrl.u8Norm = 1;
-	pstFilterCtrl.as8Mask[0] = 1;
-	pstFilterCtrl.as8Mask[1] = 1;
-	pstFilterCtrl.as8Mask[2] = 1;
-	pstFilterCtrl.as8Mask[3] = 1;
-	pstFilterCtrl.as8Mask[4] = 1;
-	pstFilterCtrl.as8Mask[5] = 1;
-	pstFilterCtrl.as8Mask[6] = 1;
-	pstFilterCtrl.as8Mask[7] = 1;
-	pstFilterCtrl.as8Mask[8] = 1;
-
-	s32Ret = HI_MPI_IVE_FILTER(&IveHandle, &stFilterInfo, &stDst, &pstFilterCtrl,bInstant);
-	if (s32Ret != HI_SUCCESS) {
-		HI_MPI_SYS_MmzFree(stDst.u32PhyAddr, pVirtDst);
-		printf(" ive filter function can't submmit for %x\n", s32Ret);
-		return HI_NULL;
-	}
-
-	bBlock = HI_FALSE;
-	s32Ret = HI_MPI_IVE_Query(IveHandle, &bFinish, bBlock);
-	if (s32Ret != HI_SUCCESS) {
-		printf("hithr_and_filter not finish\n");
-	}
-	//把stDst数据转移到Mat矩阵中,假定是单通道;
-	uchar *pd1;		//480*480复制需要7ms;
-	uchar *pd2;
-	for (int i = 0; i < dst.rows; i++) {
-		pd1 = dst.data + i * dst.cols;
-		pd2 = (uchar *) pVirtDst + i * stDst.u32Stride;
-		memcpy(p1, p2, dst.cols);
-	}
-
-	HI_MPI_SYS_MmzFree(stSrc.stSrcMem.u32PhyAddr, pVirtSrc);
-	HI_MPI_SYS_MmzFree(stDst.u32PhyAddr, pVirtDst);
 	return s32Ret;
 }
 
