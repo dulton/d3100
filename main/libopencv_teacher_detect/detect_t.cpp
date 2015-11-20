@@ -1,5 +1,6 @@
 #include"detect_t.h"
 #include "sys/timeb.h"
+#include "hi_mat.h"
 using namespace hi;
 
 Static_s::Static_s()
