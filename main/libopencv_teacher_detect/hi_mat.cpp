@@ -235,14 +235,14 @@ void filter(const hiMat &src, hiMat &dst)
 }
 
 // 这个阈值时不定值 ....???????...
-void threshold(const hiMat &src, hiMat &dst, unsigned int threshold, unsigned int max_value, unsigned int threshold_type = 0)
+void threshold(const hiMat &src, hiMat &dst, unsigned int threshold, unsigned int max_value)
 {
 	int s32Ret;
 
 	dst.create(src.cols, src.rows, CV_8UC1); // hiMat 负责处理失败情况 ...
 
 	IVE_THRESH_CTRL_S pstThreshCtrl;
-	pstThreshCtrl.enOutFmt = threshold_type; // IVE_THRESH_OUT_FMT_BINARY;
+	pstThreshCtrl.enOutFmt = IVE_THRESH_OUT_FMT_BINARY; // IVE_THRESH_OUT_FMT_BINARY;
 	pstThreshCtrl.u32MaxVal = max_value; // 255;
 	pstThreshCtrl.u32MinVal = 0;
 	pstThreshCtrl.u32Thresh = threshold; // 55/22;
@@ -270,6 +270,9 @@ void sub(const hiMat &src1, const hiMat &src2, hiMat &dst)
 
 	IVE_SUB_OUT_FMT_E enOutFmt;
 	enOutFmt = IVE_SUB_OUT_FMT_ABS;
+
+	HI_BOOL bInstant = HI_TRUE;
+	IVE_HANDLE IveHandle;
 
 	IVE_SRC_INFO_S src_info1 = get_src_info_s(src1, IVE_SRC_FMT_SINGLE);
 	IVE_SRC_INFO_S src_info2 = get_src_info_s(src2, IVE_SRC_FMT_SINGLE);
