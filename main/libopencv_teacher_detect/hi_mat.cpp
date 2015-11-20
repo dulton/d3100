@@ -1,99 +1,159 @@
+#include "config.h"
 #include <stdio.h>
+
+#ifdef DEBUG_HIMAT
+#	include <stdlib.h>
+#	include <string.h>
+#else
+#	include "hi_comm_sys.h"
+#	include "mpi_sys.h"
+#	include "hi_comm_ive.h"
+#	include "mpi_ive.h"
+#endif
+
 #include "hi_mat.h"
-#include "hi_comm_ive.h"
-#include "mpi_ive.h"
 
 /** 应该编写 hlp_xxx 用了alloc, copy, free ...
 
  */
-void hlp_alloc(unsigned int *phy_addr_p, void** vir_addr_p, int length)
+static void hlp_alloc(unsigned int *phy_addr_p, void** vir_addr_p, int length)
 {
-
+#ifdef DEBUG_HIMAT
+	*phy_addr_p = 0;
+	*vir_addr_p = malloc(length);
+	fprintf(stderr, "%s: malloc %p\n", __func__, *vir_addr_p);
+#else
 	int rc = HI_MPI_SYS_MmzAlloc_Cached(phy_addr_p, vir_addr_p
-					    "User", 0, length);
+					    ,"User", 0, length);
 	if (rc != HI_SUCCESS) {
 		fprintf(stderr, "FATAL: HI_MPI_SYS_MmzAlloc_Cached err %s:%d\n",
 			__FILE__, __LINE__);
 		exit(-1);
 	}
+#endif // DEBUG_HIMAT
+}
 
+/** 这是从 Mat 复制数据到 hiMat，
+ */
+static void hlp_copy(void* vir_addr, size_t hiMat_stride_bytes, const cv::Mat &m)
+{
+	unsigned char *dst = (unsigned char*)vir_addr;
+	for (int i = 0; i < m.rows; i++) {
+		const unsigned char *p = m.ptr<unsigned char>(i);
+		size_t len = m.elemSize() * m.cols;
+		memcpy(dst, p, len);
+		dst += hiMat_stride_bytes;
+	}
+}
+
+static void hlp_free(unsigned int phy, void *vir)
+{
+#ifdef DEBUG_HIMAT
+	free(vir);
+	fprintf(stderr, "%s: free %p\n", __func__, vir);
+#else
+	HI_MPI_SYS_MmzFree(phy, vir);
+#endif // DEBUG_HIMAT
 }
 
 hiMat::hiMat()
-	: using_ref_(false)
+	: ref_(0)
 {
+	memset(this, 0, sizeof(hiMat));
 }
 
 hiMat::hiMat(const cv::Mat &m)
-	: using_ref_(true)
 {
-	ref = new int;
+	ref_ = new size_t;
+	(*ref_) = 0;
+
+	*this = m;	
+}
+
+hiMat::hiMat(const hiMat &m)
+{
+	memset(this, 0, sizeof(hiMat));
+	*this = m;
 }
 
 hiMat::~hiMat()
 {
-	*ref_--;
-	if (*ref_ == 0) {
-		// TODO: free mem
-		delete ref_;
-	}
+	release();
 }
 
 void hiMat::download(cv::Mat &m)
 {
-	
+	m.create(rows, cols, CV_8U);
+	unsigned char *p = (unsigned char*)vir_addr_;
+	for (int i = 0; i < rows; i++) {
+		unsigned char *q = m.ptr<unsigned char>(i);
+		memcpy(q , p, m.cols);
+		p += stride_;
+	}
+
 }
 
-void hiMat::create(int rows, int cols, int type)
+void hiMat::release()
 {
-	this.rows = rows;
-	this.cols = cols;
-
-	switch (type)
-	{
-		case 0:
-			this.stride_ = (cols + 3) / 4 * 4;
-			int len = rows * cols;
-			hlp_alloc(&this->phy_addr_, &this->vir_addr_
-					, len);
-			this->using_ref_ = true;
-			*(this->ref_) = 1;
-			break;
-
-		case 1:
-			this.stride_ = (cols +3) / 4 * 4;
-			int len = rows * cols * 3 / 2;
-			hlp_alloc(&this->phy_addr_, &this->vir_addr_
-					, len);
-			this->using_ref_ = true;
-			*(this->ref_) = 1;
-			break;	
-
-		case 2:
-			break;
-		default:
-			break;
+	if (ref_) {
+		(*ref_)--;
+		if (*ref_ == 0) {
+			hlp_free(phy_addr_, vir_addr_);
+			delete ref_;
+			ref_ = 0;
+		}
 	}
 }
 
-hiMat &hiMat::operator=(const hiMat &m)
+void hiMat::addref()
 {
-	this->rows = m.rows();
-	this->cols = m.cols;
-	this->stride = m.get_stride();
-	
-	this->phy_addr_ = m.get_phy_addr();
-	this->vir_addr_ = m.get_vir_addr();
-	this->using_ref_ = m.using_ref_;
-	this->ref_ = m.ref_;
-	this->ref_++;
+	if (ref_) {
+		(*ref_)++;
+	}
+}
+
+void hiMat::create(int rows, int cols, size_t bytes_of_line)
+{
+	release();
+
+	this->rows = rows;
+	this->cols = cols;
+	this->stride_ = (bytes_of_line + 7) / 8 * 8;
+
+	hlp_alloc(&phy_addr_, &vir_addr_, rows * stride_);
+
+	ref_ = new size_t;
+	*ref_ = 1;
+}
+
+hiMat &hiMat::operator = (const hiMat &m)
+{
+	// a = a;
+	if (this == &m) {
+		return *this;
+	}
+
+	// release old
+	release();
+
+	// cp
+	phy_addr_ = m.phy_addr_;
+	vir_addr_ = m.vir_addr_;
+	cols = m.cols;
+	rows = m.rows;
+	ref_ = m.ref_;
+
+	// addref
+	addref();
 
 	return *this;
 }
 
 hiMat &hiMat::operator = (const cv::Mat &m)
 {
-		
+	create(m.rows, m.cols, m.cols*m.elemSize());	
+	hlp_copy(vir_addr_, stride_, m);
+
 	return *this;
 }
 
@@ -111,6 +171,8 @@ void *hiMat::get_vir_addr() const
 {
 	return vir_addr_;
 }
+
+#ifndef DEBUG_HIMAT
 
 static IVE_MEM_INFO_S get_mem_info_s(const hiMat &src)
 {
@@ -168,6 +230,6 @@ void dilate(const hiMat &src, hiMat &dst)
 	}
 
 }
-
 } // namespace hi
 
+#endif // DEBUG_HIMAT
