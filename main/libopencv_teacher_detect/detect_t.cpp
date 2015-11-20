@@ -153,13 +153,13 @@ HI_S32 TeacherDetecting::hi_luv_method(std::vector < Mat > img,
 	hi::absdiff(hi_img, hi_bg, hi_dst);
 	hi::threshold(hi_dst, hi_dst_y, 50, 255);
 
-	hi_img(img[1]);
-	hi_bg(bg[1]);
+	hi_img = hi_img(img[1]);
+	hi_bg = hi_bg(bg[1]);
 	hi::absdiff(hi_img, hi_bg, hi_dst);
 	hi::threshold(hi_dst, hi_dst_u, 22, 255);
 
-	hi_img(img[2]);
-	hi_bg(bg[2]);
+	hi_img = hi_img(img[2]);
+	hi_bg = hi_bg(bg[2]);
 	hi::absdiff(hi_img, hi_bg, hi_dst);
 	hi::threshold(hi_dst, hi_dst_v, 22, 255);
 
@@ -188,7 +188,7 @@ HI_S32 TeacherDetecting::hi_dilate(Mat src, Mat & dst)
 	hi::dilate(hi_dst, hi_src);
 	hi::dilate(hi_src, hi_dst);
 
-	hi_dst.dowload(dst);
+	hi_dst.download(dst);
 
 	return s32Ret;
 }
