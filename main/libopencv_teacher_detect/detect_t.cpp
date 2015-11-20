@@ -150,18 +150,18 @@ HI_S32 TeacherDetecting::hi_luv_method(std::vector < Mat > img,
 
 	hiMat hi_img(img[0]);
 	hiMat hi_bg(bg[0]);
-	hi::adsdiff(hi_img, hi_bg, hi_dst);
-	hi::threshold(hi_dst, hi_dst_y);
+	hi::absdiff(hi_img, hi_bg, hi_dst);
+	hi::threshold(hi_dst, hi_dst_y, 50, 255);
 
 	hi_img(img[1]);
 	hi_bg(bg[1]);
-	hi::adsdiff(hi_img, hi_bg, hi_dst);
-	hi::threshold(hi_dst, hi_dst_u);
+	hi::absdiff(hi_img, hi_bg, hi_dst);
+	hi::threshold(hi_dst, hi_dst_u, 22, 255);
 
 	hi_img(img[2]);
 	hi_bg(bg[2]);
-	hi::adsdiff(hi_img, hi_bg, hi_dst);
-	hi::threshold(hi_dst, hi_dst_v);
+	hi::absdiff(hi_img, hi_bg, hi_dst);
+	hi::threshold(hi_dst, hi_dst_v, 22, 255);
 
 	hi::bit_or(hi_dst_y, hi_dst_u, hi_dst);
 	hi::bit_or(hi_dst, hi_dst_v, hi_last_dst);
