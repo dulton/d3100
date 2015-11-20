@@ -60,41 +60,77 @@ hiMat::hiMat()
 	: ref_(0)
 {
 	memset(this, 0, sizeof(hiMat));
+	outer_ = false;
 }
 
 hiMat::hiMat(const cv::Mat &m)
 {
 	ref_ = 0;
 	*this = m;	
+	outer_ = false;
 }
 
 hiMat::hiMat(const hiMat &m)
 {
 	memset(this, 0, sizeof(hiMat));
 	*this = m;
+	outer_ = false;
+}
+
+hiMat::hiMat(unsigned int phyaddr, int width, int height, int stride, Type type)
+{
+	outer_ = true;
+	phy_addr_ = phy_addr_;
+	vir_addr_ = HI_MPI_SYS_Mmap(phy_addr_, height * stride);
+	cols = width;
+	rows = height;
+	stride_ = stride;
+	this->type = type;
 }
 
 hiMat::~hiMat()
 {
-	release();
+	if (!outer_)
+		release();
+	else {
+		HI_MPI_SYS_Munmap(vir_addr_, rows * stride_);
+	}
 }
 
 void hiMat::dump_hdr() const
 {
 	fprintf(stderr, "DEBUG: m: <%u>: %d, %d, %d, %u, %p\n",
-			*ref_, cols, rows, stride_, phy_addr_, vir_addr_);
+			ref_ ? *ref_ : 0, cols, rows, stride_, phy_addr_, vir_addr_);
 }
 
 void hiMat::download(cv::Mat &m)
 {
-	m.create(rows, cols, CV_8U);
+	/** FIXME: 这里还是需要类型的 ...
+	  		先简单的假设，hiMat 对应三种数据格式: 
+				rgb24：stride_ / cols >= 3
+				sp420: stride_ / cols >= 2 
+				gray: stride_ / cols >= 1
+	 */
+
+	size_t ds = cols;
+	if (stride_ / cols >= 3) {
+		m.create(rows, cols, CV_8UC3);	// rgb24
+		ds = cols * 3;
+	}
+	else if (stride_ / cols >= 2) {
+		fprintf(stderr, "FATAL: hiMat::download NOT impl!!!!\n");
+		exit(-1);
+	}
+	else {
+		m.create(rows, cols, CV_8U);
+	}
+
 	unsigned char *p = (unsigned char*)vir_addr_;
 	for (int i = 0; i < rows; i++) {
 		unsigned char *q = m.ptr<unsigned char>(i);
-		memcpy(q , p, m.cols);
+		memcpy(q , p, ds);
 		p += stride_;
 	}
-
 }
 
 void hiMat::release()
@@ -121,18 +157,29 @@ void hiMat::addref()
 	}
 }
 
-void hiMat::create(int rows, int cols, size_t bytes_of_line)
+void hiMat::create(int rows, int cols, hiMat::Type type)
 {
 	release();
 
 	this->rows = rows;
 	this->cols = cols;
-	this->stride_ = (bytes_of_line + 7) / 8 * 8;
+	this->type = type;
+	switch (type) {
+	case RGB24:
+		stride_ = (cols * 3 + 7) / 8 * 8;
+		break;
+
+	case SINGLE:
+	case SP420:
+		stride_ = (cols + 7) / 8 * 8;
+		break;
+	}	
 
 	hlp_alloc(&phy_addr_, &vir_addr_, rows * stride_);
 
 	ref_ = new size_t;
 	*ref_ = 1;
+	outer_ = false;
 }
 
 hiMat &hiMat::operator = (const hiMat &m)
@@ -160,7 +207,10 @@ hiMat &hiMat::operator = (const hiMat &m)
 
 hiMat &hiMat::operator = (const cv::Mat &m)
 {
-	create(m.rows, m.cols, m.cols*m.elemSize());	
+	/** FIXME: 仅仅支持 8UC1
+	 */
+	
+	create(m.rows, m.cols, SINGLE);
 	hlp_copy(vir_addr_, stride_, m);
 
 	return *this;
@@ -212,7 +262,7 @@ void dilate(const hiMat &src, hiMat &dst)
 {
 	int s32Ret;
 
-	dst.create(src.rows, src.cols, src.cols); // hiMat 负责处理失败情况 ...
+	dst.create(src.rows, src.cols, src.type); // hiMat 负责处理失败情况 ...
 
 	IVE_DILATE_CTRL_S pstDilateCtrl;
 	pstDilateCtrl.au8Mask[0] = 255;
@@ -247,7 +297,7 @@ void erode(const hiMat &src, hiMat &dst)
 {
 	int s32Ret;
 
-	dst.create(src.rows, src.cols, src.cols); // hiMat 负责处理失败情况 ...
+	dst.create(src.rows, src.cols, src.type); // hiMat 负责处理失败情况 ...
 
 	IVE_ERODE_CTRL_S pstErodeCtrl;
 	pstErodeCtrl.au8Mask[0] = 255;
@@ -284,7 +334,7 @@ void filter(const hiMat &src, hiMat &dst)
 
 	src.dump_hdr();
 
-	dst.create(src.rows, src.cols, src.cols); // hiMat 负责处理失败情况 ...
+	dst.create(src.rows, src.cols, src.type);// hiMat 负责处理失败情况 ...
 	dst.dump_hdr();
 
 	IVE_FILTER_CTRL_S pstFilterCtrl;
@@ -323,7 +373,7 @@ void threshold(const hiMat &src, hiMat &dst, unsigned int threshold,
 {
 	int s32Ret;
 
-	dst.create(src.rows, src.cols, src.cols); // hiMat 负责处理失败情况 ...
+	dst.create(src.rows, src.cols, src.type);// hiMat 负责处理失败情况 ...
 
 	IVE_THRESH_CTRL_S pstThreshCtrl;
 	pstThreshCtrl.enOutFmt = IVE_THRESH_OUT_FMT_BINARY;
@@ -353,7 +403,7 @@ void absdiff(const hiMat &src1, const hiMat &src2, hiMat &dst)
 {
 	int s32Ret;
 
-	dst.create(src1.rows, src1.cols, src1.cols); // hiMat 负责处理失败情况 ...
+	dst.create(src1.rows, src1.cols, src1.type); // hiMat 负责处理失败情况 ...
 
 	IVE_SUB_OUT_FMT_E enOutFmt;
 	enOutFmt = IVE_SUB_OUT_FMT_ABS;
@@ -383,7 +433,7 @@ void bit_or(const hiMat &src1, const hiMat &src2, hiMat &dst)
 {
 	int s32Ret;
 
-	dst.create(src1.rows, src1.cols, src1.cols); // hiMat 负责处理失败情况 ...
+	dst.create(src1.rows, src1.cols, src1.type); // hiMat 负责处理失败情况 ...
 
 	HI_BOOL bInstant = HI_TRUE;
 	IVE_HANDLE IveHandle;
@@ -410,7 +460,7 @@ void yuv2rgb(const hiMat &src, hiMat &dst)
 {
 	int s32Ret;
 
-	dst.create(src.rows, src.cols, src.cols * 3); // hiMat 负责处理失败情况 ...
+	dst.create(src.rows, src.cols, hiMat::RGB24); // hiMat 负责处理失败情况 ...
 
 	IVE_CSC_CTRL_S pstCscCtrl;
 	pstCscCtrl.enOutFmt = IVE_CSC_OUT_FMT_PACKAGE;
@@ -422,7 +472,7 @@ void yuv2rgb(const hiMat &src, hiMat &dst)
 	IVE_SRC_INFO_S src_info = get_src_info_s(src, IVE_SRC_FMT_SP420);
 	IVE_MEM_INFO_S dst_mem_info = get_mem_info_s(dst);
 
-	HI_MPI_SYS_MmzFlushCache(src.get_phy_addr(), src.get_vir_addr(), src.rows * src.get_stride() * 3);
+	HI_MPI_SYS_MmzFlushCache(src.get_phy_addr(), src.get_vir_addr(), src.rows * src.get_stride());
 
 	s32Ret = HI_MPI_IVE_CSC(&IveHandle, &src_info, &dst_mem_info, &pstCscCtrl, bInstant);
 	if(s32Ret != HI_SUCCESS)

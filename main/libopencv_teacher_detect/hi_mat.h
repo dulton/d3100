@@ -8,20 +8,27 @@ class hiMat
 	unsigned int phy_addr_;
 	void *vir_addr_;
 
-	size_t *ref_;		// 引用计数 ..
+	size_t *ref_;
+	bool outer_;
 
  public:
+
+	enum Type
+	{
+		NONE = -1,
+		RGB24,	// 8UC3
+		SINGLE,	// 8U
+		SP420,	// ??
+	};
+
 	hiMat();
-	// 开辟 mmz缓冲，初始化.
 	hiMat(const cv::Mat & m);
 	hiMat(const hiMat & m);
+	hiMat(unsigned int phy_addr, int width, int height, int stride, Type type);
 	~hiMat();
 
-	// 把数据赋于 m.
 	void download(cv::Mat & m);
-
-	// 为对象 开辟空间.
-	void create(int width, int height, size_t bytes_of_line);
+	void create(int width, int height, Type type);
 
 	hiMat & operator =(const hiMat & src);
 	hiMat & operator =(const cv::Mat & m);
@@ -30,6 +37,7 @@ class hiMat
 
 	int rows;
 	int cols;
+	Type type;
 
 	unsigned int get_phy_addr() const;
 	void *get_vir_addr() const;

@@ -11,14 +11,15 @@
 #include <errno.h>
 #include "mpi_vi.h"
 
-#include  "hi_comm_ive.h"
-#include  "hi_type.h"
-#include  "mpi_ive.h"
+#include "hi_comm_ive.h"
+#include "hi_type.h"
+#include "mpi_ive.h"
 #include "mpi_sys.h"
 #include "hi_common.h"
-#include"hi_comm_sys.h"
+#include "hi_comm_sys.h"
 #include "hi_comm_video.h"
 #include "mpi_vb.h"
+#include "hi_mat.h"
 
 #include "vi_src.h"
 using namespace cv;
@@ -377,10 +378,7 @@ static void save_mat(const cv::Mat & m, const char *fname)
 	}
 }
 
-// VIDEO_FRAME_INFO_S转化为Mat矩阵;
-// 处理一：模糊处理;
-// 处理二：YUV->RGB;
-
+#if 0
 /** 将 frame 转换为 rgb24 的 Mat */
 static void vf2mat(VIDEO_FRAME_INFO_S & frame, cv::Mat & m)
 {
@@ -502,6 +500,26 @@ static void vf2mat(VIDEO_FRAME_INFO_S & frame, cv::Mat & m)
 
 	HI_MPI_SYS_MmzFree(rgb.u32PhyAddr, rgb_vir);
 }
+#else
+static void vf2mat(VIDEO_FRAME_INFO_S &v, cv::Mat &m)
+{
+	hiMat hm(v.stVFrame.u32PhyAddr[0], v.stVFrame.u32Width, 
+			v.stVFrame.u32Height, v.stVFrame.u32Stride[0], hiMat::SP420);
+	hm.dump_hdr();
+
+	hiMat t1, t2;
+//	hi::filter(hm, t1);
+//	t1.dump_hdr();
+
+	hi::yuv2rgb(hm, t2);
+	t2.dump_hdr();
+	t2.download(m);
+
+	save_mat(m, "saved/mat0.rgb");
+	fprintf(stderr, "DEBUG: %s, %d\n", __func__, __LINE__);
+	exit(-1);
+}
+#endif // 
 
 struct visrc_t {
 	KVConfig *cfg;
