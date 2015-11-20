@@ -64,6 +64,7 @@ hiMat::hiMat()
 
 hiMat::hiMat(const cv::Mat &m)
 {
+	ref_ = 0;
 	*this = m;	
 }
 
@@ -76,6 +77,12 @@ hiMat::hiMat(const hiMat &m)
 hiMat::~hiMat()
 {
 	release();
+}
+
+void hiMat::dump_hdr() const
+{
+	fprintf(stderr, "DEBUG: m: <%u>: %d, %d, %d, %u, %p\n",
+			*ref_, cols, rows, stride_, phy_addr_, vir_addr_);
 }
 
 void hiMat::download(cv::Mat &m)
@@ -205,7 +212,7 @@ void dilate(const hiMat &src, hiMat &dst)
 {
 	int s32Ret;
 
-	dst.create(src.cols, src.rows, src.cols); // hiMat 负责处理失败情况 ...
+	dst.create(src.rows, src.cols, src.cols); // hiMat 负责处理失败情况 ...
 
 	IVE_DILATE_CTRL_S pstDilateCtrl;
 	pstDilateCtrl.au8Mask[0] = 255;
@@ -233,13 +240,14 @@ void dilate(const hiMat &src, hiMat &dst)
 		exit(-1);
 	}
 
+	HI_MPI_SYS_MmzFlushCache(dst.get_phy_addr(), dst.get_vir_addr(), dst.rows * dst.get_stride());
 }
 
 void erode(const hiMat &src, hiMat &dst)
 {
 	int s32Ret;
 
-	dst.create(src.cols, src.rows, src.cols); // hiMat 负责处理失败情况 ...
+	dst.create(src.rows, src.cols, src.cols); // hiMat 负责处理失败情况 ...
 
 	IVE_ERODE_CTRL_S pstErodeCtrl;
 	pstErodeCtrl.au8Mask[0] = 255;
@@ -267,13 +275,17 @@ void erode(const hiMat &src, hiMat &dst)
 		exit(-1);
 	}
 
+	HI_MPI_SYS_MmzFlushCache(dst.get_phy_addr(), dst.get_vir_addr(), dst.rows * dst.get_stride());
 }
 
 void filter(const hiMat &src, hiMat &dst)
 {
 	int s32Ret;
 
-	dst.create(src.cols, src.rows, src.cols); // hiMat 负责处理失败情况 ...
+	src.dump_hdr();
+
+	dst.create(src.rows, src.cols, src.cols); // hiMat 负责处理失败情况 ...
+	dst.dump_hdr();
 
 	IVE_FILTER_CTRL_S pstFilterCtrl;
 	pstFilterCtrl.u8Norm = 3;
@@ -302,6 +314,7 @@ void filter(const hiMat &src, hiMat &dst)
 		exit(-1);
 	}
 
+	HI_MPI_SYS_MmzFlushCache(dst.get_phy_addr(), dst.get_vir_addr(), dst.rows * dst.get_stride());
 }
 
 // 这个阈值时不定值 ....???????...
@@ -310,7 +323,7 @@ void threshold(const hiMat &src, hiMat &dst, unsigned int threshold,
 {
 	int s32Ret;
 
-	dst.create(src.cols, src.rows, src.cols); // hiMat 负责处理失败情况 ...
+	dst.create(src.rows, src.cols, src.cols); // hiMat 负责处理失败情况 ...
 
 	IVE_THRESH_CTRL_S pstThreshCtrl;
 	pstThreshCtrl.enOutFmt = IVE_THRESH_OUT_FMT_BINARY;
@@ -333,13 +346,14 @@ void threshold(const hiMat &src, hiMat &dst, unsigned int threshold,
 		exit(-1);
 	}
 
+	HI_MPI_SYS_MmzFlushCache(dst.get_phy_addr(), dst.get_vir_addr(), dst.rows * dst.get_stride());
 }
 
 void absdiff(const hiMat &src1, const hiMat &src2, hiMat &dst)
 {
 	int s32Ret;
 
-	dst.create(src1.cols, src1.rows, src1.cols); // hiMat 负责处理失败情况 ...
+	dst.create(src1.rows, src1.cols, src1.cols); // hiMat 负责处理失败情况 ...
 
 	IVE_SUB_OUT_FMT_E enOutFmt;
 	enOutFmt = IVE_SUB_OUT_FMT_ABS;
@@ -362,13 +376,14 @@ void absdiff(const hiMat &src1, const hiMat &src2, hiMat &dst)
 		exit(-1);
 	}
 
+	HI_MPI_SYS_MmzFlushCache(dst.get_phy_addr(), dst.get_vir_addr(), dst.rows * dst.get_stride());
 }
 
 void bit_or(const hiMat &src1, const hiMat &src2, hiMat &dst)
 {
 	int s32Ret;
 
-	dst.create(src1.cols, src1.rows, src1.cols); // hiMat 负责处理失败情况 ...
+	dst.create(src1.rows, src1.cols, src1.cols); // hiMat 负责处理失败情况 ...
 
 	HI_BOOL bInstant = HI_TRUE;
 	IVE_HANDLE IveHandle;
@@ -388,13 +403,14 @@ void bit_or(const hiMat &src1, const hiMat &src2, hiMat &dst)
 		exit(-1);
 	}
 
+	HI_MPI_SYS_MmzFlushCache(dst.get_phy_addr(), dst.get_vir_addr(), dst.rows * dst.get_stride());
 }
 
 void yuv2rgb(const hiMat &src, hiMat &dst)
 {
 	int s32Ret;
 
-	dst.create(src.cols, src.rows, src.cols * 3); // hiMat 负责处理失败情况 ...
+	dst.create(src.rows, src.cols, src.cols * 3); // hiMat 负责处理失败情况 ...
 
 	IVE_CSC_CTRL_S pstCscCtrl;
 	pstCscCtrl.enOutFmt = IVE_CSC_OUT_FMT_PACKAGE;
@@ -415,6 +431,7 @@ void yuv2rgb(const hiMat &src, hiMat &dst)
 		exit(-1);
 	}
 
+	HI_MPI_SYS_MmzFlushCache(dst.get_phy_addr(), dst.get_vir_addr(), dst.rows * dst.get_stride());
 }
 
 } // namespace hi
