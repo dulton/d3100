@@ -23,8 +23,7 @@ static void hlp_alloc(unsigned int *phy_addr_p, void** vir_addr_p, int length)
 	*vir_addr_p = malloc(length);
 	fprintf(stderr, "%s: malloc %p\n", __func__, *vir_addr_p);
 #else
-	int rc = HI_MPI_SYS_MmzAlloc_Cached(phy_addr_p, vir_addr_p
-					    ,"User", 0, length);
+	int rc = HI_MPI_SYS_MmzAlloc_Cached(phy_addr_p, vir_addr_p ,"User", 0, length);
 	if (rc != HI_SUCCESS) {
 		fprintf(stderr, "FATAL: HI_MPI_SYS_MmzAlloc_Cached err %s:%d\n",
 			__FILE__, __LINE__);
@@ -57,35 +56,36 @@ static void hlp_free(unsigned int phy, void *vir)
 }
 
 hiMat::hiMat()
-	: ref_(0)
 {
 	memset(this, 0, sizeof(hiMat));
+	ref_ = 0;
 	outer_ = false;
 }
 
 hiMat::hiMat(const cv::Mat &m)
 {
+	outer_ = false;
 	ref_ = 0;
 	*this = m;	
-	outer_ = false;
 }
 
 hiMat::hiMat(const hiMat &m)
 {
 	memset(this, 0, sizeof(hiMat));
-	*this = m;
 	outer_ = false;
+	*this = m;
 }
 
 hiMat::hiMat(unsigned int phyaddr, int width, int height, int stride, Type type)
 {
 	outer_ = true;
-	phy_addr_ = phy_addr_;
-	vir_addr_ = HI_MPI_SYS_Mmap(phy_addr_, height * stride);
+	phy_addr_ = phyaddr;
+	this->type = type;
 	cols = width;
 	rows = height;
 	stride_ = stride;
-	this->type = type;
+	vir_addr_ = HI_MPI_SYS_Mmap(phy_addr_, memsize());
+	fprintf(stderr, "memsize=%d\n", memsize());
 }
 
 hiMat::~hiMat()
@@ -99,8 +99,38 @@ hiMat::~hiMat()
 
 void hiMat::dump_hdr() const
 {
-	fprintf(stderr, "DEBUG: m: <%u>: %d, %d, %d, %u, %p\n",
-			ref_ ? *ref_ : 0, cols, rows, stride_, phy_addr_, vir_addr_);
+	fprintf(stderr, "DEBUG: m: <%u>: type=%d| %d, %d, %d, %u, %u, %p\n",
+			ref_ ? *ref_ : 0, type, cols, rows, stride_, memsize(), phy_addr_, vir_addr_);
+}
+
+void hiMat::dump_data(const char *fname) const
+{
+	FILE *fp = fopen(fname, "wb");
+	if (fp) {
+		const unsigned char *s = (unsigned char*)vir_addr_;
+		int ds = cols;
+		if (type == RGB24)
+			ds = cols * 3;
+
+		if (type == SINGLE || type == RGB24) {
+			for (int i = 0; i < rows; i++) {
+				fwrite(s, 1, ds, fp);
+				s += stride_;
+				fprintf(stderr, "%d ", i);
+			}
+		}
+
+		if (type == SP420) {
+			// write UV
+			for (int i = 0; i < rows / 2; i++) {
+				fwrite(s, 1, ds, fp);
+				s += stride_;
+				fprintf(stderr, "%d ", i);
+			}
+		}
+
+		fclose(fp);
+	}
 }
 
 void hiMat::download(cv::Mat &m)
@@ -113,16 +143,22 @@ void hiMat::download(cv::Mat &m)
 	 */
 
 	size_t ds = cols;
-	if (stride_ / cols >= 3) {
+	if (type == RGB24) {
 		m.create(rows, cols, CV_8UC3);	// rgb24
 		ds = cols * 3;
+		fprintf(stderr, "ds:%d\n", ds);
 	}
-	else if (stride_ / cols >= 2) {
+	else if (type == SP420) {
 		fprintf(stderr, "FATAL: hiMat::download NOT impl!!!!\n");
 		exit(-1);
 	}
-	else {
+	else if (type == SINGLE) {
 		m.create(rows, cols, CV_8U);
+		ds = cols;
+	}
+	else {
+		fprintf(stderr, "FATAL: hiMat::download NOT impl..\n");
+		exit(-1);
 	}
 
 	unsigned char *p = (unsigned char*)vir_addr_;
@@ -157,10 +193,25 @@ void hiMat::addref()
 	}
 }
 
+size_t hiMat::memsize() const
+{
+	switch (type) {
+	case RGB24:
+	case SINGLE:
+		return rows * stride_;
+
+	case SP420:
+		return rows * stride_ * 3 / 2;
+	}
+
+	fprintf(stderr, "FATAL: %s: Only support RGB24/SINGLE/SP420!!!\n", __func__);
+	return -1;
+}
+
 void hiMat::create(int rows, int cols, hiMat::Type type)
 {
 	if (outer_) {
-		HI_MPI_SYS_Munmap(vir_addr_, rows * stride_);
+		HI_MPI_SYS_Munmap(vir_addr_, memsize());
 	}
 	else {
 		release();
@@ -169,18 +220,32 @@ void hiMat::create(int rows, int cols, hiMat::Type type)
 	this->rows = rows;
 	this->cols = cols;
 	this->type = type;
+
+	unsigned msize = 0;
+
 	switch (type) {
 	case RGB24:
+		fprintf(stderr, "create RGB24 mat\n");
 		stride_ = (cols * 3 + 7) / 8 * 8;
+		msize = stride_ * rows;
 		break;
 
 	case SINGLE:
+		stride_ = (cols + 7) / 8 * 8;
+		msize = stride_ * rows;
+
 	case SP420:
 		stride_ = (cols + 7) / 8 * 8;
+		msize = stride_ * rows * 3 / 2;
+		break;
+
+	default:
+		fprintf(stderr, "FATAL: %s: unknown type of %d\n", __func__, type);
+		exit(-1);
 		break;
 	}	
 
-	hlp_alloc(&phy_addr_, &vir_addr_, rows * stride_);
+	hlp_alloc(&phy_addr_, &vir_addr_, msize);
 
 	ref_ = new size_t;
 	*ref_ = 1;
@@ -219,7 +284,11 @@ hiMat &hiMat::operator = (const cv::Mat &m)
 {
 	/** FIXME: 仅仅支持 8UC1
 	 */
-	
+	if (m.elemSize() != 1) {
+		fprintf(stderr, "FATAL: %s: only support 8UC1 Mat!!!\n", __func__);
+		exit(-1);
+	}
+
 	create(m.rows, m.cols, SINGLE);
 	hlp_copy(vir_addr_, stride_, m);
 
@@ -253,15 +322,38 @@ static IVE_MEM_INFO_S get_mem_info_s(const hiMat &src)
 	return mem_info;
 }
 
-static IVE_SRC_INFO_S get_src_info_s(const hiMat &src, IVE_SRC_FMT_E fmt)
+static IVE_SRC_INFO_S get_src_info_s(const hiMat &src)
 {
 	IVE_SRC_INFO_S src_info;
 	src_info.stSrcMem = get_mem_info_s(src);
 	src_info.u32Height = src.rows;
 	src_info.u32Width = src.cols;
-	src_info.enSrcFmt = fmt;
+	switch (src.type) {
+	case hiMat::SINGLE:
+		src_info.enSrcFmt = IVE_SRC_FMT_SINGLE;
+		break;
+
+	case hiMat::SP420:
+		src_info.enSrcFmt = IVE_SRC_FMT_SP420;
+		break;
+	}
 
 	return src_info;
+}
+
+static void dump_src_info(const IVE_SRC_INFO_S &info)
+{
+	fprintf(stderr, "DEBUG: == %s\n", __func__);
+	fprintf(stderr, "\tphyaddr=%u, stride=%d\n", info.stSrcMem.u32PhyAddr, info.stSrcMem.u32Stride);
+	fprintf(stderr, "\twidth=%d, height=%d\n", info.u32Width, info.u32Height);
+	fprintf(stderr, "\tfmt=%s\n", info.enSrcFmt == IVE_SRC_FMT_SP420 ? "SP420" : 
+			info.enSrcFmt == IVE_SRC_FMT_SINGLE ? "SINGLE" : "UNKNOWN!!!");
+}
+
+static void dump_dst_info(const IVE_MEM_INFO_S &info)
+{
+	fprintf(stderr, "DEBUG: == %s\n", __func__);
+	fprintf(stderr, "\tphyaddr=%u, stride=%d\n", info.u32PhyAddr, info.u32Stride);
 }
 
 ///////////////////// 以下为对 hiMat 的操作 ////////////////////////
@@ -289,10 +381,10 @@ void dilate(const hiMat &src, hiMat &dst)
 	HI_BOOL bInstant = HI_TRUE;
 	IVE_HANDLE IveHandle;
 
-	IVE_SRC_INFO_S src_info = get_src_info_s(src, IVE_SRC_FMT_SINGLE);
+	IVE_SRC_INFO_S src_info = get_src_info_s(src);
 	IVE_MEM_INFO_S dst_mem_info = get_mem_info_s(dst);
 
-	HI_MPI_SYS_MmzFlushCache(src.get_phy_addr(), src.get_vir_addr(), src.rows * src.get_stride());
+	HI_MPI_SYS_MmzFlushCache(src.get_phy_addr(), src.get_vir_addr(), src.memsize());
 
 	s32Ret = HI_MPI_IVE_DILATE(&IveHandle, &src_info, &dst_mem_info, &pstDilateCtrl, bInstant);
 	if(s32Ret != HI_SUCCESS)
@@ -301,7 +393,7 @@ void dilate(const hiMat &src, hiMat &dst)
 		exit(-1);
 	}
 
-	HI_MPI_SYS_MmzFlushCache(dst.get_phy_addr(), dst.get_vir_addr(), dst.rows * dst.get_stride());
+	HI_MPI_SYS_MmzFlushCache(dst.get_phy_addr(), dst.get_vir_addr(), dst.memsize());
 }
 
 // 图像腐蚀(源数据只能为单分量) ...
@@ -325,10 +417,10 @@ void erode(const hiMat &src, hiMat &dst)
 	HI_BOOL bInstant = HI_TRUE;
 	IVE_HANDLE IveHandle;
 
-	IVE_SRC_INFO_S src_info = get_src_info_s(src, IVE_SRC_FMT_SINGLE);
+	IVE_SRC_INFO_S src_info = get_src_info_s(src);
 	IVE_MEM_INFO_S dst_mem_info = get_mem_info_s(dst);
 
-	HI_MPI_SYS_MmzFlushCache(src.get_phy_addr(), src.get_vir_addr(), src.rows * src.get_stride());
+	HI_MPI_SYS_MmzFlushCache(src.get_phy_addr(), src.get_vir_addr(), src.memsize());
 
 	s32Ret = HI_MPI_IVE_ERODE(&IveHandle, &src_info, &dst_mem_info, &pstErodeCtrl, bInstant);
 	if(s32Ret != HI_SUCCESS)
@@ -337,7 +429,7 @@ void erode(const hiMat &src, hiMat &dst)
 		exit(-1);
 	}
 
-	HI_MPI_SYS_MmzFlushCache(dst.get_phy_addr(), dst.get_vir_addr(), dst.rows * dst.get_stride());
+	HI_MPI_SYS_MmzFlushCache(dst.get_phy_addr(), dst.get_vir_addr(), dst.memsize());
 }
 
 // 图像滤波(源数据只能为单分量) ...
@@ -345,10 +437,7 @@ void filter(const hiMat &src, hiMat &dst)
 {
 	int s32Ret;
 
-	src.dump_hdr();
-
 	dst.create(src.rows, src.cols, src.type);// hiMat 负责处理失败情况 ...
-	dst.dump_hdr();
 
 	IVE_FILTER_CTRL_S pstFilterCtrl;
 	pstFilterCtrl.u8Norm = 3;
@@ -365,19 +454,20 @@ void filter(const hiMat &src, hiMat &dst)
 	HI_BOOL bInstant = HI_TRUE;
 	IVE_HANDLE IveHandle;
 
-	IVE_SRC_INFO_S src_info = get_src_info_s(src, IVE_SRC_FMT_SINGLE);
+	IVE_SRC_INFO_S src_info = get_src_info_s(src);
 	IVE_MEM_INFO_S dst_mem_info = get_mem_info_s(dst);
 
-	HI_MPI_SYS_MmzFlushCache(src.get_phy_addr(), src.get_vir_addr(), src.rows * src.get_stride());
+	dump_src_info(src_info);
+
+	HI_MPI_SYS_MmzFlushCache(src.get_phy_addr(), src.get_vir_addr(), src.memsize());
 
 	s32Ret = HI_MPI_IVE_FILTER(&IveHandle, &src_info, &dst_mem_info, &pstFilterCtrl, bInstant);
-	if(s32Ret != HI_SUCCESS)
-	{
-		fprintf(stderr, "FATAL: HI_MPI_IVE_DILATE err %s:%s\n", __FILE__, __LINE__);
+	if(s32Ret != HI_SUCCESS) {
+		fprintf(stderr, "FATAL: HI_MPI_IVE_DILATE err code=%08x, %s:%d\n", s32Ret, __FILE__, __LINE__);
 		exit(-1);
 	}
 
-	HI_MPI_SYS_MmzFlushCache(dst.get_phy_addr(), dst.get_vir_addr(), dst.rows * dst.get_stride());
+	HI_MPI_SYS_MmzFlushCache(dst.get_phy_addr(), dst.get_vir_addr(), dst.memsize());
 }
 
 // 图像阈值化(源数据只能为单分量) 注：这里的类型固定了...
@@ -397,10 +487,10 @@ void threshold(const hiMat &src, hiMat &dst, unsigned int threshold,
 	HI_BOOL bInstant = HI_TRUE;
 	IVE_HANDLE IveHandle;
 
-	IVE_SRC_INFO_S src_info = get_src_info_s(src, IVE_SRC_FMT_SINGLE);
+	IVE_SRC_INFO_S src_info = get_src_info_s(src);
 	IVE_MEM_INFO_S dst_mem_info = get_mem_info_s(dst);
 
-	HI_MPI_SYS_MmzFlushCache(src.get_phy_addr(), src.get_vir_addr(), src.rows * src.get_stride());
+	HI_MPI_SYS_MmzFlushCache(src.get_phy_addr(), src.get_vir_addr(), src.memsize());
 
 	s32Ret = HI_MPI_IVE_THRESH(&IveHandle, &src_info, &dst_mem_info, &pstThreshCtrl, bInstant);
 	if(s32Ret != HI_SUCCESS)
@@ -409,7 +499,7 @@ void threshold(const hiMat &src, hiMat &dst, unsigned int threshold,
 		exit(-1);
 	}
 
-	HI_MPI_SYS_MmzFlushCache(dst.get_phy_addr(), dst.get_vir_addr(), dst.rows * dst.get_stride());
+	HI_MPI_SYS_MmzFlushCache(dst.get_phy_addr(), dst.get_vir_addr(), dst.memsize());
 }
 
 // 两图像相减(源数据只能为单分量) ...
@@ -425,13 +515,13 @@ void absdiff(const hiMat &src1, const hiMat &src2, hiMat &dst)
 	HI_BOOL bInstant = HI_TRUE;
 	IVE_HANDLE IveHandle;
 
-	IVE_SRC_INFO_S src_info1 = get_src_info_s(src1, IVE_SRC_FMT_SINGLE);
-	IVE_SRC_INFO_S src_info2 = get_src_info_s(src2, IVE_SRC_FMT_SINGLE);
+	IVE_SRC_INFO_S src_info1 = get_src_info_s(src1);
+	IVE_SRC_INFO_S src_info2 = get_src_info_s(src2);
 
 	IVE_MEM_INFO_S dst_mem_info = get_mem_info_s(dst);
 
-	HI_MPI_SYS_MmzFlushCache(src1.get_phy_addr(), src1.get_vir_addr(), src1.rows * src1.get_stride());
-	HI_MPI_SYS_MmzFlushCache(src2.get_phy_addr(), src2.get_vir_addr(), src2.rows * src2.get_stride());
+	HI_MPI_SYS_MmzFlushCache(src1.get_phy_addr(), src1.get_vir_addr(), src1.memsize());
+	HI_MPI_SYS_MmzFlushCache(src2.get_phy_addr(), src2.get_vir_addr(), src2.memsize());
 
 	s32Ret = HI_MPI_IVE_SUB(&IveHandle, &src_info1, &src_info2, &dst_mem_info, enOutFmt, bInstant);
 	if(s32Ret != HI_SUCCESS)
@@ -440,7 +530,7 @@ void absdiff(const hiMat &src1, const hiMat &src2, hiMat &dst)
 		exit(-1);
 	}
 
-	HI_MPI_SYS_MmzFlushCache(dst.get_phy_addr(), dst.get_vir_addr(), dst.rows * dst.get_stride());
+	HI_MPI_SYS_MmzFlushCache(dst.get_phy_addr(), dst.get_vir_addr(), dst.memsize());
 }
 
 // 图像或运算(源数据只能为单分量) ...
@@ -453,13 +543,13 @@ void bit_or(const hiMat &src1, const hiMat &src2, hiMat &dst)
 	HI_BOOL bInstant = HI_TRUE;
 	IVE_HANDLE IveHandle;
 
-	IVE_SRC_INFO_S src_info1 = get_src_info_s(src1, IVE_SRC_FMT_SINGLE);
-	IVE_SRC_INFO_S src_info2 = get_src_info_s(src2, IVE_SRC_FMT_SINGLE);
+	IVE_SRC_INFO_S src_info1 = get_src_info_s(src1);
+	IVE_SRC_INFO_S src_info2 = get_src_info_s(src2);
 
 	IVE_MEM_INFO_S dst_mem_info = get_mem_info_s(dst);
 
-	HI_MPI_SYS_MmzFlushCache(src1.get_phy_addr(), src1.get_vir_addr(), src1.rows * src1.get_stride());
-	HI_MPI_SYS_MmzFlushCache(src2.get_phy_addr(), src2.get_vir_addr(), src2.rows * src2.get_stride());
+	HI_MPI_SYS_MmzFlushCache(src1.get_phy_addr(), src1.get_vir_addr(), src1.memsize());
+	HI_MPI_SYS_MmzFlushCache(src2.get_phy_addr(), src2.get_vir_addr(), src2.memsize());
 
 	s32Ret = HI_MPI_IVE_OR(&IveHandle, &src_info1, &src_info2, &dst_mem_info, bInstant);
 	if(s32Ret != HI_SUCCESS)
@@ -468,7 +558,7 @@ void bit_or(const hiMat &src1, const hiMat &src2, hiMat &dst)
 		exit(-1);
 	}
 
-	HI_MPI_SYS_MmzFlushCache(dst.get_phy_addr(), dst.get_vir_addr(), dst.rows * dst.get_stride());
+	HI_MPI_SYS_MmzFlushCache(dst.get_phy_addr(), dst.get_vir_addr(), dst.memsize());
 }
 
 //  ...
@@ -485,10 +575,12 @@ void yuv2rgb(const hiMat &src, hiMat &dst)
 	HI_BOOL bInstant = HI_TRUE;
 	IVE_HANDLE IveHandle;
 
-	IVE_SRC_INFO_S src_info = get_src_info_s(src, IVE_SRC_FMT_SP420);
+	IVE_SRC_INFO_S src_info = get_src_info_s(src);
 	IVE_MEM_INFO_S dst_mem_info = get_mem_info_s(dst);
 
-	HI_MPI_SYS_MmzFlushCache(src.get_phy_addr(), src.get_vir_addr(), src.rows * src.get_stride());
+	HI_MPI_SYS_MmzFlushCache(src.get_phy_addr(), src.get_vir_addr(), src.memsize());
+
+	src.dump_data("saved/before_csc.nv21");
 
 	s32Ret = HI_MPI_IVE_CSC(&IveHandle, &src_info, &dst_mem_info, &pstCscCtrl, bInstant);
 	if(s32Ret != HI_SUCCESS)
@@ -496,8 +588,9 @@ void yuv2rgb(const hiMat &src, hiMat &dst)
 		fprintf(stderr, "FATAL: HI_MPI_IVE_DILATE err %s:%s\n", __FILE__, __LINE__);
 		exit(-1);
 	}
-
+	dst.dump_data("saved/after_csc.rgb");
 	HI_MPI_SYS_MmzFlushCache(dst.get_phy_addr(), dst.get_vir_addr(), dst.rows * dst.get_stride() * 3);
+	
 }
 
 // 积分图(源数据只能为单分量) ...
@@ -524,6 +617,7 @@ void integral(const hiMat &src, hiMat &dst)
 	}
 
 	HI_MPI_SYS_MmzFlushCache(dst.get_phy_addr(), dst.get_vir_addr(), dst.rows * dst.get_stride() * 8);
+
 }
 
 } // namespace hi
