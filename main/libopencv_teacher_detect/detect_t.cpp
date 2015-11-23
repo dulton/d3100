@@ -1252,10 +1252,12 @@ bool TeacherDetecting::one_frame_luv(Mat raw_img, Mat img, vector < Rect > &r,
 	fillbg_struct.num++;
 	Mat img_t;
 
+	fprintf(stderr, "%s:%d\n", __func__, __LINE__);
 	cvtColor(img, img_t, CV_BGR2YUV);
 
 	std::vector < Mat > img_vector;
 	split(img_t, img_vector);
+	fprintf(stderr, "%s:%d\n", __func__, __LINE__);
 
 	//初始背景;
 	if (fillbg_struct.num == 10) {
@@ -1265,12 +1267,15 @@ bool TeacherDetecting::one_frame_luv(Mat raw_img, Mat img, vector < Rect > &r,
 	
 	//获得背景减除法矩形框;fillbg_struct.rect_old;
 	if (!fillbg_struct.bg.empty()) {
+	fprintf(stderr, "%s:%d\n", __func__, __LINE__);
 		luv_method(img, img_vector);
+	fprintf(stderr, "%s:%d\n", __func__, __LINE__);
 	}
 
 	//原始图像帧差法;
 	Mat Y = img_vector[0];
 	frame_difference_method(img, frame_s.masked_frame_rect, Y);
+	fprintf(stderr, "%s:%d\n", __func__, __LINE__);
 
 	////判定人是否走下讲台区;
 	//if(fillbg_struct.nframe >1 && !fillbg_struct.isfillok_end)
@@ -1280,7 +1285,9 @@ bool TeacherDetecting::one_frame_luv(Mat raw_img, Mat img, vector < Rect > &r,
 
 	//帧差法动态更新背景;
 	if (fillbg_struct.nframe > 1) {
+	fprintf(stderr, "%s:%d\n", __func__, __LINE__);
 		frame_updatebg(raw_img, img);
+	fprintf(stderr, "%s:%d\n", __func__, __LINE__);
 	}
 
 	//开始时没目标时用第一次的(防止开始人不动丢目标) ;
@@ -1297,12 +1304,16 @@ bool TeacherDetecting::one_frame_luv(Mat raw_img, Mat img, vector < Rect > &r,
 		fillbg_struct.rect_old.push_back(r);
 	}
 
+	fprintf(stderr, "%s:%d\n", __func__, __LINE__);
 	//判断是否是错误的更新;
 	is_need_fillbg_twice(img);
+	fprintf(stderr, "%s:%d\n", __func__, __LINE__);
 
 	//LUV算法，初始更新完之后，根据得到得rect和实时的图像以及bg图像，更新bg图;
 	if (!fillbg_struct.isfillok) {
+	fprintf(stderr, "%s:%d\n", __func__, __LINE__);
 		fillbg_LUV(img);
+	fprintf(stderr, "%s:%d\n", __func__, __LINE__);
 	}
 	//如果半分钟内一个目标也没有，则更新整个背景区;
 	//norect_update_bg(img);
@@ -1313,6 +1324,7 @@ bool TeacherDetecting::one_frame_luv(Mat raw_img, Mat img, vector < Rect > &r,
 		first_rect = fillbg_struct.fist_fillrect;
 	}
 
+	fprintf(stderr, "%s:%d\n", __func__, __LINE__);
 	r = fillbg_struct.rect_old;
 	return !r.empty();
 }

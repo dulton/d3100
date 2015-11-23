@@ -472,7 +472,7 @@ void filter(const hiMat &src, hiMat &dst)
 {
 	int s32Ret;
 
-	dst.create(src.rows, src.cols, hiMat::SINGLE);// hiMat 负责处理失败情况 ...
+	dst.create(src.rows, src.cols, src.type);// hiMat 负责处理失败情况 ...
 
 	IVE_FILTER_CTRL_S pstFilterCtrl;
 	pstFilterCtrl.u8Norm = 3;
@@ -507,7 +507,7 @@ void threshold(const hiMat &src, hiMat &dst, unsigned int threshold,
 {
 	int s32Ret;
 
-	dst.create(src.rows, src.cols, hiMat::SINGLE);// hiMat 负责处理失败情况 ...
+	dst.create(src.rows, src.cols, src.type);// hiMat 负责处理失败情况 ...
 
 	IVE_THRESH_CTRL_S pstThreshCtrl;
 	pstThreshCtrl.enOutFmt = IVE_THRESH_OUT_FMT_BINARY;
@@ -536,7 +536,7 @@ void absdiff(const hiMat &src1, const hiMat &src2, hiMat &dst)
 {
 	int s32Ret;
 
-	dst.create(src1.rows, src1.cols, hiMat::SINGLE); // hiMat 负责处理失败情况 ...
+	dst.create(src1.rows, src1.cols, src1.type); // hiMat 负责处理失败情况 ...
 
 	IVE_SUB_OUT_FMT_E enOutFmt;
 	enOutFmt = IVE_SUB_OUT_FMT_ABS;
@@ -564,7 +564,7 @@ void bit_or(const hiMat &src1, const hiMat &src2, hiMat &dst)
 {
 	int s32Ret;
 
-	dst.create(src1.rows, src1.cols, hiMat::SINGLE); // hiMat 负责处理失败情况 ...
+	dst.create(src1.rows, src1.cols, src1.type); // hiMat 负责处理失败情况 ...
 
 	HI_BOOL bInstant = HI_TRUE;
 	IVE_HANDLE IveHandle;
@@ -590,8 +590,10 @@ void yuv2rgb(const hiMat &src, hiMat &dst)
 {
 	int s32Ret;
 
+	fprintf(stderr, "%s:%d\n", __func__, __LINE__);
 	dst.create(src.rows, src.cols, hiMat::RGB24); // hiMat 负责处理失败情况 ...
 
+	fprintf(stderr, "%s:%d\n", __func__, __LINE__);
 	IVE_CSC_CTRL_S pstCscCtrl;
 	pstCscCtrl.enOutFmt = IVE_CSC_OUT_FMT_PACKAGE;
 	pstCscCtrl.enCscMode = IVE_CSC_MODE_VIDEO_BT601_AND_BT656;
@@ -602,13 +604,18 @@ void yuv2rgb(const hiMat &src, hiMat &dst)
 	IVE_SRC_INFO_S src_info = get_src_info_s(src);
 	IVE_MEM_INFO_S dst_mem_info = get_mem_info_s(dst);
 	dst_mem_info.u32Stride = dst.cols;
+	fprintf(stderr, "%s:%d\n", __func__, __LINE__);
+
+	dump_src_info(src_info);
+	dump_dst_info(dst_mem_info);
 
 	src.flush();
+	fprintf(stderr, "%s:%d\n", __func__, __LINE__);
 
 	s32Ret = HI_MPI_IVE_CSC(&IveHandle, &src_info, &dst_mem_info, &pstCscCtrl, bInstant);
 	if(s32Ret != HI_SUCCESS)
 	{
-		fprintf(stderr, "FATAL: HI_MPI_IVE_DILATE err %s:%s\n", __FILE__, __LINE__);
+		fprintf(stderr, "FATAL: HI_MPI_IVE_CSC err code=%08x, %s:%d\n", s32Ret, __FILE__, __LINE__);
 		exit(-1);
 	}
 }
