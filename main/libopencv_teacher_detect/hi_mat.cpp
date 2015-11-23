@@ -466,7 +466,8 @@ void erode(const hiMat &src, hiMat &dst)
 	}
 }
 
-// 图像滤波(源数据只能为单分量) ...
+// 图像滤波(源数据可以是单分量,sp420,sp422) ...
+// 当输入为sp420和sp422时宽度必须为偶数 ...
 void filter(const hiMat &src, hiMat &dst)
 {
 	int s32Ret;
@@ -583,7 +584,8 @@ void bit_or(const hiMat &src1, const hiMat &src2, hiMat &dst)
 	}
 }
 
-//  ...
+// yuv转rgb(源数据分量可以是sp420, sp422) ...
+// 宽度必须是偶数 ...
 void yuv2rgb(const hiMat &src, hiMat &dst)
 {
 	int s32Ret;
