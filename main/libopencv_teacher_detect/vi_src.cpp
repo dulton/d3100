@@ -378,147 +378,25 @@ static void save_mat(const cv::Mat & m, const char *fname)
 	}
 }
 
-#if 0
-/** 将 frame 转换为 rgb24 的 Mat */
-static void vf2mat(const VIDEO_FRAME_INFO_S & frame, cv::Mat & m)
-{
-	IVE_HANDLE IveHandle;
-	HI_BOOL bInstant;
-
-	int width = frame.stVFrame.u32Width, height = frame.stVFrame.u32Height;
-
-	size_t yuvsize = width * height * 3 / 2;	// yuv nv12
-	size_t rgbsize = width * height * 3;	// rgb24
-
-	IVE_SRC_INFO_S src;
-	void *src_vir;
-	src.u32Width = width;
-	src.u32Height = height;
-	src.enSrcFmt = IVE_SRC_FMT_SP420;	// nv12
-	src.stSrcMem.u32Stride = frame.stVFrame.u32Stride[0];
-
-	// 准备 ive src 内存 ..
-	int rc = HI_MPI_SYS_MmzAlloc_Cached(&src.stSrcMem.u32PhyAddr, &src_vir,
-					    "User", 0, yuvsize);
-	if (rc != HI_SUCCESS) {
-		fprintf(stderr, "FATAL: HI_MPI_SYS_MmzAlloc_Cached err %s:%d\n",
-			__FILE__, __LINE__);
-		exit(-1);
-	}
-	// 将 frame 中的数据复制到 ive src 中 ...
-	uchar *p = (uchar *) HI_MPI_SYS_Mmap(frame.stVFrame.u32PhyAddr[0], yuvsize);
-	memcpy(src_vir, p, yuvsize);
-	HI_MPI_SYS_Munmap(p, yuvsize);
-
-    //save_nv1("saved/src000.yuv", &src, src_vir);
-
-	// 准备 ive dst 内存 ..
-	IVE_MEM_INFO_S dst;
-	dst.u32Stride = frame.stVFrame.u32Stride[0];
-	void *dst_vir;
-	rc = HI_MPI_SYS_MmzAlloc_Cached(&dst.u32PhyAddr, &dst_vir, "User", 0,
-					yuvsize);
-	if (rc != HI_SUCCESS) {
-		fprintf(stderr, "FATAL: HI_MPI_SYS_MmzAlloc_Cached err %s:%d\n",
-			__FILE__, __LINE__);
-		exit(-1);
-	}
-	// ive 滤波 ...
-	IVE_FILTER_CTRL_S pstFilterCtrl;
-	pstFilterCtrl.u8Norm = 3;
-	pstFilterCtrl.as8Mask[0] = 1;
-	pstFilterCtrl.as8Mask[1] = 1;
-	pstFilterCtrl.as8Mask[2] = 1;
-	pstFilterCtrl.as8Mask[3] = 1;
-	pstFilterCtrl.as8Mask[4] = 0;
-	pstFilterCtrl.as8Mask[5] = 1;
-	pstFilterCtrl.as8Mask[6] = 1;
-	pstFilterCtrl.as8Mask[7] = 1;
-	pstFilterCtrl.as8Mask[8] = 1;
-
-	// XXX: FlushCache 保证 src_vir 中是可靠的数据 ...
-	HI_MPI_SYS_MmzFlushCache(src.stSrcMem.u32PhyAddr, src_vir, yuvsize);
-	rc = HI_MPI_IVE_FILTER(&IveHandle, &src, &dst, &pstFilterCtrl,
-			       bInstant);
-	if (rc != HI_SUCCESS) {
-		fprintf(stderr, "FATAL: HI_MPI_IVE_FILTER err %s:%d\n",
-			__FILE__, __LINE__);
-		exit(-1);
-	}
-	// src 内存不再需要 ..
-	HI_MPI_SYS_MmzFree(src.stSrcMem.u32PhyAddr, src_vir);
-
-	// yuv to rgb
-	IVE_MEM_INFO_S rgb;
-	void *rgb_vir;
-	rc = HI_MPI_SYS_MmzAlloc_Cached(&rgb.u32PhyAddr, &rgb_vir, "User", 0,
-					rgbsize);
-	if (rc != HI_SUCCESS) {
-		fprintf(stderr, "FATAL: HI_MPI_SYS_MmzAlloc_Cached err %s:%s\n",
-			__FILE__, __LINE__);
-		exit(-1);
-	}
-	rgb.u32Stride = width;	// XXX: IVE 中的 stride 与众不同 ..
-
-	IVE_SRC_INFO_S yuv;	// 直接使用滤波后的 dst
-	yuv.u32Width = width;
-	yuv.u32Height = height;
-	yuv.stSrcMem = dst;
-	yuv.enSrcFmt = IVE_SRC_FMT_SP420;
-
-	IVE_CSC_CTRL_S pstCscCtrl;
-	pstCscCtrl.enOutFmt = IVE_CSC_OUT_FMT_PACKAGE;
-	pstCscCtrl.enCscMode = IVE_CSC_MODE_VIDEO_BT601_AND_BT656;
-
-	//save_nv1("saved/filtered.yuv", &yuv, dst_vir);
-
-	//HI_MPI_SYS_MmzFlushCache(dst.u32PhyAddr, dst_vir, yuvsize);
-	rc = HI_MPI_IVE_CSC(&IveHandle, &yuv, &rgb, &pstCscCtrl, bInstant);
-	if (rc != HI_SUCCESS) {
-		fprintf(stderr, "FATAL: HI_MPI_IVE_CSC err %s:%d\n", __FILE__,
-			__LINE__);
-		fprintf(stderr, "ERRO NO = 0x%x\n", rc);
-		exit(-1);
-	}
-	// dst 内存不再需要 ..
-	HI_MPI_SYS_MmzFree(dst.u32PhyAddr, dst_vir);
-
-	// 将rgb数据复制到 mat 中 ...
-	m.create(height, width, CV_8UC3);
-
-	//save_rgb(0, width, height, rgb_vir);
-
-	char *s = (char *)rgb_vir;
-	for (int i = 0; i < height; i++) {
-		unsigned char *d = m.ptr < unsigned char >(i);
-		memcpy(d, s, m.elemSize() * m.cols);
-		s += width * 3;	// FIXME:
-	}
-
-	save_mat(m, "saved/mat.rgb");
-
-	HI_MPI_SYS_MmzFree(rgb.u32PhyAddr, rgb_vir);
-}
-#else
 static void vf2mat(const VIDEO_FRAME_INFO_S &frame, cv::Mat &m)
 {
 	hiMat hm(frame.stVFrame.u32PhyAddr[0], frame.stVFrame.u32Width, 
 			frame.stVFrame.u32Height, frame.stVFrame.u32Stride[0], hiMat::SP420);
 
-	hm.dump_data("saved/hm.nv21");
+	fprintf(stderr, "%s:%d\n", __func__, __LINE__);
 
 	hiMat t1, t2;
 	hi::filter(hm, t1);
-	t1.dump_data("saved/t1.nv21");
+	fprintf(stderr, "%s:%d\n", __func__, __LINE__);
+	t1.dump_data("saved/t1.yuv");
 
 	hi::yuv2rgb(t1, t2);
-	t2.dump_data("saved/t2.rgb24");
+	t2.dump_data("saved/t2.rgb");
+	fprintf(stderr, "%s:%d\n", __func__, __LINE__);
 
 	t2.download(m);
-	save_mat(m, "saved/mat0.rgb");
-	exit(-1);
+	fprintf(stderr, "%s:%d\n", __func__, __LINE__);
 }
-#endif // 
 
 struct visrc_t {
 	KVConfig *cfg;
@@ -528,6 +406,7 @@ struct visrc_t {
 
 visrc_t *vs_open(const char *fname)
 {
+	fprintf(stderr, "%s:%d\n", __func__, __LINE__);
 	static bool _inited = false;
 	if (!_inited) {
 		if (zk_mpi_init() < 0) {
@@ -558,8 +437,11 @@ bool vs_next_frame(visrc_t * vs, cv::Mat & m)
 		return false;	// 超时失败 ...
 	}
 	// 通过 VIDEO_FRAME_INFO_S 构造 cv::Mat
+
+	fprintf(stderr, "%s:%d\n", __func__, __LINE__);
 	vf2mat(frame, m);
 	HI_MPI_VI_ReleaseFrame(vs->ch, &frame);
+	fprintf(stderr, "%s:%d\n", __func__, __LINE__);
 	return true;
 }
 
