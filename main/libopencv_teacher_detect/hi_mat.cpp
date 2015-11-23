@@ -427,7 +427,7 @@ void dilate(const hiMat &src, hiMat &dst)
 	s32Ret = HI_MPI_IVE_DILATE(&IveHandle, &src_info, &dst_mem_info, &pstDilateCtrl, bInstant);
 	if(s32Ret != HI_SUCCESS)
 	{
-		fprintf(stderr, "FATAL: HI_MPI_IVE_DILATE err %s:%s\n", __FILE__, __LINE__);
+		fprintf(stderr, "FATAL: HI_MPI_IVE_DILATE err %s:%d\n", __FILE__, __LINE__);
 		exit(-1);
 	}
 }
@@ -461,7 +461,7 @@ void erode(const hiMat &src, hiMat &dst)
 	s32Ret = HI_MPI_IVE_ERODE(&IveHandle, &src_info, &dst_mem_info, &pstErodeCtrl, bInstant);
 	if(s32Ret != HI_SUCCESS)
 	{
-		fprintf(stderr, "FATAL: HI_MPI_IVE_DILATE err %s:%s\n", __FILE__, __LINE__);
+		fprintf(stderr, "FATAL: HI_MPI_IVE_DILATE err %s:%d\n", __FILE__, __LINE__);
 		exit(-1);
 	}
 }
@@ -526,7 +526,7 @@ void threshold(const hiMat &src, hiMat &dst, unsigned int threshold,
 	s32Ret = HI_MPI_IVE_THRESH(&IveHandle, &src_info, &dst_mem_info, &pstThreshCtrl, bInstant);
 	if(s32Ret != HI_SUCCESS)
 	{
-		fprintf(stderr, "FATAL: HI_MPI_IVE_DILATE err %s:%s\n", __FILE__, __LINE__);
+		fprintf(stderr, "FATAL: HI_MPI_IVE_DILATE err %s:%d\n", __FILE__, __LINE__);
 		exit(-1);
 	}
 }
@@ -554,7 +554,7 @@ void absdiff(const hiMat &src1, const hiMat &src2, hiMat &dst)
 	s32Ret = HI_MPI_IVE_SUB(&IveHandle, &src_info1, &src_info2, &dst_mem_info, enOutFmt, bInstant);
 	if(s32Ret != HI_SUCCESS)
 	{
-		fprintf(stderr, "FATAL: HI_MPI_IVE_DILATE err %s:%s\n", __FILE__, __LINE__);
+		fprintf(stderr, "FATAL: HI_MPI_IVE_DILATE err %s:%d\n", __FILE__, __LINE__);
 		exit(-1);
 	}
 }
@@ -579,7 +579,7 @@ void bit_or(const hiMat &src1, const hiMat &src2, hiMat &dst)
 	s32Ret = HI_MPI_IVE_OR(&IveHandle, &src_info1, &src_info2, &dst_mem_info, bInstant);
 	if(s32Ret != HI_SUCCESS)
 	{
-		fprintf(stderr, "FATAL: HI_MPI_IVE_DILATE err %s:%s\n", __FILE__, __LINE__);
+		fprintf(stderr, "FATAL: HI_MPI_IVE_DILATE err %s:%d\n", __FILE__, __LINE__);
 		exit(-1);
 	}
 }
@@ -640,7 +640,7 @@ void integral(const hiMat &src, hiMat &dst)
 	s32Ret = HI_MPI_IVE_INTEG(&IveHandle, &src_info, &dst_mem_info, bInstant);
 	if(s32Ret != HI_SUCCESS)
 	{
-		fprintf(stderr, "FATAL: HI_MPI_IVE_DILATE err %s:%s\n", __FILE__, __LINE__);
+		fprintf(stderr, "FATAL: HI_MPI_IVE_DILATE err %s:%d\n", __FILE__, __LINE__);
 		exit(-1);
 	}
 }
