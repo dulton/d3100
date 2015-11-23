@@ -186,10 +186,9 @@ public:
 
 	//hi3531
 	HI_S32 SAMPLE_IVE_INIT();
-	HI_S32 hi_luv_method( std::vector<Mat> img,std::vector<Mat> bg,Mat &dst);
-	HI_S32 hi_dilate( Mat src, Mat &dst);
-	HI_S32 hi_blur( Mat src, Mat &dst);
-	HI_S32 hi_two_frame_method( Mat src, Mat &dst);
+	void hi_luv_method( std::vector<Mat> img,std::vector<Mat> bg,Mat &dst);
+	void hi_dilate( Mat src, Mat &dst);
+	void hi_two_frame_method( Mat src, Mat &dst);
 
 protected:
 	//人脸和ct;
@@ -201,7 +200,6 @@ protected:
 	void init_fillbg_struct(Fill_Bg &fillbg_struct);
 
 	//帧差法;
-	void creat_buffer(IplImage *image);
 	//void two_frame_method(Mat img,Mat &silh);
 	void two_frame_method(Mat img,Mat &silh,Mat Y);
 	void three_frame_method(Mat img,Mat &silh);
