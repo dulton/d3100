@@ -1267,13 +1267,14 @@ bool TeacherDetecting::one_frame_luv(Mat raw_img, Mat img, vector < Rect > &r,
 	
 	//获得背景减除法矩形框;fillbg_struct.rect_old;
 	if (!fillbg_struct.bg.empty()) {
-	fprintf(stderr, "%s:%d\n", __func__, __LINE__);
+		printf("********luv_method\n");
 		luv_method(img, img_vector);
 	fprintf(stderr, "%s:%d\n", __func__, __LINE__);
 	}
 
 	//原始图像帧差法;
 	Mat Y = img_vector[0];
+	printf("********frame_difference_method\n");
 	frame_difference_method(img, frame_s.masked_frame_rect, Y);
 	fprintf(stderr, "%s:%d\n", __func__, __LINE__);
 
