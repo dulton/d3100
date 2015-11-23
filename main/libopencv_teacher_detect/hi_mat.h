@@ -19,6 +19,7 @@ class hiMat
 		RGB24,	// 8UC3
 		SINGLE,	// 8U
 		SP420,	// ??
+		U64,	// 用于积分图 ..., 第28位为 sum, 高 36位为"平方和" ..
 	};
 
 	hiMat();
@@ -45,6 +46,7 @@ class hiMat
 	unsigned int get_phy_addr() const;
 	void *get_vir_addr() const;
 	int hi_stride() const;
+	int stride() const { return stride_; }
 
 	size_t ref()
 	{
@@ -64,18 +66,13 @@ class hiMat
 namespace hi
 {
 	void dilate(const hiMat &src, hiMat &dst);
-
 	void erode(const hiMat &src, hiMat &dst);
-
 	void filter(const hiMat &src, hiMat &dst);
-
 	void threshold(const hiMat &src, hiMat &dst, unsigned int threshold, 
 		           unsigned int max_value); // , IVE_THRESH_OUT_FMT_E type);
-
 	void absdiff(const hiMat &src1, const hiMat &src2, hiMat &dst);
-
 	void bit_or(const hiMat &src1, const hiMat &src2, hiMat &dst);
-
 	void yuv2rgb(const hiMat &src, hiMat &dst);
+	void integral(const hiMat &src, hiMat &dst);
 }
 

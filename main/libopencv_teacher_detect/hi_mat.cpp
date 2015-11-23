@@ -113,6 +113,9 @@ void hiMat::dump_data(const char *fname) const
 		if (type == RGB24)
 			ds = cols * 3;
 
+		if (type == U64)
+			ds = cols * 8;
+
 		for (int i = 0; i < rows; i++) {
 			fwrite(s, 1, ds, fp);
 			s += stride_;
@@ -149,7 +152,6 @@ void hiMat::download(cv::Mat &m)
 	if (type == RGB24) {
 		m.create(rows, cols, CV_8UC3);	// rgb24
 		ds = cols * 3;
-		fprintf(stderr, "ds:%d\n", ds);
 	}
 	else if (type == SP420) {
 		fprintf(stderr, "FATAL: hiMat::download NOT impl!!!!\n");
@@ -159,16 +161,36 @@ void hiMat::download(cv::Mat &m)
 		m.create(rows, cols, CV_8U);
 		ds = cols;
 	}
+	else if (type == U64) {
+		m.create(rows, cols, CV_32F);
+	}
 	else {
 		fprintf(stderr, "FATAL: hiMat::download NOT impl..\n");
 		exit(-1);
 	}
 
-	unsigned char *p = (unsigned char*)vir_addr_;
-	for (int i = 0; i < rows; i++) {
-		unsigned char *q = m.ptr<unsigned char>(i);
-		memcpy(q , p, ds);
-		p += stride_;
+	if (type == U64) {
+		/** FIXME: 这里仅仅保存 sum 值，输出 mat 为 32FC1 
+		 */
+		int64_t *p = (int64_t*)vir_addr_;
+		for (int i = 0; i < rows; i++) {
+			float *q = m.ptr<float>(i);
+			for (int j = 0; j < cols; j++) {
+				q[j] = p[j] & 0xfffffff;
+			}
+
+			unsigned char *x = (unsigned char*)p;
+			x += stride();
+			p = (int64_t*)x;
+		}
+	}
+	else {
+		unsigned char *p = (unsigned char*)vir_addr_;
+		for (int i = 0; i < rows; i++) {
+			unsigned char *q = m.ptr<unsigned char>(i);
+			memcpy(q , p, ds);
+			p += stride_;
+		}
 	}
 }
 
@@ -201,6 +223,7 @@ size_t hiMat::memsize() const
 	switch (type) {
 	case RGB24:
 	case SINGLE:
+	case U64:
 		return rows * stride_;
 
 	case SP420:
@@ -227,13 +250,16 @@ void hiMat::create(int rows, int cols, hiMat::Type type)
 
 	switch (type) {
 	case RGB24:
-		fprintf(stderr, "create RGB24 mat\n");
 		stride_ = ((cols + 7) / 8 * 8) * 3;
 		break;
 
 	case SINGLE:
 	case SP420:
 		stride_ = (cols + 7) / 8 * 8;
+		break;
+
+	case U64:
+		stride_ = ((cols + 7) / 8 * 8) * 8;
 		break;
 
 	default:
@@ -351,6 +377,22 @@ static void dump_dst_info(const IVE_MEM_INFO_S &info)
 {
 	fprintf(stderr, "DEBUG: == %s\n", __func__);
 	fprintf(stderr, "\tphyaddr=%u, stride=%d\n", info.u32PhyAddr, info.u32Stride);
+}
+
+static void dump_data(const void *data, int stride, int height, int size)
+{
+	fprintf(stderr, "==== %p ====\n");
+	
+	const uint8_t *p = (const uint8_t *)data;
+
+	for (int i = 0; i < height; i++) {
+		for (int j = 0; j < size; j++) {
+			fprintf(stderr, "%02x ", p[j]);
+		}
+
+		p += stride;
+		fprintf(stderr, "\n");
+	}
 }
 
 ///////////////////// 以下为对 hiMat 的操作 ////////////////////////
@@ -576,13 +618,14 @@ void integral(const hiMat &src, hiMat &dst)
 {
 	int s32Ret;
 
-	dst.create(src.rows, src.cols, src.type); // hiMat 负责处理失败情况 ...
+	dst.create(src.rows, src.cols, hiMat::U64); // hiMat 负责处理失败情况 ...
 
 	HI_BOOL bInstant = HI_TRUE;
 	IVE_HANDLE IveHandle;
 
 	IVE_SRC_INFO_S src_info = get_src_info_s(src);
 	IVE_MEM_INFO_S dst_mem_info = get_mem_info_s(dst);
+	dst.dump_hdr();
 
 	src.flush();
 
@@ -592,6 +635,8 @@ void integral(const hiMat &src, hiMat &dst)
 		fprintf(stderr, "FATAL: HI_MPI_IVE_DILATE err %s:%s\n", __FILE__, __LINE__);
 		exit(-1);
 	}
+
+	//dump_data(dst.get_vir_addr(), dst.stride(), dst.rows, 16);
 }
 
 } // namespace hi
