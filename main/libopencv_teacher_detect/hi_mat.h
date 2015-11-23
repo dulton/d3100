@@ -35,6 +35,8 @@ class hiMat
 
 	void dump_hdr() const;
 	void dump_data(const char *fname) const;
+	
+	void flush() const;
 
 	int rows;
 	int cols;
@@ -42,7 +44,7 @@ class hiMat
 
 	unsigned int get_phy_addr() const;
 	void *get_vir_addr() const;
-	int get_stride() const;
+	int hi_stride() const;
 
 	size_t ref()
 	{

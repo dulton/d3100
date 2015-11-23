@@ -505,18 +505,18 @@ static void vf2mat(const VIDEO_FRAME_INFO_S &frame, cv::Mat &m)
 	hiMat hm(frame.stVFrame.u32PhyAddr[0], frame.stVFrame.u32Width, 
 			frame.stVFrame.u32Height, frame.stVFrame.u32Stride[0], hiMat::SP420);
 
-	hm.dump_hdr();
 	hm.dump_data("saved/hm.nv21");
-	exit(-1);
 
 	hiMat t1, t2;
-//	hi::filter(hm, t1);
+	hi::filter(hm, t1);
+	t1.dump_data("saved/t1.nv21");
 
-	hi::yuv2rgb(hm, t2);
+	hi::yuv2rgb(t1, t2);
+	t2.dump_data("saved/t2.rgb24");
 
 	t2.download(m);
-
 	save_mat(m, "saved/mat0.rgb");
+	exit(-1);
 }
 #endif // 
 
