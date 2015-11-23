@@ -268,6 +268,7 @@ static IVE_SRC_INFO_S get_src_info_s(const hiMat &src, IVE_SRC_FMT_E fmt)
 namespace hi
 {
 	// 建议所有函数都放到 hi 名字空间中 ...
+// 图像膨胀(源数据只能为单分量) ...
 void dilate(const hiMat &src, hiMat &dst)
 {
 	int s32Ret;
@@ -303,6 +304,7 @@ void dilate(const hiMat &src, hiMat &dst)
 	HI_MPI_SYS_MmzFlushCache(dst.get_phy_addr(), dst.get_vir_addr(), dst.rows * dst.get_stride());
 }
 
+// 图像腐蚀(源数据只能为单分量) ...
 void erode(const hiMat &src, hiMat &dst)
 {
 	int s32Ret;
@@ -338,6 +340,7 @@ void erode(const hiMat &src, hiMat &dst)
 	HI_MPI_SYS_MmzFlushCache(dst.get_phy_addr(), dst.get_vir_addr(), dst.rows * dst.get_stride());
 }
 
+// 图像滤波(源数据只能为单分量) ...
 void filter(const hiMat &src, hiMat &dst)
 {
 	int s32Ret;
@@ -377,7 +380,7 @@ void filter(const hiMat &src, hiMat &dst)
 	HI_MPI_SYS_MmzFlushCache(dst.get_phy_addr(), dst.get_vir_addr(), dst.rows * dst.get_stride());
 }
 
-// 这个阈值时不定值 ....???????...
+// 图像阈值化(源数据只能为单分量) 注：这里的类型固定了...
 void threshold(const hiMat &src, hiMat &dst, unsigned int threshold, 
 	           unsigned int max_value) // , IVE_THRESH_OUT_FMT_E type)
 {
@@ -409,6 +412,7 @@ void threshold(const hiMat &src, hiMat &dst, unsigned int threshold,
 	HI_MPI_SYS_MmzFlushCache(dst.get_phy_addr(), dst.get_vir_addr(), dst.rows * dst.get_stride());
 }
 
+// 两图像相减(源数据只能为单分量) ...
 void absdiff(const hiMat &src1, const hiMat &src2, hiMat &dst)
 {
 	int s32Ret;
@@ -439,6 +443,7 @@ void absdiff(const hiMat &src1, const hiMat &src2, hiMat &dst)
 	HI_MPI_SYS_MmzFlushCache(dst.get_phy_addr(), dst.get_vir_addr(), dst.rows * dst.get_stride());
 }
 
+// 图像或运算(源数据只能为单分量) ...
 void bit_or(const hiMat &src1, const hiMat &src2, hiMat &dst)
 {
 	int s32Ret;
@@ -466,6 +471,7 @@ void bit_or(const hiMat &src1, const hiMat &src2, hiMat &dst)
 	HI_MPI_SYS_MmzFlushCache(dst.get_phy_addr(), dst.get_vir_addr(), dst.rows * dst.get_stride());
 }
 
+//  ...
 void yuv2rgb(const hiMat &src, hiMat &dst)
 {
 	int s32Ret;
@@ -491,7 +497,33 @@ void yuv2rgb(const hiMat &src, hiMat &dst)
 		exit(-1);
 	}
 
-	HI_MPI_SYS_MmzFlushCache(dst.get_phy_addr(), dst.get_vir_addr(), dst.rows * dst.get_stride());
+	HI_MPI_SYS_MmzFlushCache(dst.get_phy_addr(), dst.get_vir_addr(), dst.rows * dst.get_stride() * 3);
+}
+
+// 积分图(源数据只能为单分量) ...
+// 输出数据内存大小必须为：源图像高 * 输出数据跨度 * 8 ...
+void integral(const hiMat &src, hiMat &dst)
+{
+	int s32Ret;
+
+	dst.create(src.rows, src.cols, src.type); // hiMat 负责处理失败情况 ...
+
+	HI_BOOL bInstant = HI_TRUE;
+	IVE_HANDLE IveHandle;
+
+	IVE_SRC_INFO_S src_info = get_src_info_s(src, IVE_SRC_FMT_SINGLE);
+	IVE_MEM_INFO_S dst_mem_info = get_mem_info_s(dst);
+
+	HI_MPI_SYS_MmzFlushCache(src.get_phy_addr(), src.get_vir_addr(), src.rows * src.get_stride());
+
+	s32Ret = HI_MPI_IVE_INTEG(&IveHandle, &src_info, &dst_mem_info, bInstant);
+	if(s32Ret != HI_SUCCESS)
+	{
+		fprintf(stderr, "FATAL: HI_MPI_IVE_DILATE err %s:%s\n", __FILE__, __LINE__);
+		exit(-1);
+	}
+
+	HI_MPI_SYS_MmzFlushCache(dst.get_phy_addr(), dst.get_vir_addr(), dst.rows * dst.get_stride() * 8);
 }
 
 } // namespace hi
