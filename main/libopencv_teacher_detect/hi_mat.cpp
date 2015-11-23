@@ -85,7 +85,6 @@ hiMat::hiMat(unsigned int phyaddr, int width, int height, int stride, Type type)
 	rows = height;
 	stride_ = stride;
 	vir_addr_ = HI_MPI_SYS_Mmap(phy_addr_, memsize());
-	fprintf(stderr, "memsize=%d\n", memsize());
 }
 
 hiMat::~hiMat()
@@ -105,19 +104,18 @@ void hiMat::dump_hdr() const
 
 void hiMat::dump_data(const char *fname) const
 {
+	flush();
 	FILE *fp = fopen(fname, "wb");
 	if (fp) {
 		const unsigned char *s = (unsigned char*)vir_addr_;
+
 		int ds = cols;
 		if (type == RGB24)
 			ds = cols * 3;
 
-		if (type == SINGLE || type == RGB24) {
-			for (int i = 0; i < rows; i++) {
-				fwrite(s, 1, ds, fp);
-				s += stride_;
-				fprintf(stderr, "%d ", i);
-			}
+		for (int i = 0; i < rows; i++) {
+			fwrite(s, 1, ds, fp);
+			s += stride_;
 		}
 
 		if (type == SP420) {
@@ -125,12 +123,16 @@ void hiMat::dump_data(const char *fname) const
 			for (int i = 0; i < rows / 2; i++) {
 				fwrite(s, 1, ds, fp);
 				s += stride_;
-				fprintf(stderr, "%d ", i);
 			}
 		}
 
 		fclose(fp);
 	}
+}
+
+void hiMat::flush() const
+{
+	HI_MPI_SYS_MmzFlushCache(phy_addr_, vir_addr_, memsize());
 }
 
 void hiMat::download(cv::Mat &m)
@@ -142,6 +144,7 @@ void hiMat::download(cv::Mat &m)
 				gray: stride_ / cols >= 1
 	 */
 
+	flush();
 	size_t ds = cols;
 	if (type == RGB24) {
 		m.create(rows, cols, CV_8UC3);	// rgb24
@@ -221,22 +224,16 @@ void hiMat::create(int rows, int cols, hiMat::Type type)
 	this->cols = cols;
 	this->type = type;
 
-	unsigned msize = 0;
 
 	switch (type) {
 	case RGB24:
 		fprintf(stderr, "create RGB24 mat\n");
-		stride_ = (cols * 3 + 7) / 8 * 8;
-		msize = stride_ * rows;
+		stride_ = ((cols + 7) / 8 * 8) * 3;
 		break;
 
 	case SINGLE:
-		stride_ = (cols + 7) / 8 * 8;
-		msize = stride_ * rows;
-
 	case SP420:
 		stride_ = (cols + 7) / 8 * 8;
-		msize = stride_ * rows * 3 / 2;
 		break;
 
 	default:
@@ -245,7 +242,7 @@ void hiMat::create(int rows, int cols, hiMat::Type type)
 		break;
 	}	
 
-	hlp_alloc(&phy_addr_, &vir_addr_, msize);
+	hlp_alloc(&phy_addr_, &vir_addr_, memsize());
 
 	ref_ = new size_t;
 	*ref_ = 1;
@@ -295,9 +292,9 @@ hiMat &hiMat::operator = (const cv::Mat &m)
 	return *this;
 }
 
-int hiMat::get_stride() const
+int hiMat::hi_stride() const
 {
-	return stride_;
+	return (cols + 7) / 8 * 8;
 }
 
 unsigned int hiMat::get_phy_addr() const
@@ -317,7 +314,7 @@ static IVE_MEM_INFO_S get_mem_info_s(const hiMat &src)
 	IVE_MEM_INFO_S mem_info;
 
 	mem_info.u32PhyAddr = src.get_phy_addr();
-	mem_info.u32Stride = src.get_stride();
+	mem_info.u32Stride = src.hi_stride();
 
 	return mem_info;
 }
@@ -383,7 +380,7 @@ void dilate(const hiMat &src, hiMat &dst)
 	IVE_SRC_INFO_S src_info = get_src_info_s(src);
 	IVE_MEM_INFO_S dst_mem_info = get_mem_info_s(dst);
 
-	HI_MPI_SYS_MmzFlushCache(src.get_phy_addr(), src.get_vir_addr(), src.memsize());
+	src.flush();
 
 	s32Ret = HI_MPI_IVE_DILATE(&IveHandle, &src_info, &dst_mem_info, &pstDilateCtrl, bInstant);
 	if(s32Ret != HI_SUCCESS)
@@ -391,8 +388,6 @@ void dilate(const hiMat &src, hiMat &dst)
 		fprintf(stderr, "FATAL: HI_MPI_IVE_DILATE err %s:%s\n", __FILE__, __LINE__);
 		exit(-1);
 	}
-
-	HI_MPI_SYS_MmzFlushCache(dst.get_phy_addr(), dst.get_vir_addr(), dst.memsize());
 }
 
 void erode(const hiMat &src, hiMat &dst)
@@ -418,7 +413,7 @@ void erode(const hiMat &src, hiMat &dst)
 	IVE_SRC_INFO_S src_info = get_src_info_s(src);
 	IVE_MEM_INFO_S dst_mem_info = get_mem_info_s(dst);
 
-	HI_MPI_SYS_MmzFlushCache(src.get_phy_addr(), src.get_vir_addr(), src.memsize());
+	src.flush();
 
 	s32Ret = HI_MPI_IVE_ERODE(&IveHandle, &src_info, &dst_mem_info, &pstErodeCtrl, bInstant);
 	if(s32Ret != HI_SUCCESS)
@@ -426,8 +421,6 @@ void erode(const hiMat &src, hiMat &dst)
 		fprintf(stderr, "FATAL: HI_MPI_IVE_DILATE err %s:%s\n", __FILE__, __LINE__);
 		exit(-1);
 	}
-
-	HI_MPI_SYS_MmzFlushCache(dst.get_phy_addr(), dst.get_vir_addr(), dst.memsize());
 }
 
 void filter(const hiMat &src, hiMat &dst)
@@ -454,17 +447,13 @@ void filter(const hiMat &src, hiMat &dst)
 	IVE_SRC_INFO_S src_info = get_src_info_s(src);
 	IVE_MEM_INFO_S dst_mem_info = get_mem_info_s(dst);
 
-	dump_src_info(src_info);
-
-	HI_MPI_SYS_MmzFlushCache(src.get_phy_addr(), src.get_vir_addr(), src.memsize());
+	src.flush();
 
 	s32Ret = HI_MPI_IVE_FILTER(&IveHandle, &src_info, &dst_mem_info, &pstFilterCtrl, bInstant);
 	if(s32Ret != HI_SUCCESS) {
 		fprintf(stderr, "FATAL: HI_MPI_IVE_DILATE err code=%08x, %s:%d\n", s32Ret, __FILE__, __LINE__);
 		exit(-1);
 	}
-
-	HI_MPI_SYS_MmzFlushCache(dst.get_phy_addr(), dst.get_vir_addr(), dst.memsize());
 }
 
 // 这个阈值时不定值 ....???????...
@@ -487,7 +476,7 @@ void threshold(const hiMat &src, hiMat &dst, unsigned int threshold,
 	IVE_SRC_INFO_S src_info = get_src_info_s(src);
 	IVE_MEM_INFO_S dst_mem_info = get_mem_info_s(dst);
 
-	HI_MPI_SYS_MmzFlushCache(src.get_phy_addr(), src.get_vir_addr(), src.memsize());
+	src.flush();
 
 	s32Ret = HI_MPI_IVE_THRESH(&IveHandle, &src_info, &dst_mem_info, &pstThreshCtrl, bInstant);
 	if(s32Ret != HI_SUCCESS)
@@ -495,8 +484,6 @@ void threshold(const hiMat &src, hiMat &dst, unsigned int threshold,
 		fprintf(stderr, "FATAL: HI_MPI_IVE_DILATE err %s:%s\n", __FILE__, __LINE__);
 		exit(-1);
 	}
-
-	HI_MPI_SYS_MmzFlushCache(dst.get_phy_addr(), dst.get_vir_addr(), dst.memsize());
 }
 
 void absdiff(const hiMat &src1, const hiMat &src2, hiMat &dst)
@@ -516,8 +503,7 @@ void absdiff(const hiMat &src1, const hiMat &src2, hiMat &dst)
 
 	IVE_MEM_INFO_S dst_mem_info = get_mem_info_s(dst);
 
-	HI_MPI_SYS_MmzFlushCache(src1.get_phy_addr(), src1.get_vir_addr(), src1.memsize());
-	HI_MPI_SYS_MmzFlushCache(src2.get_phy_addr(), src2.get_vir_addr(), src2.memsize());
+	src1.flush(), src2.flush();
 
 	s32Ret = HI_MPI_IVE_SUB(&IveHandle, &src_info1, &src_info2, &dst_mem_info, enOutFmt, bInstant);
 	if(s32Ret != HI_SUCCESS)
@@ -525,8 +511,6 @@ void absdiff(const hiMat &src1, const hiMat &src2, hiMat &dst)
 		fprintf(stderr, "FATAL: HI_MPI_IVE_DILATE err %s:%s\n", __FILE__, __LINE__);
 		exit(-1);
 	}
-
-	HI_MPI_SYS_MmzFlushCache(dst.get_phy_addr(), dst.get_vir_addr(), dst.memsize());
 }
 
 void bit_or(const hiMat &src1, const hiMat &src2, hiMat &dst)
@@ -543,8 +527,7 @@ void bit_or(const hiMat &src1, const hiMat &src2, hiMat &dst)
 
 	IVE_MEM_INFO_S dst_mem_info = get_mem_info_s(dst);
 
-	HI_MPI_SYS_MmzFlushCache(src1.get_phy_addr(), src1.get_vir_addr(), src1.memsize());
-	HI_MPI_SYS_MmzFlushCache(src2.get_phy_addr(), src2.get_vir_addr(), src2.memsize());
+	src1.flush(), src2.flush();
 
 	s32Ret = HI_MPI_IVE_OR(&IveHandle, &src_info1, &src_info2, &dst_mem_info, bInstant);
 	if(s32Ret != HI_SUCCESS)
@@ -552,8 +535,6 @@ void bit_or(const hiMat &src1, const hiMat &src2, hiMat &dst)
 		fprintf(stderr, "FATAL: HI_MPI_IVE_DILATE err %s:%s\n", __FILE__, __LINE__);
 		exit(-1);
 	}
-
-	HI_MPI_SYS_MmzFlushCache(dst.get_phy_addr(), dst.get_vir_addr(), dst.memsize());
 }
 
 void yuv2rgb(const hiMat &src, hiMat &dst)
@@ -571,10 +552,9 @@ void yuv2rgb(const hiMat &src, hiMat &dst)
 
 	IVE_SRC_INFO_S src_info = get_src_info_s(src);
 	IVE_MEM_INFO_S dst_mem_info = get_mem_info_s(dst);
+	dst_mem_info.u32Stride = dst.cols;
 
-	HI_MPI_SYS_MmzFlushCache(src.get_phy_addr(), src.get_vir_addr(), src.memsize());
-
-	src.dump_data("saved/before_csc.nv21");
+	src.flush();
 
 	s32Ret = HI_MPI_IVE_CSC(&IveHandle, &src_info, &dst_mem_info, &pstCscCtrl, bInstant);
 	if(s32Ret != HI_SUCCESS)
@@ -582,10 +562,6 @@ void yuv2rgb(const hiMat &src, hiMat &dst)
 		fprintf(stderr, "FATAL: HI_MPI_IVE_DILATE err %s:%s\n", __FILE__, __LINE__);
 		exit(-1);
 	}
-
-	HI_MPI_SYS_MmzFlushCache(dst.get_phy_addr(), dst.get_vir_addr(), dst.memsize());
-
-	dst.dump_data("saved/after_csc.rgb");
 }
 
 } // namespace hi
