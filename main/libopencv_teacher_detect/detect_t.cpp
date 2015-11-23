@@ -143,7 +143,7 @@ HI_S32 TeacherDetecting::SAMPLE_IVE_INIT()
 	return sRet;
 }
 
-HI_S32 TeacherDetecting::hi_luv_method(std::vector < Mat > img,
+void TeacherDetecting::hi_luv_method(std::vector < Mat > img,
 				       std::vector < Mat > bg, Mat & dst)
 {
 	hiMat hi_dst, hi_last_dst, hi_dst_y, hi_dst_u, hi_dst_v;
@@ -167,14 +167,11 @@ HI_S32 TeacherDetecting::hi_luv_method(std::vector < Mat > img,
 	hi::bit_or(hi_dst, hi_dst_v, hi_last_dst);
 
 	hi_last_dst.download(dst);
-	
 }
 
 //这里假定处理的图像都是单通道的;
-HI_S32 TeacherDetecting::hi_dilate(Mat src, Mat & dst)
+void TeacherDetecting::hi_dilate(Mat src, Mat & dst)
 {
-	HI_S32 s32Ret = HI_SUCCESS;
-    
 	hiMat hi_src(src);
 	hiMat hi_dst;
 
@@ -189,109 +186,12 @@ HI_S32 TeacherDetecting::hi_dilate(Mat src, Mat & dst)
 	hi::dilate(hi_src, hi_dst);
 
 	hi_dst.download(dst);
-
-	return s32Ret;
 }
 
-//这里假定处理的图像都是单通道的;
-/*HI_S32 TeacherDetecting::hi_blur(Mat src, Mat & dst)
-{
-	HI_S32 s32Ret = HI_SUCCESS;
-	IVE_HANDLE IveHandle;
-	IVE_SRC_INFO_S stSrc;
-	IVE_MEM_INFO_S stDst;
-	HI_BOOL bInstant;
-	HI_VOID *pVirtSrc;
-	HI_VOID *pVirtDst;
-	HI_BOOL bFinish, bBlock;
-	stSrc.u32Height = src.rows;
-	stSrc.u32Width = src.cols;
-	stSrc.enSrcFmt = IVE_SRC_FMT_SINGLE;
-	bInstant = HI_TRUE;
-
-	//跨度字节对齐;
-	int width = src.cols;
-	int src_addr = (int)src.data;	//?????这个不知道理解的正不正确;
-	int stride_t =
-	    { 8 - ((width + (src_addr % 8)) % 8) % 8 + (src_addr % 8) + width };
-	int stride = src.cols;
-	if (stride < stride_t)
-		stSrc.stSrcMem.u32Stride = (stride_t / 8) * 8 + (stride_t % 8);
-	else
-		stSrc.stSrcMem.u32Stride = (stride / 8) * 8 + (stride % 8);
-
-	s32Ret =
-	    HI_MPI_SYS_MmzAlloc_Cached(&stSrc.stSrcMem.u32PhyAddr, &pVirtSrc,
-				       "User", HI_NULL,
-				       stSrc.u32Height *
-				       stSrc.stSrcMem.u32Stride);
-	if (s32Ret != HI_SUCCESS) {
-		printf("can't alloc intergal memory for %x\n", s32Ret);
-		return HI_NULL;
-	}
-	//把Mat_src矩阵里的数据转移到stSrc中,假定是单通道;
-	uchar *p1, *p2;
-	for (int i = 0; i < src.rows; i++) {
-		p1 = src.data + i * src.cols;
-		p2 = (uchar *) pVirtSrc + i * stSrc.stSrcMem.u32Stride;
-		memcpy(p2, p1, src.cols);
-	}
-
-	s32Ret = HI_MPI_SYS_MmzAlloc_Cached(&stDst.u32PhyAddr, &pVirtDst,
-					    "User", HI_NULL,
-					    stSrc.u32Height *
-					    stSrc.stSrcMem.u32Stride);
-	stDst.u32Stride = stSrc.stSrcMem.u32Stride;
-	if (s32Ret != HI_SUCCESS) {
-		printf("can't alloc intergal memory for %x\n", s32Ret);
-		return HI_NULL;
-	}
-
-	IVE_FILTER_CTRL_S pstFilterCtrl;
-	pstFilterCtrl.u8Norm = 1;
-	pstFilterCtrl.as8Mask[0] = 1;
-	pstFilterCtrl.as8Mask[1] = 1;
-	pstFilterCtrl.as8Mask[2] = 1;
-	pstFilterCtrl.as8Mask[3] = 1;
-	pstFilterCtrl.as8Mask[4] = 1;
-	pstFilterCtrl.as8Mask[5] = 1;
-	pstFilterCtrl.as8Mask[6] = 1;
-	pstFilterCtrl.as8Mask[7] = 1;
-	pstFilterCtrl.as8Mask[8] = 1;
-
-	s32Ret =
-	    HI_MPI_IVE_FILTER(&IveHandle, &stSrc, &stDst, &pstFilterCtrl,
-			      bInstant);
-	if (s32Ret != HI_SUCCESS) {
-		HI_MPI_SYS_MmzFree(stDst.u32PhyAddr, pVirtDst);
-		printf(" ive filter function can't submmit for %x\n", s32Ret);
-		return HI_NULL;
-	}
-
-	bBlock = HI_FALSE;
-	s32Ret = HI_MPI_IVE_Query(IveHandle, &bFinish, bBlock);
-	if (s32Ret != HI_SUCCESS) {
-		printf("hifilter not finish\n");
-	}
-	//把stDst数据转移到Mat矩阵中,假定是单通道;
-	uchar *pd1 = dst.data;	//480*480复制需要7ms;
-	uchar *pd2 = (uchar *) pVirtDst;
-	for (int i = 0; i < dst.rows; i++) {
-		pd1 = dst.data + i * dst.cols;
-		pd2 = (uchar *) pVirtDst + i * stDst.u32Stride;
-		memcpy(p1, p2, dst.cols);
-	}
-
-	HI_MPI_SYS_MmzFree(stSrc.stSrcMem.u32PhyAddr, pVirtSrc);
-	HI_MPI_SYS_MmzFree(stDst.u32PhyAddr, pVirtDst);
-	return s32Ret;
-}*/
 
 //这里假定处理的图像都是单通道的;
-HI_S32 TeacherDetecting::hi_two_frame_method(Mat src, Mat & dst)
+void TeacherDetecting::hi_two_frame_method(Mat src, Mat & dst)
 {
-	HI_S32 s32Ret = HI_SUCCESS;
-
 	hiMat hi_src(src);
 	hiMat hi_dst;
 
@@ -300,8 +200,6 @@ HI_S32 TeacherDetecting::hi_two_frame_method(Mat src, Mat & dst)
 	hi::filter(hi_dst, hi_src);
 
 	hi_src.download(dst);
-
-	return s32Ret;
 }
 
 //初始化背景更新算法;
@@ -542,31 +440,17 @@ std::vector < Rect > TeacherDetecting::refineSegments2(Mat img, Mat & mask,
 	vector < Rect > right_rect;
 	Mat temp;
 
-	timeb pre, cur;
-	ftime(&pre);
-	/*cv::dilate(mask, mask, cv::Mat());
-	   cv::erode(mask, mask, cv::Mat());
-	   cv::dilate(mask, mask, cv::Mat(), cv::Point(-1, -1), 5); */
 	hi_dilate(mask, mask);
-	ftime(&cur);
-	double time =
-	    (double)(cur.time - pre.time) * 1000 + (cur.millitm - pre.millitm);
+
 	//找出画出超过一定面积的连通区域;
 	timeb pre1, cur1;
 	ftime(&pre1);
 	findContours(mask, contours, hierarchy, CV_RETR_EXTERNAL,
 		     CV_CHAIN_APPROX_SIMPLE);
-	ftime(&cur1);
-	double time1 =
-	    (double)(cur1.time - pre1.time) * 1000 + (cur1.millitm -
-						      pre1.millitm);
-	//printf("^^^^^^^^^^findContours time:%f\n",time1);
+	
 	dst = Mat::zeros(img.size(), CV_8UC3);
 
-	timeb pre2, cur2;
-	ftime(&pre2);
 	if (contours.size() > 0) {
-		//printf("^^^^^^^^^^contours num:%d\n",contours.size());
 		Scalar color(255, 255, 255);
 		for (int idx = 0; idx < contours.size(); idx++) {
 			const vector < Point > &c = contours[idx];
@@ -576,21 +460,14 @@ std::vector < Rect > TeacherDetecting::refineSegments2(Mat img, Mat & mask,
 				//contours_temp.push_back(contours[idx]);
 				right_rect.push_back(t);
 			}
-			//double area = fabs(contourArea(Mat(c)));
-			//if (area >= marea && (t.width*t.height)>=mrect_area)  //temp.rows*temp.cols/150)// && 
-			//{
-			//      contours_temp.push_back(contours[idx]);
-			//      right_rect.push_back(t);
-			//}
 		}
 		//drawContours(dst, contours_temp, -1, color, CV_FILLED, 8);    
 	}
-	ftime(&cur2);
-	double time2 =
-	    (double)(cur2.time - pre2.time) * 1000 + (cur2.millitm -
-						      pre2.millitm);
-	//printf("^^^^^^^^^^contours time:%f\n",time2);
-
+	ftime(&cur1);
+	double time1 =
+	    (double)(cur1.time - pre1.time) * 1000 + (cur1.millitm -
+						      pre1.millitm);
+	printf("^^^^^^^^^^findContours time:%f\n",time1);
 	if (right_rect.size() > 1) {
 		rect_fusion2(right_rect, interval);
 	}
@@ -598,51 +475,6 @@ std::vector < Rect > TeacherDetecting::refineSegments2(Mat img, Mat & mask,
 	return right_rect;
 
 }
-
-/*std::vector < Rect > TeacherDetecting::upbody_refineSegments2(Mat img,
-							      Mat & mask,
-							      Mat & dst,
-							      double interval,
-							      double marea,
-							      double mrect_area)
-{
-	vector < Rect > rect;
-	int niters = 2;
-	vector < vector < Point > >contours;
-	vector < vector < Point > >contours_temp;
-	vector < Vec4i > hierarchy;
-	vector < Rect > right_rect;
-	Mat temp;
-	//cv::erode(mask, mask, cv::Mat());
-	cv::dilate(mask, mask, cv::Mat());
-	cv::erode(mask, mask, cv::Mat());
-	//cv::erode(mask, mask, cv::Mat());
-	cv::dilate(mask, mask, cv::Mat(), cv::Point(-1, -1), 5);
-
-	//找出画出超过一定面积的连通区域;
-	findContours(mask, contours, hierarchy, CV_RETR_EXTERNAL,
-		     CV_CHAIN_APPROX_SIMPLE);
-	dst = Mat::zeros(img.size(), CV_8UC3);
-	if (contours.size() > 0) {
-		Scalar color(255, 255, 255);
-		for (int idx = 0; idx < contours.size(); idx++) {
-			const vector < Point > &c = contours[idx];
-			Rect t = boundingRect(Mat(c));
-			double area = fabs(contourArea(Mat(c)));
-			if (area >= marea && (t.width * t.height) >= mrect_area)	//temp.rows*temp.cols/150)// && 
-			{
-				contours_temp.push_back(contours[idx]);
-				right_rect.push_back(t);
-			}
-		}
-		drawContours(dst, contours_temp, -1, color, CV_FILLED, 8);
-	}
-	if (right_rect.size() > 1) {
-		rect_fusion2(right_rect, interval);
-	}
-	return right_rect;
-
-}*/
 
 void TeacherDetecting::fillbg_LUV(Mat img)
 {
@@ -798,85 +630,6 @@ void TeacherDetecting::is_need_fillbg_twice(Mat img)
 //
 //}
 
-////YUV算法获取矩形框序列;
-//void TeacherDetecting::upbody_luv_method(const Mat & img)
-//{
-//	Mat luv_m, luv_m_temp, fgimg;	//背景减除;
-//	luv_m.create(Size(img.cols, img.rows), CV_8UC1);
-//	luv_m.setTo(0);
-//	luv_m_temp = img.clone();
-//	luv_m_temp.setTo(Scalar::all(255));
-//	Mat img_t;
-//	Mat bg_t;
-//	/*cvtColor(img, img_t, CV_BGR2Luv);
-//	   cvtColor(fillbg_struct.bg, bg_t, CV_BGR2Luv); */
-//	cvtColor(img, img_t, CV_BGR2YUV);
-//	cvtColor(fillbg_struct.bg, bg_t, CV_BGR2YUV);
-//
-//	std::vector < Mat > img_t_vec;
-//	split(img_t, img_t_vec);
-//	Mat img0 = img_t_vec[0];
-//	Mat img1 = img_t_vec[1];
-//	Mat img2 = img_t_vec[2];
-//	std::vector < Mat > bg_t_vec;
-//	split(bg_t, bg_t_vec);
-//	Mat bg0 = bg_t_vec[0];
-//	Mat bg1 = bg_t_vec[1];
-//	Mat bg2 = bg_t_vec[2];
-//	Mat yuv0, yuv1, yuv2;
-//	cv::absdiff(img0, bg0, yuv0);
-//	cv::absdiff(img1, bg1, yuv1);
-//	cv::absdiff(img2, bg2, yuv2);
-//	Mat luv0, luv1, luv2;
-//	cv::threshold(yuv0, luv0, up_update.Y_value, 255, CV_THRESH_BINARY);
-//	cv::threshold(yuv1, luv1, up_update.upbody_u_max, 255,
-//		      CV_THRESH_BINARY);
-//	cv::threshold(yuv2, luv2, up_update.upbody_v_max, 255,
-//		      CV_THRESH_BINARY);
-//	Mat luv_temp;
-//	bitwise_or(luv0, luv1, luv_temp);
-//	bitwise_or(luv2, luv_temp, luv_temp);
-//	//img_t = img;
-//	//bg_t = fillbg_struct.bg;
-//	/*for (int i = 0; i < img.cols; i++) 
-//	   {
-//	   for (int j = 0; j < img.rows; j++) 
-//	   {
-//	   Vec3b bgr1 = img_t.at < Vec3b > (j, i);
-//	   Vec3b bgr2 = bg_t.at < Vec3b > (j, i);
-//	   double L =
-//	   (abs) (bgr1.val[0] - bgr2.val[0]);
-//	   double U =
-//	   (abs) (bgr1.val[1] - bgr2.val[1]);
-//	   double V =
-//	   (abs) ((bgr1.val[2] - bgr2.val[2]));
-//	   if ((U >= luv_u_max || V >= luv_v_max)&&(L >= luv_L))
-//	   {
-//	   luv_m.at < char >(j, i) = 255; luv_m_temp.at < Vec3b >(j, i) = Vec3b(0,0,0);
-//	   }
-//	   else if ((U >= luv_u_max || V >= luv_v_max)&&(L < luv_L))
-//	   {
-//	   luv_m.at < char >(j, i) = 255; luv_m_temp.at < Vec3b >(j, i) = Vec3b(0,0,255);
-//	   }
-//	   else if ((U < luv_u_max && V < luv_v_max)&&(L > luv_L))
-//	   {
-//	   luv_m.at < char >(j, i) = 255; luv_m_temp.at < Vec3b >(j, i) = Vec3b(255,0,0);
-//	   }
-//	   else
-//	   {
-//	   luv_m.at < char >(j, i) = 0;
-//	   }
-//
-//	   }
-//	   } */
-//
-//	fillbg_struct.rect_old =
-//	    refineSegments2(img, luv_temp, fgimg,
-//			    fillbg_struct.mog2_interval2, min_area,
-//			    min_rect_area);
-//
-//}
-
 //YUV算法获取矩形框序列;
 void TeacherDetecting::luv_method(const Mat & img,
 				  std::vector < Mat > img_t_vec)
@@ -989,25 +742,12 @@ void TeacherDetecting::is_teacher_down(Mat raw_img, Mat img2)
 
 }
 
-//void TeacherDetecting::creat_buffer(IplImage *image)
-//{
-//      buffer = (IplImage**)malloc(sizeof(buffer[0])*N);
-//      //buffer = new IplImage*[N];
-//      for(int i = 0;i<N;i++)
-//      {
-//              buffer[i]= cvCreateImage(cvSize(image->width,image->height),IPL_DEPTH_8U,1);
-//              cvSetZero(buffer[i]);
-//      }
-//}
-
 //**************************两帧差分法***********************************
 //输入：img//当前图像;
 //输出：silh//灰度图（当前帧图像和保存的上一帧图像相减后图像）;
 //buflen设为2：表示连续两帧之间做帧差;
 void TeacherDetecting::two_frame_method(Mat img, Mat & silh, Mat Y)
 {
-	timeb pre, cur;
-	ftime(&pre);
 	if (frame_s.buffer[0].empty()) {
 		for (int i = 0; i < (frame_s.N); i++) {
 			cvtColor(img, frame_s.buffer[i], CV_BGR2GRAY);
@@ -1016,18 +756,9 @@ void TeacherDetecting::two_frame_method(Mat img, Mat & silh, Mat Y)
 	//cvtColor(img,frame_s.buffer[1],CV_BGR2GRAY);
 	frame_s.buffer[1] = Y.clone();
 	absdiff(frame_s.buffer[1], frame_s.buffer[0], silh);
-	//threshold( silh, silh, frame_s.threshold_two, 255, CV_THRESH_BINARY );
-	//blur(silh,silh,Size(3,3));
-	//hi_blur(silh,silh);
-	timeb pre1;
-	ftime(&pre1);
+
 	hi_two_frame_method(silh, silh);
-	ftime(&cur);
-	double time =
-	    (cur.time - pre.time) * 1000 + (cur.millitm - pre.millitm);
-	double time1 =
-	    (cur.time - pre1.time) * 1000 + (cur.millitm - pre1.millitm);
-	//printf("two frame method time:%f   hi_time:%f\n",time,time1);
+
 	for (int i = 0; i < frame_s.N - 1; i++) {
 		frame_s.buffer[i] = frame_s.buffer[i + 1].clone();
 	}
@@ -1189,22 +920,22 @@ void TeacherDetecting::updatebg_slow(Mat img, Rect r, double learn_rate)
 	dst.copyTo(fillbg_struct.bg, mask);
 }
 
-//(身高自适应)缓慢更新某个区域的背景图;
-void TeacherDetecting::upbody_updatebg_slow(Mat img, Rect r, double learn_rate)
-{
-	Rect r_temp = r;
-	r_temp &= Rect(0, 0, img.cols, img.rows);
-	Mat bg_t = up_update.upbody_bg.clone();
-	Mat img_t = img.clone();
-	Mat dst = Mat(Size(img.cols, img.rows), CV_8UC3);
-	double rate = 1 - learn_rate;
-	addWeighted(img_t, learn_rate, bg_t, rate, 0, dst);
-
-	Mat mask(img.rows, img.cols, CV_8UC3, Scalar(0, 0, 0));
-	Mat specified(mask, r_temp);
-	specified.setTo(1);
-	dst.copyTo(up_update.upbody_bg, mask);
-}
+////(身高自适应)缓慢更新某个区域的背景图;
+//void TeacherDetecting::upbody_updatebg_slow(Mat img, Rect r, double learn_rate)
+//{
+//	Rect r_temp = r;
+//	r_temp &= Rect(0, 0, img.cols, img.rows);
+//	Mat bg_t = up_update.upbody_bg.clone();
+//	Mat img_t = img.clone();
+//	Mat dst = Mat(Size(img.cols, img.rows), CV_8UC3);
+//	double rate = 1 - learn_rate;
+//	addWeighted(img_t, learn_rate, bg_t, rate, 0, dst);
+//
+//	Mat mask(img.rows, img.cols, CV_8UC3, Scalar(0, 0, 0));
+//	Mat specified(mask, r_temp);
+//	specified.setTo(1);
+//	dst.copyTo(up_update.upbody_bg, mask);
+//}
 
 //利用帧差法进行背景更新;
 void TeacherDetecting::frame_updatebg(Mat raw_img, Mat image)
