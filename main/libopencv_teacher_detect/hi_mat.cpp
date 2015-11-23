@@ -84,6 +84,7 @@ hiMat::hiMat(unsigned int phyaddr, int width, int height, int stride, Type type)
 	cols = width;
 	rows = height;
 	stride_ = stride;
+	hi_stride_ = (width + 7) / 8 * 8;
 	vir_addr_ = HI_MPI_SYS_Mmap(phy_addr_, memsize());
 }
 
@@ -98,8 +99,8 @@ hiMat::~hiMat()
 
 void hiMat::dump_hdr() const
 {
-	fprintf(stderr, "DEBUG: m: <%u>: type=%d| %d, %d, %d, %u, %u, %p\n",
-			ref_ ? *ref_ : 0, type, cols, rows, stride_, memsize(), phy_addr_, vir_addr_);
+	fprintf(stderr, "DEBUG: m: <%u>: type=%d| (%d-%d), %d|%d, %u, %u, %p\n",
+			ref_ ? *ref_ : 0, type, cols, rows, stride_, hi_stride_, memsize(), phy_addr_, vir_addr_);
 }
 
 void hiMat::dump_data(const char *fname) const
@@ -154,8 +155,10 @@ void hiMat::download(cv::Mat &m)
 		ds = cols * 3;
 	}
 	else if (type == SP420) {
-		fprintf(stderr, "FATAL: hiMat::download NOT impl!!!!\n");
-		exit(-1);
+		/** FIXME: 此处生成 8UC1 的 m
+		 */
+		m.create(rows, cols, CV_8UC1);	// gray, 仅仅复制 Y
+		ds = cols;
 	}
 	else if (type == SINGLE) {
 		m.create(rows, cols, CV_8U);
@@ -230,7 +233,7 @@ size_t hiMat::memsize() const
 		return rows * stride_ * 3 / 2;
 	}
 
-	fprintf(stderr, "FATAL: %s: Only support RGB24/SINGLE/SP420!!!\n", __func__);
+	fprintf(stderr, "FATAL: %s: Only support hiMat::Type types!!!\n", __func__);
 	return -1;
 }
 
@@ -247,19 +250,20 @@ void hiMat::create(int rows, int cols, hiMat::Type type)
 	this->cols = cols;
 	this->type = type;
 
+	hi_stride_ = (cols + 7) / 8 * 8;
 
 	switch (type) {
 	case RGB24:
-		stride_ = ((cols + 7) / 8 * 8) * 3;
+		stride_ = hi_stride_ * 3;
 		break;
 
 	case SINGLE:
 	case SP420:
-		stride_ = (cols + 7) / 8 * 8;
+		stride_ = hi_stride_;
 		break;
 
 	case U64:
-		stride_ = ((cols + 7) / 8 * 8) * 8;
+		stride_ = hi_stride_ * 8;
 		break;
 
 	default:
@@ -316,11 +320,6 @@ hiMat &hiMat::operator = (const cv::Mat &m)
 	hlp_copy(vir_addr_, stride_, m);
 
 	return *this;
-}
-
-int hiMat::hi_stride() const
-{
-	return (cols + 7) / 8 * 8;
 }
 
 unsigned int hiMat::get_phy_addr() const
@@ -635,8 +634,6 @@ void integral(const hiMat &src, hiMat &dst)
 		fprintf(stderr, "FATAL: HI_MPI_IVE_DILATE err %s:%s\n", __FILE__, __LINE__);
 		exit(-1);
 	}
-
-	//dump_data(dst.get_vir_addr(), dst.stride(), dst.rows, 16);
 }
 
 } // namespace hi

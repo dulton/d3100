@@ -4,7 +4,7 @@
 
 class hiMat 
 {
-	int stride_;
+	int stride_, hi_stride_;
 	unsigned int phy_addr_;
 	void *vir_addr_;
 
@@ -45,7 +45,7 @@ class hiMat
 
 	unsigned int get_phy_addr() const;
 	void *get_vir_addr() const;
-	int hi_stride() const; // 返回 hi3531 函数使用的 stride 概念 ...
+	int hi_stride() const { return hi_stride_; }// 返回 hi3531 函数使用的 stride 概念 ...
 	int stride() const { return stride_; } // 返回一行占用字节 ...
 
 	size_t ref()
