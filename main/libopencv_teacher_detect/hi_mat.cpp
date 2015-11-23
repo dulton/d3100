@@ -404,7 +404,7 @@ void dilate(const hiMat &src, hiMat &dst)
 {
 	int s32Ret;
 
-	dst.create(src.rows, src.cols, src.type); // hiMat 负责处理失败情况 ...
+	dst.create(src.rows, src.cols, hiMat::SINGLE); // hiMat 负责处理失败情况 ...
 
 	IVE_DILATE_CTRL_S pstDilateCtrl;
 	pstDilateCtrl.au8Mask[0] = 255;
@@ -438,7 +438,7 @@ void erode(const hiMat &src, hiMat &dst)
 {
 	int s32Ret;
 
-	dst.create(src.rows, src.cols, src.type); // hiMat 负责处理失败情况 ...
+	dst.create(src.rows, src.cols, hiMat::SINGLE); // hiMat 负责处理失败情况 ...
 
 	IVE_ERODE_CTRL_S pstErodeCtrl;
 	pstErodeCtrl.au8Mask[0] = 255;
@@ -472,7 +472,7 @@ void filter(const hiMat &src, hiMat &dst)
 {
 	int s32Ret;
 
-	dst.create(src.rows, src.cols, src.type);// hiMat 负责处理失败情况 ...
+	dst.create(src.rows, src.cols, hiMat::SINGLE);// hiMat 负责处理失败情况 ...
 
 	IVE_FILTER_CTRL_S pstFilterCtrl;
 	pstFilterCtrl.u8Norm = 3;
@@ -507,7 +507,7 @@ void threshold(const hiMat &src, hiMat &dst, unsigned int threshold,
 {
 	int s32Ret;
 
-	dst.create(src.rows, src.cols, src.type);// hiMat 负责处理失败情况 ...
+	dst.create(src.rows, src.cols, hiMat::SINGLE);// hiMat 负责处理失败情况 ...
 
 	IVE_THRESH_CTRL_S pstThreshCtrl;
 	pstThreshCtrl.enOutFmt = IVE_THRESH_OUT_FMT_BINARY;
@@ -536,7 +536,7 @@ void absdiff(const hiMat &src1, const hiMat &src2, hiMat &dst)
 {
 	int s32Ret;
 
-	dst.create(src1.rows, src1.cols, src1.type); // hiMat 负责处理失败情况 ...
+	dst.create(src1.rows, src1.cols, hiMat::SINGLE); // hiMat 负责处理失败情况 ...
 
 	IVE_SUB_OUT_FMT_E enOutFmt;
 	enOutFmt = IVE_SUB_OUT_FMT_ABS;
@@ -564,7 +564,7 @@ void bit_or(const hiMat &src1, const hiMat &src2, hiMat &dst)
 {
 	int s32Ret;
 
-	dst.create(src1.rows, src1.cols, src1.type); // hiMat 负责处理失败情况 ...
+	dst.create(src1.rows, src1.cols, hiMat::SINGLE); // hiMat 负责处理失败情况 ...
 
 	HI_BOOL bInstant = HI_TRUE;
 	IVE_HANDLE IveHandle;
