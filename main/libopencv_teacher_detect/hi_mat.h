@@ -34,6 +34,7 @@ class hiMat
 	hiMat & operator =(const cv::Mat & m);
 
 	void dump_hdr() const;
+	void dump_data(const char *fname) const;
 
 	int rows;
 	int cols;
@@ -50,6 +51,8 @@ class hiMat
 		else
 			return -10000;
 	}
+
+	size_t memsize() const;
 
  private:
 	void release();

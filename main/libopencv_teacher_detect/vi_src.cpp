@@ -380,7 +380,7 @@ static void save_mat(const cv::Mat & m, const char *fname)
 
 #if 0
 /** 将 frame 转换为 rgb24 的 Mat */
-static void vf2mat(VIDEO_FRAME_INFO_S & frame, cv::Mat & m)
+static void vf2mat(const VIDEO_FRAME_INFO_S & frame, cv::Mat & m)
 {
 	IVE_HANDLE IveHandle;
 	HI_BOOL bInstant;
@@ -406,8 +406,7 @@ static void vf2mat(VIDEO_FRAME_INFO_S & frame, cv::Mat & m)
 		exit(-1);
 	}
 	// 将 frame 中的数据复制到 ive src 中 ...
-	uchar *p =
-	    (uchar *) HI_MPI_SYS_Mmap(frame.stVFrame.u32PhyAddr[0], yuvsize);
+	uchar *p = (uchar *) HI_MPI_SYS_Mmap(frame.stVFrame.u32PhyAddr[0], yuvsize);
 	memcpy(src_vir, p, yuvsize);
 	HI_MPI_SYS_Munmap(p, yuvsize);
 
@@ -496,28 +495,28 @@ static void vf2mat(VIDEO_FRAME_INFO_S & frame, cv::Mat & m)
 		s += width * 3;	// FIXME:
 	}
 
-	//save_mat(m, "saved/mat.rgb");
+	save_mat(m, "saved/mat.rgb");
 
 	HI_MPI_SYS_MmzFree(rgb.u32PhyAddr, rgb_vir);
 }
 #else
-static void vf2mat(VIDEO_FRAME_INFO_S &v, cv::Mat &m)
+static void vf2mat(const VIDEO_FRAME_INFO_S &frame, cv::Mat &m)
 {
-	hiMat hm(v.stVFrame.u32PhyAddr[0], v.stVFrame.u32Width, 
-			v.stVFrame.u32Height, v.stVFrame.u32Stride[0], hiMat::SP420);
+	hiMat hm(frame.stVFrame.u32PhyAddr[0], frame.stVFrame.u32Width, 
+			frame.stVFrame.u32Height, frame.stVFrame.u32Stride[0], hiMat::SP420);
+
 	hm.dump_hdr();
+	hm.dump_data("saved/hm.nv21");
+	exit(-1);
 
 	hiMat t1, t2;
 //	hi::filter(hm, t1);
-//	t1.dump_hdr();
 
 	hi::yuv2rgb(hm, t2);
-	t2.dump_hdr();
+
 	t2.download(m);
 
 	save_mat(m, "saved/mat0.rgb");
-	fprintf(stderr, "DEBUG: %s, %d\n", __func__, __LINE__);
-	exit(-1);
 }
 #endif // 
 
