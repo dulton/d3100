@@ -357,6 +357,7 @@ static void dump_dst_info(const IVE_MEM_INFO_S &info)
 namespace hi
 {
 	// 建议所有函数都放到 hi 名字空间中 ...
+// 图像膨胀(源数据只能为单分量) ...
 void dilate(const hiMat &src, hiMat &dst)
 {
 	int s32Ret;
@@ -390,6 +391,7 @@ void dilate(const hiMat &src, hiMat &dst)
 	}
 }
 
+// 图像腐蚀(源数据只能为单分量) ...
 void erode(const hiMat &src, hiMat &dst)
 {
 	int s32Ret;
@@ -423,6 +425,7 @@ void erode(const hiMat &src, hiMat &dst)
 	}
 }
 
+// 图像滤波(源数据只能为单分量) ...
 void filter(const hiMat &src, hiMat &dst)
 {
 	int s32Ret;
@@ -456,7 +459,7 @@ void filter(const hiMat &src, hiMat &dst)
 	}
 }
 
-// 这个阈值时不定值 ....???????...
+// 图像阈值化(源数据只能为单分量) 注：这里的类型固定了...
 void threshold(const hiMat &src, hiMat &dst, unsigned int threshold, 
 	           unsigned int max_value) // , IVE_THRESH_OUT_FMT_E type)
 {
@@ -486,6 +489,7 @@ void threshold(const hiMat &src, hiMat &dst, unsigned int threshold,
 	}
 }
 
+// 两图像相减(源数据只能为单分量) ...
 void absdiff(const hiMat &src1, const hiMat &src2, hiMat &dst)
 {
 	int s32Ret;
@@ -513,6 +517,7 @@ void absdiff(const hiMat &src1, const hiMat &src2, hiMat &dst)
 	}
 }
 
+// 图像或运算(源数据只能为单分量) ...
 void bit_or(const hiMat &src1, const hiMat &src2, hiMat &dst)
 {
 	int s32Ret;
@@ -537,6 +542,7 @@ void bit_or(const hiMat &src1, const hiMat &src2, hiMat &dst)
 	}
 }
 
+//  ...
 void yuv2rgb(const hiMat &src, hiMat &dst)
 {
 	int s32Ret;
@@ -557,6 +563,30 @@ void yuv2rgb(const hiMat &src, hiMat &dst)
 	src.flush();
 
 	s32Ret = HI_MPI_IVE_CSC(&IveHandle, &src_info, &dst_mem_info, &pstCscCtrl, bInstant);
+	if(s32Ret != HI_SUCCESS)
+	{
+		fprintf(stderr, "FATAL: HI_MPI_IVE_DILATE err %s:%s\n", __FILE__, __LINE__);
+		exit(-1);
+	}
+}
+
+// 积分图(源数据只能为单分量) ...
+// 输出数据内存大小必须为：源图像高 * 输出数据跨度 * 8 ...
+void integral(const hiMat &src, hiMat &dst)
+{
+	int s32Ret;
+
+	dst.create(src.rows, src.cols, src.type); // hiMat 负责处理失败情况 ...
+
+	HI_BOOL bInstant = HI_TRUE;
+	IVE_HANDLE IveHandle;
+
+	IVE_SRC_INFO_S src_info = get_src_info_s(src);
+	IVE_MEM_INFO_S dst_mem_info = get_mem_info_s(dst);
+
+	src.flush();
+
+	s32Ret = HI_MPI_IVE_INTEG(&IveHandle, &src_info, &dst_mem_info, bInstant);
 	if(s32Ret != HI_SUCCESS)
 	{
 		fprintf(stderr, "FATAL: HI_MPI_IVE_DILATE err %s:%s\n", __FILE__, __LINE__);
