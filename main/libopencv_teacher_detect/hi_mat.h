@@ -24,7 +24,9 @@ class hiMat
 
 	hiMat();
 	hiMat(const cv::Mat & m);
+	hiMat(const cv::Mat &m, const cv::Rect &roi);
 	hiMat(const hiMat & m);
+	hiMat(const hiMat &m, const cv::Rect &roi);
 	hiMat(unsigned int phy_addr, int width, int height, int stride, Type type);
 	~hiMat();
 
@@ -34,7 +36,9 @@ class hiMat
 	hiMat & operator =(const hiMat & src);
 	hiMat & operator =(const cv::Mat & m);
 
-	hiMat clone() const;
+	hiMat clone() const; 
+
+	hiMat operator()(const cv::Rect &roi) const;
 
 	void dump_hdr() const;
 	void dump_data(const char *fname) const;

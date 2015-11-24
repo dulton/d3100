@@ -70,11 +70,26 @@ hiMat::hiMat(const cv::Mat &m)
 	*this = m;	
 }
 
+hiMat::hiMat(const cv::Mat &m, const cv::Rect &roi)
+{
+	//fprintf(stderr, "FATAL: %s: NOT impl\n", __func__);
+	outer_ = false;
+	ref_ = 0;
+	*this = m(roi);
+}
+
 hiMat::hiMat(const hiMat &m)
 {
 	memset(this, 0, sizeof(hiMat));
 	outer_ = false;
 	*this = m;
+}
+
+hiMat::hiMat(const hiMat &m, const cv::Rect &roi)
+{
+	fprintf(stderr, "FATAL: %s: NOT impl\n", __func__);
+	// TODO: 实现 roi，需要分两种情况，如果 m 为 outer，则需要 deep cp
+	//		 否则使用 addref
 }
 
 hiMat::hiMat(unsigned int phyaddr, int width, int height, int stride, Type type)
@@ -87,6 +102,11 @@ hiMat::hiMat(unsigned int phyaddr, int width, int height, int stride, Type type)
 	stride_ = stride;
 	hi_stride_ = (width + 7) / 8 * 8;
 	vir_addr_ = HI_MPI_SYS_Mmap(phy_addr_, memsize());
+}
+
+hiMat hiMat::operator()(const cv::Rect &roi) const
+{
+	return hiMat(*this, roi);
 }
 
 hiMat::~hiMat()
@@ -354,6 +374,8 @@ hiMat &hiMat::operator = (const hiMat &m)
 	else {
 		release();
 	}
+
+	outer_ = false;
 
 	// 如果 m 是 outer_ 对象，则需要 clone
 	if (m.outer_) {
