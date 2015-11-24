@@ -12,6 +12,7 @@
 #endif
 
 #include "hi_mat.h"
+#include "utils.h"
 
 /** 应该编写 hlp_xxx 用了alloc, copy, free ...
 
@@ -147,6 +148,8 @@ void hiMat::download(cv::Mat &m)
 				sp420: stride_ / cols >= 2 
 				gray: stride_ / cols >= 1
 	 */
+
+	UtyTimeUsed utu(__func__, 0.05);
 
 	flush();
 	size_t ds = cols;
