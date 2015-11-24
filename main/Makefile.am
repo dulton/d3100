@@ -71,7 +71,7 @@ teacher_detect_LDADD= libopencv_detect.a ${CCGNU2_LIBS} ${OPENCV_LIBS} ${HISLIBS
 teacher_detect_SOURCES+= libopencv_teacher_detect/detect_opencv.cpp
 teacher_detect_CXXFLAGS= $(libopencv_detect_a_CXXFLAGS)
 
-bin_PROGRAMS += test_arm_opencv_detect
+bin_PROGRAMS += test_arm_opencv_detect test_visrc
 test_arm_opencv_detect_SOURCES= libopencv_teacher_detect/test/test_arm_opencv_detect.cpp
 test_arm_opencv_detect_LDADD= libopencv_detect.a ${CCGNU2_LIBS} ${OPENCV_LIBS} ${HISLIBS}
 
@@ -79,9 +79,16 @@ test_himat_SOURCES=	libopencv_teacher_detect/test/test_himat.cpp libopencv_teach
 test_himat_CXXFLAGS= ${OPENCV_CFLAGS} ${libopencv_detect_a_CXXFLAGS} 
 test_himat_LDADD= ${OPENCV_LIBS} ${HISLIBS}
 
+test_visrc_SOURCES= libopencv_teacher_detect/test/test_visrc.cpp libopencv_teacher_detect/vi_src.cpp \
+					libopencv_teacher_detect/hi_mat.cpp libopencv_teacher_detect/KVConfig.cpp
+test_visrc_CXXFLAGS= ${OPENCV_CFLAGS} ${libopencv_detect_a_CXXFLAGS}
+test_visrc_LDADD= ${OPENCV_LIBS} ${HISLIBS} ${CCGNU2_LIBS}
+
 else
 
-HISLIBS= ../hi353x/lib/libmpi.a ../hi353x/lib/libaec.a ../hi353x/lib/libanr.a ../hi353x/lib/libhdmi.a ../hi353x/lib/libjpeg.a  ../hi353x/lib/libpciv.a ../hi353x/lib/libresampler.a ../hi353x/lib/libtde.a ../hi353x/lib/libVoiceEngine.a
+HISLIBS= ../hi353x/lib/libmpi.a ../hi353x/lib/libaec.a ../hi353x/lib/libanr.a \
+		 ../hi353x/lib/libhdmi.a ../hi353x/lib/libjpeg.a  ../hi353x/lib/libpciv.a \
+		 ../hi353x/lib/libresampler.a ../hi353x/lib/libtde.a ../hi353x/lib/libVoiceEngine.a
 
 
 noinst_LIBRARIES = libteacher_detect.a

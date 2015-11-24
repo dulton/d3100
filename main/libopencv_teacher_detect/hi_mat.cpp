@@ -94,7 +94,7 @@ hiMat::~hiMat()
 	if (!outer_)
 		release();
 	else {
-		HI_MPI_SYS_Munmap(vir_addr_, rows * stride_);
+		HI_MPI_SYS_Munmap(vir_addr_, memsize());
 	}
 }
 
@@ -230,10 +230,10 @@ hiMat hiMat::clone() const
 	return m;
 }
 
-void hiMat::deepcp(hiMat &m)
+void hiMat::deepcp(hiMat &m) const
 {
-	const char *s = vir_addr_;
-	char *d = m.vir_addr_;
+	const char *s = (const char*)vir_addr_;
+	char *d = (char*)m.vir_addr_;
 
 	switch (type) {
 	case SP420:
@@ -280,8 +280,6 @@ void hiMat::deepcp(hiMat &m)
 		exit(-1);
 		break;
 	}
-
-	return m;
 }
 
 size_t hiMat::memsize() const

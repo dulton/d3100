@@ -366,7 +366,6 @@ static void save_rgb(int stride, int width, int height, void *data)
 
 static void save_mat(const cv::Mat & m, const char *fname)
 {
-	fprintf(stderr, "DEBUG: m: (%d,%d)\n", m.cols, m.rows);
 	FILE *fp = fopen(fname, "wb");
 	if (fp) {
 		for (int y = 0; y < m.rows; y++) {
@@ -385,17 +384,13 @@ static void vf2mat(const VIDEO_FRAME_INFO_S &frame, cv::Mat &m)
 
 	hiMat t1, t2;
 	hi::filter(hm, t1);
-	t1.dump_data("saved/t1.yuv");
-
 	hi::yuv2rgb(t1, t2);
-	t2.dump_data("saved/t2.rgb");
-
 	t2.download(m);
 }
 
 struct visrc_t {
 	KVConfig *cfg;
-	int ch;			// 用于vi的通道，默认 28
+	int ch;			// 用于vi的通道，默认 12 对应着 subch 28
 	int vwidth, vheight;	// video_width, video_height
 };
 

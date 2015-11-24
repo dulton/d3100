@@ -63,7 +63,7 @@ class hiMat
  private:
 	void release();
 	void addref();
-	void deepcp(hiMat &m); // 
+	void deepcp(hiMat &m) const; // 
 };
 
 namespace hi
