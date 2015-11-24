@@ -386,6 +386,8 @@ static void vf2mat(const VIDEO_FRAME_INFO_S &frame, cv::Mat &m)
 	hi::filter(hm, t1);
 	hi::yuv2rgb(t1, t2);
 	t2.download(m);
+
+	t2 = hm;
 }
 
 struct visrc_t {
