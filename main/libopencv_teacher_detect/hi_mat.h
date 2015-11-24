@@ -34,6 +34,8 @@ class hiMat
 	hiMat & operator =(const hiMat & src);
 	hiMat & operator =(const cv::Mat & m);
 
+	hiMat clone() const;
+
 	void dump_hdr() const;
 	void dump_data(const char *fname) const;
 	
@@ -61,6 +63,7 @@ class hiMat
  private:
 	void release();
 	void addref();
+	void deepcp(hiMat &m); // 
 };
 
 namespace hi
