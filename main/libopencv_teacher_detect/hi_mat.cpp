@@ -222,6 +222,68 @@ void hiMat::addref()
 	}
 }
 
+hiMat hiMat::clone() const
+{
+	hiMat m;
+	m.create(rows, cols, type);
+	deepcp(m);
+	return m;
+}
+
+void hiMat::deepcp(hiMat &m)
+{
+	const char *s = vir_addr_;
+	char *d = m.vir_addr_;
+
+	switch (type) {
+	case SP420:
+		// Y
+		for (int i = 0; i < rows; i++) {
+			memcpy(d, s, cols);
+			s += stride_;
+			d += m.stride_;
+		}
+		// UV
+		for (int i = 0; i < rows/2; i++) {
+			memcpy(d, s, cols);
+			s += stride_;
+			d += m.stride_;
+		}
+		break;
+
+	case SINGLE:
+		for (int i = 0; i < rows; i++) {
+			memcpy(d, s, cols);
+			s += stride_;
+			d += m.stride_;
+		}
+		break;
+
+	case RGB24:
+		for (int i = 0; i < rows; i++) {
+			memcpy(d, s, cols*3);
+			s += stride_;
+			d += m.stride_;
+		}
+		break;
+
+	case U64:
+		for (int i = 0; i < rows; i++) {
+			memcpy(d, s, cols*8);
+			s += stride_;
+			d += m.stride_;
+		}
+		break;
+
+	default:
+		fprintf(stderr, "FATAL: %s: unknown type!!!\n", __func__);
+		exit(-1);
+		break;
+	}
+
+	return m;
+}
+
 size_t hiMat::memsize() const
 {
 	switch (type) {
@@ -295,15 +357,24 @@ hiMat &hiMat::operator = (const hiMat &m)
 		release();
 	}
 
-	// cp
-	phy_addr_ = m.phy_addr_;
-	vir_addr_ = m.vir_addr_;
-	cols = m.cols;
-	rows = m.rows;
-	ref_ = m.ref_;
+	// 如果 m 是 outer_ 对象，则需要 clone
+	if (m.outer_) {
+		delete ref_;
+		ref_ = 0;
+		create(m.rows, m.cols, m.type);
+		deepcp(*this);
+	}
+	else {
+		// cp
+		phy_addr_ = m.phy_addr_;
+		vir_addr_ = m.vir_addr_;
+		cols = m.cols;
+		rows = m.rows;
+		ref_ = m.ref_;
 
-	// addref
-	addref();
+		// addref
+		addref();
+	}
 
 	return *this;
 }
