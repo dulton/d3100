@@ -149,7 +149,7 @@ static const char *det_detect(detect_t * ctx, Mat & img)
 	timeb pre, cur;
 	ftime(&pre);
 	Mat Img = img.clone();
-	Mat img_t = img.clone();
+//	Mat img_t = img.clone();
 
 	if (ctx->t_m) {
 		Mat masked_img_temp = Mat(Img, ctx->detect_->masked_rect);
