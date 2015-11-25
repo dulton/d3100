@@ -7,9 +7,12 @@ int main()
 {
 	visrc_t *src = vs_open("teacher_detect_trace.config");
 	while (1) {
-		cv::Mat m;
-		if (vs_next_frame(src, m)) {
+		hiMat m;
+		if (vs_next(src, m)) {
 			fprintf(stderr, "INFO: got frame\n");
+		}
+		else {
+			fprintf(stderr, "ERR: no frame\n");
 		}
 
 		usleep(100 * 1000);
