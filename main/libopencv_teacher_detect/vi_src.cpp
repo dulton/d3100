@@ -431,7 +431,7 @@ bool vs_next_frame(visrc_t * vs, cv::Mat & m)
 	// 通过 VIDEO_FRAME_INFO_S 构造 cv::Mat
 
 	vf2mat(frame, m);
-	HI_MPI_VI_ReleaseFrame(vs->ch, &frame);
+	HI_MPI_VI_ReleaseFrame(SUBCHN(vs->ch), &frame);
 	return true;
 }
 
@@ -442,6 +442,7 @@ bool vs_next(visrc_t *vs, hiMat &m)
 		hiMat hm(frame.stVFrame.u32PhyAddr[0], frame.stVFrame.u32Width, 
 				frame.stVFrame.u32Height, frame.stVFrame.u32Stride[0], hiMat::SP420);
 		m = hm.clone();
+		HI_MPI_VI_ReleaseFrame(SUBCHN(vs->ch), &frame);
 		return true;
 	}
 	else
