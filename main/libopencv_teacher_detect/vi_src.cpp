@@ -382,6 +382,7 @@ static void vf2mat(const VIDEO_FRAME_INFO_S &frame, cv::Mat &m)
 	hiMat hm(frame.stVFrame.u32PhyAddr[0], frame.stVFrame.u32Width, 
 			frame.stVFrame.u32Height, frame.stVFrame.u32Stride[0], hiMat::SP420);
 
+	//fprintf(stderr, "%s:%d\n", __func__, __LINE__);
 	hiMat t1, t2;
 	hi::filter(hm, t1);
 	hi::yuv2rgb(t1, t2);
@@ -398,7 +399,7 @@ struct visrc_t {
 
 visrc_t *vs_open(const char *fname)
 {
-	fprintf(stderr, "%s:%d\n", __func__, __LINE__);
+	//fprintf(stderr, "%s:%d\n", __func__, __LINE__);
 	static bool _inited = false;
 	if (!_inited) {
 		if (zk_mpi_init() < 0) {

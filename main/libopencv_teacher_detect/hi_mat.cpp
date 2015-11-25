@@ -587,7 +587,6 @@ void threshold(const hiMat &src, hiMat &dst, unsigned int threshold,
 	int s32Ret;
 
 	dst.create(src.rows, src.cols, src.type);// hiMat 负责处理失败情况 ...
-
 	IVE_THRESH_CTRL_S pstThreshCtrl;
 	pstThreshCtrl.enOutFmt = IVE_THRESH_OUT_FMT_BINARY;
 	pstThreshCtrl.u32MaxVal = max_value; // 255;
@@ -605,7 +604,7 @@ void threshold(const hiMat &src, hiMat &dst, unsigned int threshold,
 	s32Ret = HI_MPI_IVE_THRESH(&IveHandle, &src_info, &dst_mem_info, &pstThreshCtrl, bInstant);
 	if(s32Ret != HI_SUCCESS)
 	{
-		fprintf(stderr, "FATAL: HI_MPI_IVE_DILATE err %s:%d\n", __FILE__, __LINE__);
+		fprintf(stderr, "FATAL: HI_MPI_IVE_DILATE err %s:%d..%x\n", __FILE__, __LINE__,s32Ret);
 		exit(-1);
 	}
 }
@@ -669,8 +668,9 @@ void yuv2rgb(const hiMat &src, hiMat &dst)
 {
 	int s32Ret;
 
-	dst.create(src.rows, src.cols, hiMat::RGB24); // hiMat 负责处理失败情况 ...
 
+	dst.create(src.rows, src.cols, hiMat::RGB24); // hiMat 负责处理失败情况 ...
+        printf("w = %d, h = %d\n", src.cols, src.rows);
 	IVE_CSC_CTRL_S pstCscCtrl;
 	pstCscCtrl.enOutFmt = IVE_CSC_OUT_FMT_PACKAGE;
 	pstCscCtrl.enCscMode = IVE_CSC_MODE_VIDEO_BT601_AND_BT656;
