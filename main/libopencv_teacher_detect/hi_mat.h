@@ -1,4 +1,5 @@
 #pragma once
+
 #include "config.h"
 #include <opencv2/opencv.hpp>
 
@@ -33,10 +34,22 @@ class hiMat
 	void download(cv::Mat & m);
 	void create(int width, int height, Type type);
 
-	template<typename T> T *ptr(int row);
-	template<typename T> const T *ptr(int row) const;
-	template<typename T> T &at(int row, int col);
-	template<typename T> const T &at(int row, int col) const;
+	template<typename T> T *ptr(int row)
+	{
+		return (T*)((char*)vir_addr_ + row * stride_);
+	}
+	template<typename T> const T *ptr(int row) const
+	{
+		return (const T*)((char*)vir_addr_ + row * stride_);
+	}
+	template<typename T> T &at(int row, int col)
+	{
+		return ptr<T>(row)[col];
+	}
+	template<typename T> const T &at(int row, int col) const
+	{
+		return ptr<T>(row)[col];
+	}
 
 	hiMat & operator =(const hiMat & src);
 	hiMat & operator =(const cv::Mat & m);

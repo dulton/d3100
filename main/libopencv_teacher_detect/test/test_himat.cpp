@@ -181,6 +181,9 @@ int main()
 	fprintf(stderr, "..................\n");
 	hm.dump_hdr();
 
+	unsigned char *p = hm.ptr<unsigned char>(0);
+
+
 	// 两次腐蚀 .
 	hi::erode(hm, hm2);
 	hi::erode(hm2, hm);

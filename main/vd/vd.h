@@ -7,6 +7,7 @@ extern "C" {
 struct hiVIDEO_FRAME_INFO_S; // 需要外部包含 hixxx.h 
 
 typedef struct vd_t vd_t;
+
 vd_t *vd_open();
 int vd_changed(vd_t *vd, const hiVIDEO_FRAME_INFO_S *curr_vga_frame);
 void vd_close(vd_t *vd);

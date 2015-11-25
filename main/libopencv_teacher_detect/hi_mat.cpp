@@ -124,26 +124,6 @@ void hiMat::dump_hdr() const
 			ref_ ? *ref_ : 0, type, cols, rows, stride_, hi_stride_, memsize(), phy_addr_, vir_addr_);
 }
 
-template<typename T> T *hiMat::ptr(int row)
-{
-	return (T*)((char*)vir_addr_ + row * stride_);
-}
-
-template<typename T> const T *hiMat::ptr(int row) const
-{
-	return (const T*)((const char*)vir_addr_ + row * stride_);
-}
-
-template<typename T> T &hiMat::at(int row, int col)
-{
-	return ptr<T>(row)[col];
-}
-
-template<typename T> const T &hiMat::at(int row, int col) const
-{
-	return ptr<T>(row)[col];
-}
-
 void hiMat::dump_data(const char *fname) const
 {
 	flush();

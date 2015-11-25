@@ -56,7 +56,8 @@ bdir=	${top_srcdir}/libopencv_teacher_detect
 	
 libopencv_detect_a_CXXFLAGS=  -I${bdir}/common -I${bdir}/ive_include
 
-noinst_LIBRARIES= libopencv_detect.a
+noinst_LIBRARIES= libopencv_detect.a libzkvd.a
+
 libopencv_detect_a_SOURCES= libopencv_teacher_detect/blackboard_detect.cpp \
 							libopencv_teacher_detect/detect_t.cpp \
 							libopencv_teacher_detect/KVConfig.cpp \
@@ -79,10 +80,18 @@ test_himat_SOURCES=	libopencv_teacher_detect/test/test_himat.cpp libopencv_teach
 test_himat_CXXFLAGS= ${OPENCV_CFLAGS} ${libopencv_detect_a_CXXFLAGS} 
 test_himat_LDADD= ${OPENCV_LIBS} ${HISLIBS}
 
-test_visrc_SOURCES= libopencv_teacher_detect/test/test_visrc.cpp libopencv_teacher_detect/vi_src.cpp \
-					libopencv_teacher_detect/hi_mat.cpp libopencv_teacher_detect/KVConfig.cpp
+test_visrc_SOURCES= libopencv_teacher_detect/test/test_visrc.cpp \
+					libopencv_teacher_detect/vi_src.cpp \
+					libopencv_teacher_detect/hi_mat.cpp \
+					libopencv_teacher_detect/KVConfig.cpp \
+					${top_srcdir}/vd/vd.cpp
 test_visrc_CXXFLAGS= ${OPENCV_CFLAGS} ${libopencv_detect_a_CXXFLAGS}
 test_visrc_LDADD= ${OPENCV_LIBS} ${HISLIBS} ${CCGNU2_LIBS}
+
+libzkvd_a_SOURCES=	${top_srcdir}/vd/vd.cpp \
+					${top_srcdir}/libopencv_teacher_detect/hi_mat.cpp
+libzkvd_a_CXXFLAGS= ${OPENCV_CFLAGS} ${libopencv_detect_a_CXXFLAGS}
+
 
 else
 
