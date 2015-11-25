@@ -33,6 +33,11 @@ class hiMat
 	void download(cv::Mat & m);
 	void create(int width, int height, Type type);
 
+	template<typename T> T *ptr(int row);
+	template<typename T> const T *ptr(int row) const;
+	template<typename T> T &at(int row, int col);
+	template<typename T> const T &at(int row, int col) const;
+
 	hiMat & operator =(const hiMat & src);
 	hiMat & operator =(const cv::Mat & m);
 
