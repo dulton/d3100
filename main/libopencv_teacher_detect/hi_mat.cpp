@@ -473,22 +473,6 @@ static void dump_dst_info(const IVE_MEM_INFO_S &info)
 	fprintf(stderr, "\tphyaddr=%u, stride=%d\n", info.u32PhyAddr, info.u32Stride);
 }
 
-static void dump_data(const void *data, int stride, int height, int size)
-{
-	fprintf(stderr, "==== %p ====\n");
-	
-	const uint8_t *p = (const uint8_t *)data;
-
-	for (int i = 0; i < height; i++) {
-		for (int j = 0; j < size; j++) {
-			fprintf(stderr, "%02x ", p[j]);
-		}
-
-		p += stride;
-		fprintf(stderr, "\n");
-	}
-}
-
 ///////////////////// 以下为对 hiMat 的操作 ////////////////////////
 namespace hi
 {

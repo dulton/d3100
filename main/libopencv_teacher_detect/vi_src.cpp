@@ -449,6 +449,24 @@ bool vs_next(visrc_t *vs, hiMat &m)
 		return false;
 }
 
+bool vs_next_raw(visrc_t *vs, VIDEO_FRAME_INFO_S **rf)
+{
+	*rf = new VIDEO_FRAME_INFO_S;
+	if (HI_MPI_VI_GetFrame(SUBCHN(vs->ch), *rf) == HI_SUCCESS) {
+		return true;
+	}
+	else {
+		delete *rf;
+		return false;
+	}
+}
+
+void vs_free_raw(visrc_t *vs, VIDEO_FRAME_INFO_S *rf)
+{
+	HI_MPI_VI_ReleaseFrame(SUBCHN(vs->ch), rf);
+	delete rf;
+}
+
 void vs_close(visrc_t * vs)
 {
 	zk_vi_uninit(vs->ch);		// FIXME:
