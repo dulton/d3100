@@ -24,24 +24,30 @@ static void *thread_proc(void *arg)
 	detector_t *p = (detector_t*)arg;
 
 	int cnt = 0;
-	int n = 0;
-	double begin, end;
+	size_t n = 0;
+	double begin = uty_now(), end;
+	double delta = 0.0;
+	double def_wait = 0.1;
+	double frame_delay = 0.0;
+	double fr = .0;
+
 	while (!p->quit) {
-		if (n == 0) {
-			begin = uty_now();
-		}
 		const char *result = det_detect(p->detimpl);
-		n++;
-		if (n == 100) {
-			n = 0;
-			end = uty_now();
-			fprintf(stderr, "DEBUG: FRAME RIDIO %f\n", (end - begin) / 100);
-		}
 		if (result) {
 			parse_and_handle(p->fsm, result);
 		}
 
-//		usleep(1000*1000);	// FIXME: 将无法保证 ...
+		n++;
+		if (n % 100 == 0) {
+			end = uty_now();
+
+			frame_delay = (end - begin) / n;	// 这是每帧实际消耗时间的平均值，
+			delta = frame_delay - def_wait;
+			fr = 1/frame_delay;
+		}
+
+		if (delta > def_wait) delta = def_wait - 0.0000001;
+		usleep((def_wait - delta) * 1000000);
 	}
 	return 0;
 }

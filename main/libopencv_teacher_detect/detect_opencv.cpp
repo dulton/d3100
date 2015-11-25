@@ -163,10 +163,10 @@ static const char *det_detect(detect_t * ctx, Mat & img)
 		isrect = ctx->detect_->one_frame_luv(Img, masked_img, r, first_r);
 
 		//save_mat(img, "saved/origin.rgb");
-		save_mat(masked_img, "saved/curr.rgb");
+		//save_mat(masked_img, "saved/curr.rgb");
 		
 		if (isrect) {
-			fprintf(stderr, "DEBUG: found target: !!!!\n");
+			//fprintf(stderr, "DEBUG: found target: !!!!\n");
 		}
 
 		vector_to_json_t(r, cv::Rect(), false, isrect, str);      
