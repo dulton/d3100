@@ -981,7 +981,7 @@ void TeacherDetecting::frame_updatebg(Mat raw_img, Mat image)
 	//不是红框遮盖区的区域都要清零处理;
 	timeb pre1,cur1;
 	ftime(&pre1);
-	printf("region num = %d\n", ud_bg_s.region_num);
+//	printf("region num = %d\n", ud_bg_s.region_num);
 	for (int j = 0; j < ud_bg_s.region_num; j++) {
 		bool f = false;
 		for (int i = 0; i < valid_oldrect.size(); i++) {
@@ -1177,7 +1177,7 @@ void TeacherDetecting::frame_updatebg(Mat raw_img, Mat image)
 	}
 	 ftime(&cur6);
 	         double time6 = (cur6.time - pre6.time) * 1000 + (cur6.millitm - pre6.millitm);
-		         printf("frame_update7 time = %f\n", time6);
+//		         printf("frame_update7 time = %f\n", time6);
 	//************************************************************
 	//帧差区外的有效区域10秒无帧差认为是静止的目标，给予快速更新;
 	timeb pre7,cur7;
@@ -1226,7 +1226,7 @@ void TeacherDetecting::frame_updatebg(Mat raw_img, Mat image)
 	}
 	 ftime(&cur7);
 	         double time7 = (cur7.time - pre7.time) * 1000 + (cur7.millitm - pre7.millitm);
-		         printf("frame_update8 time = %f\n", time7);
+//		         printf("frame_update8 time = %f\n", time7);
 
 }
 
@@ -1305,7 +1305,7 @@ bool TeacherDetecting::one_frame_luv(Mat raw_img, Mat img, vector < Rect > &r,
 	}
 	ftime(&cur);
 	double time = (cur.time - pre.time) *1000 + (cur.millitm - pre.millitm);
-	printf("luv_method time = %f \n", time);
+//	printf("luv_method time = %f \n", time);
 
 	//原始图像帧差法;
 	Mat Y = img_vector[0];
@@ -1314,7 +1314,7 @@ bool TeacherDetecting::one_frame_luv(Mat raw_img, Mat img, vector < Rect > &r,
 	frame_difference_method(img, frame_s.masked_frame_rect, Y);
 	ftime(&cur1);
 	        double time1 = (cur1.time - pre1.time) *1000 + (cur1.millitm - pre1.millitm);
-		        printf("frame_difference time = %f \n", time1);
+//		        printf("frame_difference time = %f \n", time1);
 
 	////判定人是否走下讲台区;
 	//if(fillbg_struct.nframe >1 && !fillbg_struct.isfillok_end)
@@ -1330,7 +1330,7 @@ bool TeacherDetecting::one_frame_luv(Mat raw_img, Mat img, vector < Rect > &r,
 	}
         ftime(&cur2);
 	        double time2 = (cur2.time - pre2.time) *1000 + (cur2.millitm - pre2.millitm);
-		        printf("frame_update time = %f \n", time2);
+//		        printf("frame_update time = %f \n", time2);
 	//开始时没目标时用第一次的(防止开始人不动丢目标) ;
 	if (!fillbg_struct.isfillok && fillbg_struct.rect_old.size() <= 0
 	    && fillbg_struct.nframe == 2 && !frame_s.is_body_down

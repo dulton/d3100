@@ -670,7 +670,6 @@ void yuv2rgb(const hiMat &src, hiMat &dst)
 
 
 	dst.create(src.rows, src.cols, hiMat::RGB24); // hiMat 负责处理失败情况 ...
-        printf("w = %d, h = %d\n", src.cols, src.rows);
 	IVE_CSC_CTRL_S pstCscCtrl;
 	pstCscCtrl.enOutFmt = IVE_CSC_OUT_FMT_PACKAGE;
 	pstCscCtrl.enCscMode = IVE_CSC_MODE_VIDEO_BT601_AND_BT656;
