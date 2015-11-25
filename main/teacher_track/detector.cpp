@@ -3,7 +3,7 @@
 #include "runtime.h"
 #include "detector.h"
 #include "../libteacher_detect/detect.h"
-
+#include "../libopencv_teacher_detect/utils.h"
 struct detector_t
 {
 	int quit;
@@ -24,9 +24,19 @@ static void *thread_proc(void *arg)
 	detector_t *p = (detector_t*)arg;
 
 	int cnt = 0;
-
+	int n = 0;
+	double begin, end;
 	while (!p->quit) {
+		if (n == 0) {
+			begin = uty_now();
+		}
 		const char *result = det_detect(p->detimpl);
+		n++;
+		if (n == 100) {
+			n = 0;
+			end = uty_now();
+			fprintf(stderr, "DEBUG: FRAME RIDIO %f\n", (end - begin) / 100);
+		}
 		if (result) {
 			parse_and_handle(p->fsm, result);
 		}
