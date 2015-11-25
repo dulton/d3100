@@ -194,7 +194,7 @@ static const char *det_detect(detect_t * ctx, Mat & img)
 	ftime(&cur);
 	double time =
 	    (cur.time - pre.time) * 1000 + (cur.millitm - pre.millitm);
-	//printf("all the detect time = %f\n", time);
+	printf("all the detect time = %f\n", time);
 
 	return ctx->result_str.c_str();
 }

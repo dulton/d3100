@@ -383,19 +383,19 @@ static void vf2mat(const VIDEO_FRAME_INFO_S &frame, cv::Mat &m)
 	hiMat hm(frame.stVFrame.u32PhyAddr[0], frame.stVFrame.u32Width, 
 			frame.stVFrame.u32Height, frame.stVFrame.u32Stride[0], hiMat::SP420);
 
-	fprintf(stderr, "%s:%d\n", __func__, __LINE__);
+	//fprintf(stderr, "%s:%d\n", __func__, __LINE__);
 
 	hiMat t1, t2;
 	hi::filter(hm, t1);
-	fprintf(stderr, "%s:%d\n", __func__, __LINE__);
+	//fprintf(stderr, "%s:%d\n", __func__, __LINE__);
 	t1.dump_data("saved/t1.yuv");
 
 	hi::yuv2rgb(t1, t2);
 	t2.dump_data("saved/t2.rgb");
-	fprintf(stderr, "%s:%d\n", __func__, __LINE__);
+	//fprintf(stderr, "%s:%d\n", __func__, __LINE__);
 
 	t2.download(m);
-	fprintf(stderr, "%s:%d\n", __func__, __LINE__);
+	//fprintf(stderr, "%s:%d\n", __func__, __LINE__);
 }
 
 struct visrc_t {
@@ -406,7 +406,7 @@ struct visrc_t {
 
 visrc_t *vs_open(const char *fname)
 {
-	fprintf(stderr, "%s:%d\n", __func__, __LINE__);
+	//fprintf(stderr, "%s:%d\n", __func__, __LINE__);
 	static bool _inited = false;
 	if (!_inited) {
 		if (zk_mpi_init() < 0) {
@@ -438,10 +438,10 @@ bool vs_next_frame(visrc_t * vs, cv::Mat & m)
 	}
 	// 通过 VIDEO_FRAME_INFO_S 构造 cv::Mat
 
-	fprintf(stderr, "%s:%d\n", __func__, __LINE__);
+	//fprintf(stderr, "%s:%d\n", __func__, __LINE__);
 	vf2mat(frame, m);
 	HI_MPI_VI_ReleaseFrame(vs->ch, &frame);
-	fprintf(stderr, "%s:%d\n", __func__, __LINE__);
+	//fprintf(stderr, "%s:%d\n", __func__, __LINE__);
 	return true;
 }
 
