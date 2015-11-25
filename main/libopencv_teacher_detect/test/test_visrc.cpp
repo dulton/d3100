@@ -20,6 +20,8 @@ int main()
 {
 	vd_t *vd = VD_open();
 	visrc_t *src = vs_open("teacher_detect_trace.config");
+	size_t cnt = 0;
+	
 	while (1) {
 		hiVIDEO_FRAME_INFO_S *vf;
 		if (vs_next_raw(src, &vf)) {
@@ -33,6 +35,11 @@ int main()
 		}
 		else {
 			fprintf(stderr, "ERR: no frame\n");
+		}
+
+		cnt++;
+		if (cnt % 30 == 0) {
+			fprintf(stderr, "\n");
 		}
 
 #if 0
