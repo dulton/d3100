@@ -1,6 +1,7 @@
 #include"detect_t.h"
 #include "sys/timeb.h"
 #include "hi_mat.h"
+#include "utils.h"
 using namespace hi;
 
 Static_s::Static_s()
@@ -11,8 +12,6 @@ Static_s::Static_s()
 /** save Mat data, 应该无法支持 32F 之类的，但足够了 */
 static void save_mat(const cv::Mat &m, const char *fname)
 {
-	fprintf(stderr, "DEBUG: m: (%d,%d), stride=%u\n", 
-			m.cols, m.rows, m.elemSize() * m.cols);
 	FILE *fp = fopen(fname, "wb");
 
 	if (fp) {
@@ -467,7 +466,6 @@ std::vector < Rect > TeacherDetecting::refineSegments2(Mat img, Mat & mask,
 	double time1 =
 	    (double)(cur1.time - pre1.time) * 1000 + (cur1.millitm -
 						      pre1.millitm);
-	//printf("^^^^^^^^^^findContours time:%f\n",time1);
 	if (right_rect.size() > 1) {
 		rect_fusion2(right_rect, interval);
 	}
@@ -546,7 +544,6 @@ void TeacherDetecting::is_need_fillbg_twice(Mat img)
 		    || ((r.x + r.width) <= (r_first.x - 10))) {
 			fillbg_struct.filltwice_num++;
 			if (atoi(cfg_->get_value("debug", "0")) > 0) {
-				//fprintf(stderr,"%d\n",fillbg_struct.filltwice_num);
 			}
 		}
 		if (fillbg_struct.filltwice_num >= 5) {
@@ -676,7 +673,6 @@ void TeacherDetecting::is_teacher_down(Mat raw_img, Mat img2)
 		    && frame_s.frame_rect[k].x >= temp.x && (frame_s.frame_rect[k].x + frame_s.frame_rect[k].width) <= (temp.x + temp.width))	//&& frame_s.frame_rect.size()==1
 		{
 			frame_s.is_body_down = true;
-			//fprintf(stderr,"teacher is down!\n");
 			break;
 		}
 	}
@@ -724,7 +720,6 @@ void TeacherDetecting::is_teacher_down(Mat raw_img, Mat img2)
 
 	if (atoi(cfg_->get_value("debug", "0")) > 0) {
 		if (interval_t > 0) {
-			//fprintf(stderr,"teacher_down_time = %f\n",interval_t);
 		}
 	}
 	//更新蓝框区域背景;
@@ -906,6 +901,7 @@ void TeacherDetecting::reset_static_region(Region & region)
 //缓慢更新某个区域的背景图;
 void TeacherDetecting::updatebg_slow(Mat img, Rect r, double learn_rate)
 {
+	
 	Rect r_temp = r;
 	r_temp &= Rect(0, 0, img.cols, img.rows);
 	timeb pre,cur,cur1,cur2;
@@ -917,13 +913,12 @@ void TeacherDetecting::updatebg_slow(Mat img, Rect r, double learn_rate)
 	printf("update_slow clone time = %f\n", time);
 	Mat dst = Mat(Size(img.cols, img.rows), CV_8UC3);
 	double rate = 1 - learn_rate;
+	UtyTimeUsed utu(__FUNCTION__, 0.00001);
 	addWeighted(img_t, learn_rate, bg_t, rate, 0, dst);
-        ftime(&cur1);
-        double time1 = (cur1.time - cur.time) * 1000 + (cur1.millitm - cur.millitm);
-	printf("update_slow addweight time = %f\n", time1);
 	Mat mask(img.rows, img.cols, CV_8UC3, Scalar(0, 0, 0));
 	Mat specified(mask, r_temp);
 	specified.setTo(1);
+	
 	dst.copyTo(fillbg_struct.bg, mask);
 	ftime(&cur2);
 	        double time2 = (cur2.time - cur1.time) * 1000 + (cur2.millitm - cur1.millitm);
@@ -950,7 +945,7 @@ void TeacherDetecting::updatebg_slow(Mat img, Rect r, double learn_rate)
 //利用帧差法进行背景更新;
 void TeacherDetecting::frame_updatebg(Mat raw_img, Mat image)
 {
-	//每次都要清空;
+		//每次都要清空;
 	for (int j = 0; j < ud_bg_s.region_num; j++) {
 		ud_bg_s.region[j].has_old_rect = false;
 		ud_bg_s.region[j].has_frame_rect = false;
@@ -1065,6 +1060,7 @@ void TeacherDetecting::frame_updatebg(Mat raw_img, Mat image)
 	         double time2 = (cur2.time - pre2.time) * 1000 + (cur2.millitm - pre2.millitm);
 //		         printf("frame_update3 time = %f\n", time2);
 	//************************************************************
+	
 	//获取帧差矩形所占的区域;
 	timeb pre3,cur3;
 	ftime(&pre3);
@@ -1086,20 +1082,8 @@ void TeacherDetecting::frame_updatebg(Mat raw_img, Mat image)
 	         double time3 = (cur3.time - pre3.time) * 1000 + (cur3.millitm - pre3.millitm);
 //		         printf("frame_update4 time = %f\n", time3);
 	//************************************************************
+	
 	//没有帧差框时除红框外的区域都缓慢的进行更新;
-//	timeb pre4,cur4;
-//	ftime(&pre4);
-//	if (valid_framerect.size() < 1) {
-//		for (int j = 0; j < ud_bg_s.region_num; j++) {
-//			if (!ud_bg_s.region[j].has_old_rect) {
-//				updatebg_slow(image, ud_bg_s.region[j].region,
-//					      ud_bg_s.slow_learn_rate);
-//			}
-//		}
-//	}
-//	 ftime(&cur4);
-//	         double time4 = (cur4.time - pre4.time) * 1000 + (cur4.millitm - pre4.millitm);
-//		         printf("frame_update5 time = %f\n", time4);
 	//************************************************************
 	//有帧差且背景未彻底更新完成之前时，同时有帧差和红框外的区域进行较快的更新;
 	timeb pre5,cur5;
@@ -1113,6 +1097,8 @@ void TeacherDetecting::frame_updatebg(Mat raw_img, Mat image)
 				break;
 			}
 		}
+		UtyTimeUsed utu(__FUNCTION__, 0.00001);
+
 		if (flag_t) {
 			for (int j = 0; j < ud_bg_s.region_num; j++) {
 				if (!
@@ -1143,9 +1129,6 @@ void TeacherDetecting::frame_updatebg(Mat raw_img, Mat image)
 			}
 		}
 	}
-	 ftime(&cur5);
-	         double time5 = (cur5.time - pre5.time) * 1000 + (cur5.millitm - pre5.millitm);
-		         printf("frame_update6 time = %f\n", time5);
 	//************************************************************
 	timeb pre6,cur6;
 	ftime(&pre6);
@@ -1304,14 +1287,11 @@ bool TeacherDetecting::one_frame_luv(Mat raw_img, Mat img, vector < Rect > &r,
 	fillbg_struct.num++;
 	Mat img_t;
 
-	//fprintf(stderr, "%s:%d\n", __func__, __LINE__);
 	cvtColor(img, img_t, CV_BGR2YUV);
 
 	std::vector < Mat > img_vector;
 	split(img_t, img_vector);
-	//fprintf(stderr, "%s:%d\n", __func__, __LINE__);
-
-	//初始背景;
+        //初始背景;
 	if (fillbg_struct.num == 10) {
 		//fillbg_struct.bg = img;
 		img.copyTo(fillbg_struct.bg);
@@ -1321,9 +1301,7 @@ bool TeacherDetecting::one_frame_luv(Mat raw_img, Mat img, vector < Rect > &r,
 	timeb pre,cur;
 	ftime(&pre);
 	if (!fillbg_struct.bg.empty()) {
-		printf("********luv_method\n");
 		luv_method(img, img_vector);
-	//fprintf(stderr, "%s:%d\n", __func__, __LINE__);
 	}
 	ftime(&cur);
 	double time = (cur.time - pre.time) *1000 + (cur.millitm - pre.millitm);
@@ -1331,14 +1309,12 @@ bool TeacherDetecting::one_frame_luv(Mat raw_img, Mat img, vector < Rect > &r,
 
 	//原始图像帧差法;
 	Mat Y = img_vector[0];
-	//printf("********frame_difference_method\n");
 	timeb pre1,cur1;
 	ftime(&pre1);
 	frame_difference_method(img, frame_s.masked_frame_rect, Y);
 	ftime(&cur1);
 	        double time1 = (cur1.time - pre1.time) *1000 + (cur1.millitm - pre1.millitm);
 		        printf("frame_difference time = %f \n", time1);
-	//fprintf(stderr, "%s:%d\n", __func__, __LINE__);
 
 	////判定人是否走下讲台区;
 	//if(fillbg_struct.nframe >1 && !fillbg_struct.isfillok_end)
@@ -1350,9 +1326,7 @@ bool TeacherDetecting::one_frame_luv(Mat raw_img, Mat img, vector < Rect > &r,
 	timeb pre2,cur2;
 	ftime(&pre2);
 	if (fillbg_struct.nframe > 1) {
-	//fprintf(stderr, "%s:%d\n", __func__, __LINE__);
 		frame_updatebg(raw_img, img);
-	//fprintf(stderr, "%s:%d\n", __func__, __LINE__);
 	}
         ftime(&cur2);
 	        double time2 = (cur2.time - pre2.time) *1000 + (cur2.millitm - pre2.millitm);
@@ -1371,16 +1345,13 @@ bool TeacherDetecting::one_frame_luv(Mat raw_img, Mat img, vector < Rect > &r,
 		fillbg_struct.rect_old.push_back(r);
 	}
 
-	//fprintf(stderr, "%s:%d\n", __func__, __LINE__);
 	//判断是否是错误的更新;
+
 	is_need_fillbg_twice(img);
-	//fprintf(stderr, "%s:%d\n", __func__, __LINE__);
 
 	//LUV算法，初始更新完之后，根据得到得rect和实时的图像以及bg图像，更新bg图;
 	if (!fillbg_struct.isfillok) {
-	//fprintf(stderr, "%s:%d\n", __func__, __LINE__);
 		fillbg_LUV(img);
-	//fprintf(stderr, "%s:%d\n", __func__, __LINE__);
 	}
 	//如果半分钟内一个目标也没有，则更新整个背景区;
 	//norect_update_bg(img);
@@ -1391,7 +1362,6 @@ bool TeacherDetecting::one_frame_luv(Mat raw_img, Mat img, vector < Rect > &r,
 		first_rect = fillbg_struct.fist_fillrect;
 	}
 
-	//fprintf(stderr, "%s:%d\n", __func__, __LINE__);
 	r = fillbg_struct.rect_old;
 	return !r.empty();
 }

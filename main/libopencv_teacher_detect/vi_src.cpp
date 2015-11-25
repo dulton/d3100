@@ -366,7 +366,6 @@ static void save_rgb(int stride, int width, int height, void *data)
 
 static void save_mat(const cv::Mat & m, const char *fname)
 {
-	fprintf(stderr, "DEBUG: m: (%d,%d)\n", m.cols, m.rows);
 	FILE *fp = fopen(fname, "wb");
 	if (fp) {
 		for (int y = 0; y < m.rows; y++) {
@@ -384,23 +383,17 @@ static void vf2mat(const VIDEO_FRAME_INFO_S &frame, cv::Mat &m)
 			frame.stVFrame.u32Height, frame.stVFrame.u32Stride[0], hiMat::SP420);
 
 	//fprintf(stderr, "%s:%d\n", __func__, __LINE__);
-
 	hiMat t1, t2;
 	hi::filter(hm, t1);
-	//fprintf(stderr, "%s:%d\n", __func__, __LINE__);
-	t1.dump_data("saved/t1.yuv");
-
 	hi::yuv2rgb(t1, t2);
-	t2.dump_data("saved/t2.rgb");
-	//fprintf(stderr, "%s:%d\n", __func__, __LINE__);
-
 	t2.download(m);
-	//fprintf(stderr, "%s:%d\n", __func__, __LINE__);
+
+	t2 = hm;
 }
 
 struct visrc_t {
 	KVConfig *cfg;
-	int ch;			// 用于vi的通道，默认 28
+	int ch;			// 用于vi的通道，默认 12 对应着 subch 28
 	int vwidth, vheight;	// video_width, video_height
 };
 
@@ -438,11 +431,41 @@ bool vs_next_frame(visrc_t * vs, cv::Mat & m)
 	}
 	// 通过 VIDEO_FRAME_INFO_S 构造 cv::Mat
 
-	//fprintf(stderr, "%s:%d\n", __func__, __LINE__);
 	vf2mat(frame, m);
-	HI_MPI_VI_ReleaseFrame(vs->ch, &frame);
-	//fprintf(stderr, "%s:%d\n", __func__, __LINE__);
+	HI_MPI_VI_ReleaseFrame(SUBCHN(vs->ch), &frame);
 	return true;
+}
+
+bool vs_next(visrc_t *vs, hiMat &m)
+{
+	VIDEO_FRAME_INFO_S frame;
+	if (HI_MPI_VI_GetFrame(SUBCHN(vs->ch), &frame) == HI_SUCCESS) {
+		hiMat hm(frame.stVFrame.u32PhyAddr[0], frame.stVFrame.u32Width, 
+				frame.stVFrame.u32Height, frame.stVFrame.u32Stride[0], hiMat::SINGLE);
+		m = hm.clone();
+		HI_MPI_VI_ReleaseFrame(SUBCHN(vs->ch), &frame);
+		return true;
+	}
+	else
+		return false;
+}
+
+bool vs_next_raw(visrc_t *vs, VIDEO_FRAME_INFO_S **rf)
+{
+	*rf = new VIDEO_FRAME_INFO_S;
+	if (HI_MPI_VI_GetFrame(SUBCHN(vs->ch), *rf) == HI_SUCCESS) {
+		return true;
+	}
+	else {
+		delete *rf;
+		return false;
+	}
+}
+
+void vs_free_raw(visrc_t *vs, VIDEO_FRAME_INFO_S *rf)
+{
+	HI_MPI_VI_ReleaseFrame(SUBCHN(vs->ch), rf);
+	delete rf;
 }
 
 void vs_close(visrc_t * vs)

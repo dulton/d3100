@@ -12,6 +12,7 @@
 #endif
 
 #include "hi_mat.h"
+#include "utils.h"
 
 /** 应该编写 hlp_xxx 用了alloc, copy, free ...
 
@@ -69,11 +70,26 @@ hiMat::hiMat(const cv::Mat &m)
 	*this = m;	
 }
 
+hiMat::hiMat(const cv::Mat &m, const cv::Rect &roi)
+{
+	//fprintf(stderr, "FATAL: %s: NOT impl\n", __func__);
+	outer_ = false;
+	ref_ = 0;
+	*this = m(roi);
+}
+
 hiMat::hiMat(const hiMat &m)
 {
 	memset(this, 0, sizeof(hiMat));
 	outer_ = false;
 	*this = m;
+}
+
+hiMat::hiMat(const hiMat &m, const cv::Rect &roi)
+{
+	fprintf(stderr, "FATAL: %s: NOT impl\n", __func__);
+	// TODO: 实现 roi，需要分两种情况，如果 m 为 outer，则需要 deep cp
+	//		 否则使用 addref
 }
 
 hiMat::hiMat(unsigned int phyaddr, int width, int height, int stride, Type type)
@@ -88,12 +104,17 @@ hiMat::hiMat(unsigned int phyaddr, int width, int height, int stride, Type type)
 	vir_addr_ = HI_MPI_SYS_Mmap(phy_addr_, memsize());
 }
 
+hiMat hiMat::operator()(const cv::Rect &roi) const
+{
+	return hiMat(*this, roi);
+}
+
 hiMat::~hiMat()
 {
 	if (!outer_)
 		release();
 	else {
-		HI_MPI_SYS_Munmap(vir_addr_, rows * stride_);
+		HI_MPI_SYS_Munmap(vir_addr_, memsize());
 	}
 }
 
@@ -221,6 +242,66 @@ void hiMat::addref()
 	}
 }
 
+hiMat hiMat::clone() const
+{
+	hiMat m;
+	m.create(rows, cols, type);
+	deepcp(m);
+	return m;
+}
+
+void hiMat::deepcp(hiMat &m) const
+{
+	const char *s = (const char*)vir_addr_;
+	char *d = (char*)m.vir_addr_;
+
+	switch (type) {
+	case SP420:
+		// Y
+		for (int i = 0; i < rows; i++) {
+			memcpy(d, s, cols);
+			s += stride_;
+			d += m.stride_;
+		}
+		// UV
+		for (int i = 0; i < rows/2; i++) {
+			memcpy(d, s, cols);
+			s += stride_;
+			d += m.stride_;
+		}
+		break;
+
+	case SINGLE:
+		for (int i = 0; i < rows; i++) {
+			memcpy(d, s, cols);
+			s += stride_;
+			d += m.stride_;
+		}
+		break;
+
+	case RGB24:
+		for (int i = 0; i < rows; i++) {
+			memcpy(d, s, cols*3);
+			s += stride_;
+			d += m.stride_;
+		}
+		break;
+
+	case U64:
+		for (int i = 0; i < rows; i++) {
+			memcpy(d, s, cols*8);
+			s += stride_;
+			d += m.stride_;
+		}
+		break;
+
+	default:
+		fprintf(stderr, "FATAL: %s: unknown type!!!\n", __func__);
+		exit(-1);
+		break;
+	}
+}
+
 size_t hiMat::memsize() const
 {
 	switch (type) {
@@ -294,15 +375,29 @@ hiMat &hiMat::operator = (const hiMat &m)
 		release();
 	}
 
-	// cp
-	phy_addr_ = m.phy_addr_;
-	vir_addr_ = m.vir_addr_;
-	cols = m.cols;
-	rows = m.rows;
-	ref_ = m.ref_;
+	outer_ = false;
 
-	// addref
-	addref();
+	// 如果 m 是 outer_ 对象，则需要 clone
+	if (m.outer_) {
+		delete ref_;
+		ref_ = 0;
+		create(m.rows, m.cols, m.type);
+		deepcp(*this);
+	}
+	else {
+		// cp
+		phy_addr_ = m.phy_addr_;
+		vir_addr_ = m.vir_addr_;
+		cols = m.cols;
+		rows = m.rows;
+		ref_ = m.ref_;
+		hi_stride_ = m.hi_stride_;
+		stride_ = m.stride_;
+		type = m.type;
+
+		// addref
+		addref();
+	}
 
 	return *this;
 }
@@ -376,22 +471,6 @@ static void dump_dst_info(const IVE_MEM_INFO_S &info)
 {
 	fprintf(stderr, "DEBUG: == %s\n", __func__);
 	fprintf(stderr, "\tphyaddr=%u, stride=%d\n", info.u32PhyAddr, info.u32Stride);
-}
-
-static void dump_data(const void *data, int stride, int height, int size)
-{
-	fprintf(stderr, "==== %p ====\n");
-	
-	const uint8_t *p = (const uint8_t *)data;
-
-	for (int i = 0; i < height; i++) {
-		for (int j = 0; j < size; j++) {
-			fprintf(stderr, "%02x ", p[j]);
-		}
-
-		p += stride;
-		fprintf(stderr, "\n");
-	}
 }
 
 ///////////////////// 以下为对 hiMat 的操作 ////////////////////////
@@ -589,10 +668,9 @@ void yuv2rgb(const hiMat &src, hiMat &dst)
 {
 	int s32Ret;
 
-	//fprintf(stderr, "%s:%d\n", __func__, __LINE__);
-	dst.create(src.rows, src.cols, hiMat::RGB24); // hiMat 负责处理失败情况 ...
 
-	//fprintf(stderr, "%s:%d\n", __func__, __LINE__);
+	dst.create(src.rows, src.cols, hiMat::RGB24); // hiMat 负责处理失败情况 ...
+        printf("w = %d, h = %d\n", src.cols, src.rows);
 	IVE_CSC_CTRL_S pstCscCtrl;
 	pstCscCtrl.enOutFmt = IVE_CSC_OUT_FMT_PACKAGE;
 	pstCscCtrl.enCscMode = IVE_CSC_MODE_VIDEO_BT601_AND_BT656;
@@ -603,13 +681,8 @@ void yuv2rgb(const hiMat &src, hiMat &dst)
 	IVE_SRC_INFO_S src_info = get_src_info_s(src);
 	IVE_MEM_INFO_S dst_mem_info = get_mem_info_s(dst);
 	dst_mem_info.u32Stride = dst.cols;
-	//fprintf(stderr, "%s:%d\n", __func__, __LINE__);
-
-	//dump_src_info(src_info);
-	//dump_dst_info(dst_mem_info);
 
 	src.flush();
-	//fprintf(stderr, "%s:%d\n", __func__, __LINE__);
 
 	s32Ret = HI_MPI_IVE_CSC(&IveHandle, &src_info, &dst_mem_info, &pstCscCtrl, bInstant);
 	if(s32Ret != HI_SUCCESS)
@@ -632,7 +705,6 @@ void integral(const hiMat &src, hiMat &dst)
 
 	IVE_SRC_INFO_S src_info = get_src_info_s(src);
 	IVE_MEM_INFO_S dst_mem_info = get_mem_info_s(dst);
-	dst.dump_hdr();
 
 	src.flush();
 

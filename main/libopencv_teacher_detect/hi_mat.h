@@ -1,4 +1,5 @@
 #pragma once
+
 #include "config.h"
 #include <opencv2/opencv.hpp>
 
@@ -24,15 +25,38 @@ class hiMat
 
 	hiMat();
 	hiMat(const cv::Mat & m);
+	hiMat(const cv::Mat &m, const cv::Rect &roi);
 	hiMat(const hiMat & m);
+	hiMat(const hiMat &m, const cv::Rect &roi);
 	hiMat(unsigned int phy_addr, int width, int height, int stride, Type type);
 	~hiMat();
 
 	void download(cv::Mat & m);
 	void create(int width, int height, Type type);
 
+	template<typename T> T *ptr(int row)
+	{
+		return (T*)((char*)vir_addr_ + row * stride_);
+	}
+	template<typename T> const T *ptr(int row) const
+	{
+		return (const T*)((char*)vir_addr_ + row * stride_);
+	}
+	template<typename T> T &at(int row, int col)
+	{
+		return ptr<T>(row)[col];
+	}
+	template<typename T> const T &at(int row, int col) const
+	{
+		return ptr<T>(row)[col];
+	}
+
 	hiMat & operator =(const hiMat & src);
 	hiMat & operator =(const cv::Mat & m);
+
+	hiMat clone() const; 
+
+	hiMat operator()(const cv::Rect &roi) const;
 
 	void dump_hdr() const;
 	void dump_data(const char *fname) const;
@@ -61,6 +85,7 @@ class hiMat
  private:
 	void release();
 	void addref();
+	void deepcp(hiMat &m) const; // 
 };
 
 namespace hi

@@ -6,6 +6,8 @@
 #include <sstream>
 #include "sys/timeb.h"
 #include "vi_src.h"
+#include <unistd.h>
+#include "utils.h"
 
 struct detect_t {
 	KVConfig *cfg_;
@@ -196,6 +198,8 @@ static const char *det_detect(detect_t * ctx, Mat & img)
 	    (cur.time - pre.time) * 1000 + (cur.millitm - pre.millitm);
 	printf("all the detect time = %f\n", time);
 
+	usleep(100 * 1000);
+	
 	return ctx->result_str.c_str();
 }
 
