@@ -148,10 +148,7 @@ static const char *det_detect(detect_t * ctx, Mat & img)
 	bool isrect = false;
 	std::vector < Rect > r;
 	vector < cv::Rect > first_r;
-	timeb pre, cur;
-	ftime(&pre);
 	Mat Img = img.clone();
-//	Mat img_t = img.clone();
 
 	if (ctx->t_m) {
 		Mat masked_img_temp = Mat(Img, ctx->detect_->masked_rect);
@@ -193,10 +190,6 @@ static const char *det_detect(detect_t * ctx, Mat & img)
 
 	}
 	ctx->result_str = str;
-	ftime(&cur);
-	double time =
-	    (cur.time - pre.time) * 1000 + (cur.millitm - pre.millitm);
-//	printf("all the detect time = %f\n", time);
 
 	return ctx->result_str.c_str();
 }
