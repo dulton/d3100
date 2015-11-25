@@ -9,7 +9,7 @@ int main()
 	while (1) {
 		hiMat m;
 		if (vs_next(src, m)) {
-			fprintf(stderr, "INFO: got frame\n");
+			m.dump_hdr();
 		}
 		else {
 			fprintf(stderr, "ERR: no frame\n");

@@ -391,6 +391,9 @@ hiMat &hiMat::operator = (const hiMat &m)
 		cols = m.cols;
 		rows = m.rows;
 		ref_ = m.ref_;
+		hi_stride_ = m.hi_stride_;
+		stride_ = m.stride_;
+		type = m.type;
 
 		// addref
 		addref();
