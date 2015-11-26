@@ -22,15 +22,14 @@ struct detect_t {
 	std::string result_str;
 };
 
-static hiMat get_mat(const struct hiVIDEO_FRAME_INFO_S *curr_vga_frame)
+static hiMat *get_mat(const struct hiVIDEO_FRAME_INFO_S *curr_vga_frame)
 {
 	int width = curr_vga_frame->stVFrame.u32Width;
 	int height = curr_vga_frame->stVFrame.u32Height;
 	int stride = curr_vga_frame->stVFrame.u32Stride[0];
 	int phy_addr = curr_vga_frame->stVFrame.u32PhyAddr[0];
 
-	hiMat mat(phy_addr, width, height, stride, hiMat::SINGLE); // only using Y
-	return mat.clone();
+	return new hiMat(phy_addr, width, height, stride, hiMat::SP420); 
 }
 
 detect_t *det_open(const char *cfg_name)
@@ -44,12 +43,10 @@ detect_t *det_open(const char *cfg_name)
 
 	const char *method =
 	    ctx->cfg_->get_value("BLACKBOARD_OR_TEACHER", "teacher");
-	fprintf(stderr, "======================> method=%s\n", method);
 
 	if (strcmp(method, "teacher") == 0) {
 		ctx->t_m = true;
 		ctx->detect_ = new TeacherDetecting(ctx->cfg_);
-		fprintf(stderr, "INFO: using Teacher Mode...\n");
 	} else if (strcmp(method, "blackboard") == 0) {
 		ctx->b_m = true;
 		ctx->bd_detect_ = new BlackboardDetecting(ctx->cfg_);	//+++++++;
@@ -151,8 +148,6 @@ static void save_mat(const cv::Mat &m, const char *fname)
 static const char *det_detect(detect_t * ctx, cv::Mat & img)
 {
 	static size_t _cnt = 0;
-	fprintf(stderr, "DEBUG: #%u\t", _cnt++);
-
 	char *str = (char *)alloca(BUFSIZE);
 	bool isrect = false;
 	std::vector < Rect > r;
@@ -215,14 +210,16 @@ static const char *empty_result()
 	return "{\"stamp\":12345, \"rect\":[]}";
 }
 
-const char *det_detect(detect_t * ctx, struct hiVIDEO_FRAME_INFO_S *frame)
+const char *det_detect(detect_t * ctx, const struct hiVIDEO_FRAME_INFO_S *frame)
 {
-	hiMat himat = get_mat(frame);  
+	hiMat *himat = get_mat(frame);  
+	hiMat rgb;
+	hi::yuv2rgb(*himat, rgb);
+	delete himat;
 	cv::Mat	mat;
-	himat.download(mat);
-	if (next_frame(ctx, mat)) {
-		return det_detect(ctx, mat);
-	} else {
-		return empty_result();
-	}
+	rgb.download(mat);
+	const char *rc = det_detect(ctx, mat); 
+	return rc;
+
 }
+

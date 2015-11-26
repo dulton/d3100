@@ -40,7 +40,7 @@ int main(int argc, char **argv)
 	detect_t *det = det_open(fname);
 	while (true) {
 		char c;
-		const char *message = det_detect(det);
+		const char *message = det_detect(det, 0);
 		printf("###### aims  %s\n", message);
 		std::string s(message);
 		int len = s.size();

@@ -4,8 +4,15 @@
 #ifdef WITHOUT_OCV
 namespace cv
 {
-	struct Rect
+	class Rect
 	{
+	public:
+		Rect(int x, int y, int w, int h)
+		{
+			this->x = x, this->y = y;
+			width = w, height = h;
+		}
+
 		int x, y, width, height;
 	};
 };
@@ -66,7 +73,9 @@ class hiMat
 	}
 
 	hiMat & operator =(const hiMat & src);
+#ifndef WITHOUT_OCV
 	hiMat & operator =(const cv::Mat & m);
+#endif // without opencv
 
 	hiMat clone() const; 
 

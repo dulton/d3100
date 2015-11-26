@@ -1,4 +1,7 @@
 #include <stdio.h>
+#include <stdint.h>
+#define WITHOUT_OCV
+
 #include "../libopencv_teacher_detect/hi_mat.h"
 #include "hi_comm_ive.h"
 #include "vd.h"
