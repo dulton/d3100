@@ -42,19 +42,6 @@ static int get_sub(const hiMat &mat, const cv::Rect &rc)
 	return (downright + topleft - topright - downleft) / 255;
 }
 
-static void save_mat(const cv::Mat & m, const char *fname)
-{
-	FILE *fp = fopen(fname, "wb");
-	if (fp) {
-		for (int y = 0; y < m.rows; y++) {
-			const unsigned char *p = m.ptr < unsigned char >(y);
-			fwrite(p, 1, m.elemSize() * m.cols, fp);
-		}
-
-		fclose(fp);
-	}
-}
-
 int vd_changed(vd_t *vd, const struct hiVIDEO_FRAME_INFO_S *curr_vga_frame)
 {
 	if (vd->firsted) {

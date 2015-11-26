@@ -2,7 +2,7 @@ AUTOMAKE_OPTIONS=foreign
 
 RUNTIME_CPP= teacher_track/runtime.cpp
 
-bin_PROGRAMS= teacher_detect test_ptz test_kvconfig test_udpsrv test_himat
+bin_PROGRAMS= teacher_detect test_ptz test_kvconfig test_udpsrv
 
 if PTZSRV
 bin_PROGRAMS+= ptzsrv
@@ -70,9 +70,9 @@ libopencv_detect_a_CFLAGS= $(libopencv_detect_a_CXXFLAGS)
 
 teacher_detect_LDADD= libopencv_detect.a ${CCGNU2_LIBS} ${OPENCV_LIBS} ${HISLIBS}
 teacher_detect_SOURCES+= libopencv_teacher_detect/detect_opencv.cpp
-teacher_detect_CXXFLAGS= $(libopencv_detect_a_CXXFLAGS)
+teacher_detect_CXXFLAGS= $(libopencv_detect_a_CXXFLAGS) ${OPENCV_CFLAGS}
 
-bin_PROGRAMS += test_arm_opencv_detect test_visrc
+bin_PROGRAMS += test_arm_opencv_detect test_visrc test_himat
 test_arm_opencv_detect_SOURCES= libopencv_teacher_detect/test/test_arm_opencv_detect.cpp
 test_arm_opencv_detect_LDADD= libopencv_detect.a ${CCGNU2_LIBS} ${OPENCV_LIBS} ${HISLIBS}
 
