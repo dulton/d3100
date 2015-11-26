@@ -7,9 +7,20 @@
 #include "sys/timeb.h"
 #include <unistd.h>
 #include "utils.h"
+#include "hi_mat.h"
 
 #define max(a,b) (a>b ? a:b)
 #define min(a,b) (a>b ? b:a)
+
+struct detect_t {
+	KVConfig *cfg_;
+	TeacherDetecting *detect_;
+	BlackboardDetecting *bd_detect_;
+	IplImage *masked_;
+	bool t_m;
+	bool b_m;
+	std::string result_str;
+};
 
 static hiMat get_mat(const struct hiVIDEO_FRAME_INFO_S *curr_vga_frame)
 {
@@ -21,16 +32,6 @@ static hiMat get_mat(const struct hiVIDEO_FRAME_INFO_S *curr_vga_frame)
 	hiMat mat(phy_addr, width, height, stride, hiMat::SINGLE); // only using Y
 	return mat.clone();
 }
-
-struct detect_t {
-	KVConfig *cfg_;
-	TeacherDetecting *detect_;
-	BlackboardDetecting *bd_detect_;
-	IplImage *masked_;
-	bool t_m;
-	bool b_m;
-	std::string result_str;
-};
 
 detect_t *det_open(const char *cfg_name)
 {
@@ -147,7 +148,7 @@ static void save_mat(const cv::Mat &m, const char *fname)
 	}
 }
 
-static const char *det_detect(detect_t * ctx, Mat & img)
+static const char *det_detect(detect_t * ctx, cv::Mat & img)
 {
 	static size_t _cnt = 0;
 	fprintf(stderr, "DEBUG: #%u\t", _cnt++);
@@ -214,11 +215,13 @@ static const char *empty_result()
 	return "{\"stamp\":12345, \"rect\":[]}";
 }
 
-const char *det_detect(detect_t * ctx, cv::Mat &frame)
+const char *det_detect(detect_t * ctx, struct hiVIDEO_FRAME_INFO_S *frame)
 {
-	cv::Mat frame;
-	if (next_frame(ctx, frame)) {
-		return det_detect(ctx, frame);
+	hiMat himat = get_mat(frame);  
+	cv::Mat	mat;
+	himat.download(mat);
+	if (next_frame(ctx, mat)) {
+		return det_detect(ctx, mat);
 	} else {
 		return empty_result();
 	}
