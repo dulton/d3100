@@ -1052,9 +1052,10 @@ void TeacherDetecting::frame_updatebg(Mat raw_img, Mat image)
 			}
 		}
 	}
-	//************************************************************
-	
+	//************************************************************	
 	//没有帧差框时除红框外的区域都缓慢的进行更新;
+	// delete ...
+
 	//************************************************************
 	//有帧差且背景未彻底更新完成之前时，同时有帧差和红框外的区域进行较快的更新;
 	if (valid_framerect.size() > 0 && !fillbg_struct.isfillok_end) {
@@ -1099,6 +1100,7 @@ void TeacherDetecting::frame_updatebg(Mat raw_img, Mat image)
 		}
 	}
 	//************************************************************
+	// 只有红框无帧差 1分钟认为是错误目标更新掉 ...
 	std::vector < int >valid_both;	//同时有帧差和红框的区域;
 	std::vector < int >valid_one;	//只有红框没帧差的区域;
 	for (int i = 0; i < valid_oldrect.size(); i++) {

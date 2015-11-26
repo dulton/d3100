@@ -2,7 +2,7 @@ AUTOMAKE_OPTIONS=foreign
 
 RUNTIME_CPP= teacher_track/runtime.cpp
 
-bin_PROGRAMS= teacher_detect test_ptz test_kvconfig test_udpsrv
+bin_PROGRAMS= teacher_detect test_ptz test_kvconfig test_udpsrv arm_track
 
 if PTZSRV
 bin_PROGRAMS+= ptzsrv
@@ -15,6 +15,7 @@ teacher_detect_SOURCES=	teacher_track/teacher_track.cpp \
 						teacher_track/reg.cpp \
 						teacher_track/policy.cpp \
 						teacher_track/policy/p1.cpp \
+						teacher_track/policy/p2.cpp \
 						teacher_track/udpsrv.cpp \
 						teacher_track/detector.cpp \
 						teacher_track/log.cpp \
@@ -39,6 +40,24 @@ test_himat_LDADD= ${OPENCV_LIBS}
 endif
 
 else
+
+arm_track_SOURCES= teacher_track/teacher_track.cpp \
+						teacher_track/cJSON.c \
+						teacher_track/fsm.cpp \
+						teacher_track/reg.cpp \
+						teacher_track/policy.cpp \
+						teacher_track/policy/p1.cpp \
+						teacher_track/policy/p2.cpp \
+						teacher_track/udpsrv.cpp \
+						teacher_track/detector.cpp \
+						teacher_track/log.cpp \
+						${RUNTIME_CPP} \
+						teacher_track/switch.cpp \
+						libptz/ptz.cpp \
+						libptz/tcp_util.cpp \
+						libptz/polyfit.cpp \
+						libkvconfig/kvconfig.cpp \
+						libteacher_detect/detect_dummy.cpp 
 
 if OPENCV
 
