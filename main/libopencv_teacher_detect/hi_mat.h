@@ -1,7 +1,17 @@
 #pragma once
 
 #include "config.h"
+#ifdef WITHOUT_OCV
+namespace cv
+{
+	struct Rect
+	{
+		int x, y, width, height;
+	};
+};
+#else
 #include <opencv2/opencv.hpp>
+#endif // with out opencv
 
 class hiMat 
 {
@@ -24,14 +34,18 @@ class hiMat
 	};
 
 	hiMat();
+#ifndef WITHOUT_OCV
 	hiMat(const cv::Mat & m);
 	hiMat(const cv::Mat &m, const cv::Rect &roi);
+#endif // without opencv
 	hiMat(const hiMat & m);
 	hiMat(const hiMat &m, const cv::Rect &roi);
 	hiMat(unsigned int phy_addr, int width, int height, int stride, Type type);
 	~hiMat();
 
+#ifndef WITHOUT_OCV
 	void download(cv::Mat & m);
+#endif // without opencv
 	void create(int width, int height, Type type);
 
 	template<typename T> T *ptr(int row)

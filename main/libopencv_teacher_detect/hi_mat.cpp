@@ -35,6 +35,7 @@ static void hlp_alloc(unsigned int *phy_addr_p, void** vir_addr_p, int length)
 
 /** 这是从 Mat 复制数据到 hiMat，
  */
+#ifndef WITHOUT_OCV
 static void hlp_copy(void* vir_addr, size_t hiMat_stride_bytes, const cv::Mat &m)
 {
 	unsigned char *dst = (unsigned char*)vir_addr;
@@ -45,6 +46,7 @@ static void hlp_copy(void* vir_addr, size_t hiMat_stride_bytes, const cv::Mat &m
 		dst += hiMat_stride_bytes;
 	}
 }
+#endif // WITHOUT opencv
 
 static void hlp_free(unsigned int phy, void *vir)
 {
@@ -63,6 +65,7 @@ hiMat::hiMat()
 	outer_ = false;
 }
 
+#ifndef WITHOUT_OCV
 hiMat::hiMat(const cv::Mat &m)
 {
 	outer_ = false;
@@ -77,6 +80,7 @@ hiMat::hiMat(const cv::Mat &m, const cv::Rect &roi)
 	ref_ = 0;
 	*this = m(roi);
 }
+#endif // without opencv
 
 hiMat::hiMat(const hiMat &m)
 {
@@ -160,6 +164,7 @@ void hiMat::flush() const
 	HI_MPI_SYS_MmzFlushCache(phy_addr_, vir_addr_, memsize());
 }
 
+#ifndef WITHOUT_OCV
 void hiMat::download(cv::Mat &m)
 {
 	/** FIXME: 这里还是需要类型的 ...
@@ -217,6 +222,7 @@ void hiMat::download(cv::Mat &m)
 		}
 	}
 }
+#endif // without opencv
 
 void hiMat::release()
 {
@@ -402,6 +408,7 @@ hiMat &hiMat::operator = (const hiMat &m)
 	return *this;
 }
 
+#ifndef WITHOUT_OCV
 hiMat &hiMat::operator = (const cv::Mat &m)
 {
 	/** FIXME: 仅仅支持 8UC1
@@ -416,6 +423,7 @@ hiMat &hiMat::operator = (const cv::Mat &m)
 
 	return *this;
 }
+#endif // without opencv
 
 unsigned int hiMat::get_phy_addr() const
 {

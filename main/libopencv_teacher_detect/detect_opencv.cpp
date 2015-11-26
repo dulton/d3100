@@ -1,12 +1,13 @@
 
 #include "../libteacher_detect/detect.h"
 #include "detect_t.h"
-#include"blackboard_detect.h"
+#include "blackboard_detect.h"
 #include <string>
 #include <sstream>
 #include "sys/timeb.h"
 #include <unistd.h>
 #include "utils.h"
+#include "hi_mat.h"
 
 #define max(a,b) (a>b ? a:b)
 #define min(a,b) (a>b ? b:a)
