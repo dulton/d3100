@@ -2,7 +2,9 @@
 
 /** 从 vi 设备中读取一帧图像，或许已经进行预处理了 ... */
 
-#include <opencv2/opencv.hpp>
+#ifndef WITHOUT_OCV
+#	include <opencv2/opencv.hpp>
+#endif // without opencv
 #include "hi_mat.h"
 
 typedef struct visrc_t visrc_t;
@@ -11,7 +13,9 @@ typedef struct visrc_t visrc_t;
 struct hiVIDEO_FRAME_INFO_S; //
 
 visrc_t *vs_open(const char *fname);
+#ifndef WITHOUT_OCV
 bool vs_next_frame(visrc_t *vs, cv::Mat &frame);
+#endif // 
 bool vs_next(visrc_t *vs, hiMat &m);
 void vs_close(visrc_t *vs);
 

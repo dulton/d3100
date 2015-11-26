@@ -1,6 +1,7 @@
 #pragma once
 
 #include "config.h"
+
 #ifdef WITHOUT_OCV
 namespace cv
 {
@@ -17,7 +18,7 @@ namespace cv
 	};
 };
 #else
-#include <opencv2/opencv.hpp>
+#	include <opencv2/opencv.hpp>
 #endif // with out opencv
 
 class hiMat 

@@ -9,7 +9,10 @@
 #include <fcntl.h>
 #include <sys/ioctl.h>
 #include <errno.h>
+#include <stdint.h>
 #include "mpi_vi.h"
+
+typedef unsigned char uchar;
 
 #include "hi_comm_ive.h"
 #include "hi_type.h"
@@ -329,7 +332,7 @@ static void save_nv1(const char *fname, IVE_SRC_INFO_S * stSrc,
 	// 转化为 jpg 文件，方便查看 ..
 	// 注意：VIDEO_FRAME_S 中的 pVirAddr 是忽悠人的，不能使用，需要自己 mmap
 
-	unsigned char *y = (uchar *) pVirtSrc;
+	unsigned char *y = (unsigned char*) pVirtSrc;
 	unsigned char *uv =
 	    (uchar *) pVirtSrc + (stSrc->u32Height * stSrc->stSrcMem.u32Stride);
 
@@ -364,6 +367,7 @@ static void save_rgb(int stride, int width, int height, void *data)
 	}
 }
 
+#ifndef WITHOUT_OCV
 static void save_mat(const cv::Mat & m, const char *fname)
 {
 	FILE *fp = fopen(fname, "wb");
@@ -390,6 +394,7 @@ static void vf2mat(const VIDEO_FRAME_INFO_S &frame, cv::Mat &m)
 
 	t2 = hm;
 }
+#endif // without opencv
 
 struct visrc_t {
 	KVConfig *cfg;
@@ -419,6 +424,7 @@ visrc_t *vs_open(const char *fname)
 	return vs;
 }
 
+#ifndef WITHOUT_OCV
 bool vs_next_frame(visrc_t * vs, cv::Mat & m)
 {
 	/** FIXME: 这里从 vi 读取一帧图像，如果超时，返回 false 
@@ -435,6 +441,7 @@ bool vs_next_frame(visrc_t * vs, cv::Mat & m)
 	HI_MPI_VI_ReleaseFrame(SUBCHN(vs->ch), &frame);
 	return true;
 }
+#endif // without opencv
 
 bool vs_next(visrc_t *vs, hiMat &m)
 {

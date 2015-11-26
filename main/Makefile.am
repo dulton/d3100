@@ -101,15 +101,13 @@ test_himat_LDADD= ${OPENCV_LIBS} ${HISLIBS}
 
 test_visrc_SOURCES= libopencv_teacher_detect/test/test_visrc.cpp \
 					libopencv_teacher_detect/vi_src.cpp \
-					libopencv_teacher_detect/hi_mat.cpp \
-					libopencv_teacher_detect/KVConfig.cpp \
-					${top_srcdir}/vd/vd.cpp
-test_visrc_CXXFLAGS= ${OPENCV_CFLAGS} ${libopencv_detect_a_CXXFLAGS}
-test_visrc_LDADD= ${OPENCV_LIBS} ${HISLIBS} ${CCGNU2_LIBS}
+					libopencv_teacher_detect/KVConfig.cpp 
+test_visrc_CXXFLAGS= ${OPENCV_CFLAGS} ${libopencv_detect_a_CXXFLAGS} -DWITHOUT_OCV
+test_visrc_LDADD=  libzkvd.a ${HISLIBS} ${CCGNU2_LIBS}
 
 libzkvd_a_SOURCES=	${top_srcdir}/vd/vd.cpp \
 					${top_srcdir}/libopencv_teacher_detect/hi_mat.cpp
-libzkvd_a_CXXFLAGS= ${OPENCV_CFLAGS} ${libopencv_detect_a_CXXFLAGS}
+libzkvd_a_CXXFLAGS= ${OPENCV_CFLAGS} ${libopencv_detect_a_CXXFLAGS} -DWITHOUT_OCV
 
 libzkvt_a_SOURCES=	${top_srcdir}/vt/vt.cpp \
 					libopencv_teacher_detect/blackboard_detect.cpp \

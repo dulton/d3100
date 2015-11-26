@@ -1,8 +1,9 @@
 #include "config.h"
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 #ifdef DEBUG_HIMAT
-#	include <stdlib.h>
 #	include <string.h>
 #else
 #	include "hi_comm_sys.h"
