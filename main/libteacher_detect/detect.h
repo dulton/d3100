@@ -1,5 +1,5 @@
 #pragma once
-
+#include <opencv2/opencv.hpp>
 #ifdef __cplusplus
 extern "C" {
 #endif // c++
@@ -22,7 +22,7 @@ void det_close(detect_t *det);
 		]
 	}
  */
-const char *det_detect(detect_t *det);	// 返回json格式探测信息.
+const char *det_detect(detect_t *det, cv::Mat *frame = 0);	// 返回json格式探测信息.
 
 #ifdef __cplusplus
 }

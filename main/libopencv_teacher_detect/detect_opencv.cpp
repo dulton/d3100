@@ -5,12 +5,22 @@
 #include <string>
 #include <sstream>
 #include "sys/timeb.h"
-#include "vi_src.h"
 #include <unistd.h>
 #include "utils.h"
 
 #define max(a,b) (a>b ? a:b)
 #define min(a,b) (a>b ? b:a)
+
+static hiMat get_mat(const struct hiVIDEO_FRAME_INFO_S *curr_vga_frame)
+{
+	int width = curr_vga_frame->stVFrame.u32Width;
+	int height = curr_vga_frame->stVFrame.u32Height;
+	int stride = curr_vga_frame->stVFrame.u32Stride[0];
+	int phy_addr = curr_vga_frame->stVFrame.u32PhyAddr[0];
+
+	hiMat mat(phy_addr, width, height, stride, hiMat::SINGLE); // only using Y
+	return mat.clone();
+}
 
 struct detect_t {
 	KVConfig *cfg_;
@@ -19,10 +29,7 @@ struct detect_t {
 	IplImage *masked_;
 	bool t_m;
 	bool b_m;
-
-	 std::string result_str;
-
-	visrc_t *src;
+	std::string result_str;
 };
 
 detect_t *det_open(const char *cfg_name)
@@ -46,7 +53,6 @@ detect_t *det_open(const char *cfg_name)
 		ctx->b_m = true;
 		ctx->bd_detect_ = new BlackboardDetecting(ctx->cfg_);	//+++++++;
 	}
-	ctx->src = vs_open(cfg_name);
 	//++++++++++
 	return ctx;
 }
@@ -61,7 +67,6 @@ void det_close(detect_t * ctx)
 		delete ctx->bd_detect_;
 	}
 	//+++++++;
-	vs_close(ctx->src);
 	delete ctx;
 }
 
@@ -209,14 +214,7 @@ static const char *empty_result()
 	return "{\"stamp\":12345, \"rect\":[]}";
 }
 
-static bool next_frame(detect_t * ctx, cv::Mat & frame)
-{
-	/** TODO: 从vi得到下一帧图像 ...
-	 */
-	return vs_next_frame(ctx->src, frame);
-}
-
-const char *det_detect(detect_t * ctx)
+const char *det_detect(detect_t * ctx, cv::Mat &frame)
 {
 	cv::Mat frame;
 	if (next_frame(ctx, frame)) {
