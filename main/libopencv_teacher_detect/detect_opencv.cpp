@@ -9,6 +9,9 @@
 #include <unistd.h>
 #include "utils.h"
 
+#define max(a,b) (a>b ? a:b)
+#define min(a,b) (a>b ? b:a)
+
 struct detect_t {
 	KVConfig *cfg_;
 	TeacherDetecting *detect_;
@@ -148,31 +151,37 @@ static const char *det_detect(detect_t * ctx, Mat & img)
 	bool isrect = false;
 	std::vector < Rect > r;
 	vector < cv::Rect > first_r;
-	Mat Img = img.clone();
+
+	//Mat Img = img.clone();
 
 	if (ctx->t_m) {
-		Mat masked_img_temp = Mat(Img, ctx->detect_->masked_rect);
+	/*	Mat masked_img_temp = Mat(Img, ctx->detect_->masked_rect);
 		Mat masked_img;
+		masked_img_temp.copyTo(masked_img);*/
 
-		masked_img_temp.copyTo(masked_img);
-		ctx->detect_->do_mask(masked_img);
+		Mat masked_img_temp = Mat(img, ctx->detect_->masked_rect);
+		ctx->detect_->do_mask(masked_img_temp);
 
-		isrect = ctx->detect_->one_frame_luv(Img, masked_img, r, first_r);
+		Mat masked_img;
+        masked_img.create(max(64,masked_img_temp.rows), max(64,masked_img_temp.cols), CV_8UC3);
+		masked_img.setTo(Scalar(0,0,0));
+
+		masked_img_temp.copyTo(masked_img(cv::Rect(0,0,masked_img_temp.cols,masked_img_temp.rows)));
+
+		//isrect = ctx->detect_->one_frame_luv(Img, masked_img, r, first_r);
+		isrect = ctx->detect_->one_frame_luv(img, masked_img, r, first_r);
 
 		//save_mat(img, "saved/origin.rgb");
 		//save_mat(masked_img, "saved/curr.rgb");
 		
-		if (isrect) {
-			//fprintf(stderr, "DEBUG: found target: !!!!\n");
-		}
-
 		vector_to_json_t(r, cv::Rect(), false, isrect, str);      
 		
 		//***********************************
 		//***************调试****************
 		if (atoi(ctx->cfg_->get_value("debug", "0")) > 0) {
 			for (int i = 0; i < r.size(); i++) {
-				rectangle(Img, r[i], Scalar(0, 0, 255), 2);
+				//rectangle(Img, r[i], Scalar(0, 0, 255), 2);
+				rectangle(img, r[i], Scalar(0, 0, 255), 2);
 			}
 			for (int i = 0; i < first_r.size(); i++) {
 				cv::Rect box = ctx->detect_->masked_rect;
@@ -182,10 +191,10 @@ static const char *det_detect(detect_t * ctx, Mat & img)
 				    first_r[i].height + box.y + 40;
 				first_r[i] &=
 				    cv::Rect(0, 0, Img.cols, Img.rows);
-				rectangle(Img, first_r[i], Scalar(255, 0, 0),
-					  2);
+				//rectangle(Img, first_r[i], Scalar(255, 0, 0), 2);
+				rectangle(img, first_r[i], Scalar(255, 0, 0), 2);
 			}
-			//rectangle(Img, upbody, Scalar(255, 255, 255), 2);
+
 		}
 
 	}
