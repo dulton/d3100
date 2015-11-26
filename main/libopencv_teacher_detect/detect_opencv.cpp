@@ -190,7 +190,7 @@ static const char *det_detect(detect_t * ctx, Mat & img)
 				first_r[i].height =
 				    first_r[i].height + box.y + 40;
 				first_r[i] &=
-				    cv::Rect(0, 0, Img.cols, Img.rows);
+				    cv::Rect(0, 0, img.cols, img.rows);
 				//rectangle(Img, first_r[i], Scalar(255, 0, 0), 2);
 				rectangle(img, first_r[i], Scalar(255, 0, 0), 2);
 			}
