@@ -163,7 +163,8 @@ static const char *det_detect(detect_t * ctx, Mat & img)
 		ctx->detect_->do_mask(masked_img_temp);
 
 		Mat masked_img;
-        masked_img.create(max(64,masked_img_temp.rows), max(64,masked_img_temp.cols), CV_8UC3);
+                masked_img.create(max(64,masked_img_temp.rows), 
+				  (max(64,masked_img_temp.cols) + (max(64,masked_img_temp.cols) % 2)), CV_8UC3);
 		masked_img.setTo(Scalar(0,0,0));
 
 		masked_img_temp.copyTo(masked_img(cv::Rect(0,0,masked_img_temp.cols,masked_img_temp.rows)));
