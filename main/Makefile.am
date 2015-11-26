@@ -27,9 +27,9 @@ teacher_detect_SOURCES=	teacher_track/teacher_track.cpp \
 
 if DUMMY
 test_detect_SOURCES= libteacher_detect/detect_dummy.cpp \
-					       ${RUNTIME_CPP} \
-						   teacher_track/log.cpp \
-						   libteacher_detect/test/test_detect_dummy.cpp
+					 ${RUNTIME_CPP} \
+					 teacher_track/log.cpp \
+					 libteacher_detect/test/test_detect_dummy.cpp
 
 teacher_detect_SOURCES+= libteacher_detect/detect_dummy.cpp
 
@@ -42,22 +42,22 @@ endif
 else
 
 arm_track_SOURCES= teacher_track/teacher_track.cpp \
-						teacher_track/cJSON.c \
-						teacher_track/fsm.cpp \
-						teacher_track/reg.cpp \
-						teacher_track/policy.cpp \
-						teacher_track/policy/p1.cpp \
-						teacher_track/policy/p2.cpp \
-						teacher_track/udpsrv.cpp \
-						teacher_track/detector.cpp \
-						teacher_track/log.cpp \
-						${RUNTIME_CPP} \
-						teacher_track/switch.cpp \
-						libptz/ptz.cpp \
-						libptz/tcp_util.cpp \
-						libptz/polyfit.cpp \
-						libkvconfig/kvconfig.cpp \
-						libteacher_detect/detect_dummy.cpp 
+				   teacher_track/cJSON.c \
+				   teacher_track/fsm.cpp \
+				   teacher_track/reg.cpp \
+				   teacher_track/policy.cpp \
+				   teacher_track/policy/p1.cpp \
+				   teacher_track/policy/p2.cpp \
+				   teacher_track/udpsrv.cpp \
+				   teacher_track/detector.cpp \
+				   teacher_track/log.cpp \
+				   ${RUNTIME_CPP} \
+				   teacher_track/switch.cpp \
+				   libptz/ptz.cpp \
+				   libptz/tcp_util.cpp \
+				   libptz/polyfit.cpp \
+				   libkvconfig/kvconfig.cpp \
+				   libteacher_detect/detect_dummy.cpp 
 
 if OPENCV
 
@@ -91,7 +91,7 @@ teacher_detect_LDADD= libopencv_detect.a ${CCGNU2_LIBS} ${OPENCV_LIBS} ${HISLIBS
 teacher_detect_SOURCES+= libopencv_teacher_detect/detect_opencv.cpp
 teacher_detect_CXXFLAGS= $(libopencv_detect_a_CXXFLAGS) ${OPENCV_CFLAGS}
 
-bin_PROGRAMS += test_arm_opencv_detect test_visrc test_himat
+bin_PROGRAMS += test_arm_opencv_detect test_visrc test_himat test_vt
 test_arm_opencv_detect_SOURCES= libopencv_teacher_detect/test/test_arm_opencv_detect.cpp
 test_arm_opencv_detect_LDADD= libopencv_detect.a ${CCGNU2_LIBS} ${OPENCV_LIBS} ${HISLIBS}
 
@@ -110,6 +110,10 @@ test_visrc_LDADD= ${OPENCV_LIBS} ${HISLIBS} ${CCGNU2_LIBS}
 libzkvd_a_SOURCES=	${top_srcdir}/vd/vd.cpp \
 					${top_srcdir}/libopencv_teacher_detect/hi_mat.cpp
 libzkvd_a_CXXFLAGS= ${OPENCV_CFLAGS} ${libopencv_detect_a_CXXFLAGS}
+
+testvt_SOURCES=		${top_srcdir}/vt/test/testvt.cpp
+testvt_CXXFLAGS= ${OPENCV_CFLAGS} ${libopencv_detect_a_CXXFLAGS}
+testvt_LDADD= 	libzkvt.a ${OPENCV_LIBS} ${HISLIBS}
 
 
 else
