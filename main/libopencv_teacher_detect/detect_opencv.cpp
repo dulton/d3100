@@ -1,13 +1,13 @@
 
 #include "../libteacher_detect/detect.h"
 #include "detect_t.h"
-#include"blackboard_detect.h"
+#include "blackboard_detect.h"
 #include <string>
 #include <sstream>
 #include "sys/timeb.h"
-#include "vi_src.h"
 #include <unistd.h>
 #include "utils.h"
+#include "hi_mat.h"
 
 #define max(a,b) (a>b ? a:b)
 #define min(a,b) (a>b ? b:a)
@@ -19,11 +19,18 @@ struct detect_t {
 	IplImage *masked_;
 	bool t_m;
 	bool b_m;
-
-	 std::string result_str;
-
-	visrc_t *src;
+	std::string result_str;
 };
+
+static hiMat *get_mat(const struct hiVIDEO_FRAME_INFO_S *curr_vga_frame)
+{
+	int width = curr_vga_frame->stVFrame.u32Width;
+	int height = curr_vga_frame->stVFrame.u32Height;
+	int stride = curr_vga_frame->stVFrame.u32Stride[0];
+	int phy_addr = curr_vga_frame->stVFrame.u32PhyAddr[0];
+
+	return new hiMat(phy_addr, width, height, stride, hiMat::SP420); 
+}
 
 detect_t *det_open(const char *cfg_name)
 {
@@ -36,17 +43,14 @@ detect_t *det_open(const char *cfg_name)
 
 	const char *method =
 	    ctx->cfg_->get_value("BLACKBOARD_OR_TEACHER", "teacher");
-	fprintf(stderr, "======================> method=%s\n", method);
 
 	if (strcmp(method, "teacher") == 0) {
 		ctx->t_m = true;
 		ctx->detect_ = new TeacherDetecting(ctx->cfg_);
-		fprintf(stderr, "INFO: using Teacher Mode...\n");
 	} else if (strcmp(method, "blackboard") == 0) {
 		ctx->b_m = true;
 		ctx->bd_detect_ = new BlackboardDetecting(ctx->cfg_);	//+++++++;
 	}
-	ctx->src = vs_open(cfg_name);
 	//++++++++++
 	return ctx;
 }
@@ -61,7 +65,6 @@ void det_close(detect_t * ctx)
 		delete ctx->bd_detect_;
 	}
 	//+++++++;
-	vs_close(ctx->src);
 	delete ctx;
 }
 
@@ -142,11 +145,9 @@ static void save_mat(const cv::Mat &m, const char *fname)
 	}
 }
 
-static const char *det_detect(detect_t * ctx, Mat & img)
+static const char *det_detect(detect_t * ctx, cv::Mat & img)
 {
 	static size_t _cnt = 0;
-	fprintf(stderr, "DEBUG: #%u\t", _cnt++);
-
 	char *str = (char *)alloca(BUFSIZE);
 	bool isrect = false;
 	std::vector < Rect > r;
@@ -209,19 +210,16 @@ static const char *empty_result()
 	return "{\"stamp\":12345, \"rect\":[]}";
 }
 
-static bool next_frame(detect_t * ctx, cv::Mat & frame)
+const char *det_detect(detect_t * ctx, const struct hiVIDEO_FRAME_INFO_S *frame)
 {
-	/** TODO: 从vi得到下一帧图像 ...
-	 */
-	return vs_next_frame(ctx->src, frame);
+	hiMat *himat = get_mat(frame);  
+	hiMat rgb;
+	hi::yuv2rgb(*himat, rgb);
+	delete himat;
+	cv::Mat	mat;
+	rgb.download(mat);
+	const char *rc = det_detect(ctx, mat); 
+	return rc;
+
 }
 
-const char *det_detect(detect_t * ctx)
-{
-	cv::Mat frame;
-	if (next_frame(ctx, frame)) {
-		return det_detect(ctx, frame);
-	} else {
-		return empty_result();
-	}
-}

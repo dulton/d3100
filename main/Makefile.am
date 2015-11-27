@@ -27,9 +27,9 @@ teacher_detect_SOURCES=	teacher_track/teacher_track.cpp \
 
 if DUMMY
 test_detect_SOURCES= libteacher_detect/detect_dummy.cpp \
-					       ${RUNTIME_CPP} \
-						   teacher_track/log.cpp \
-						   libteacher_detect/test/test_detect_dummy.cpp
+					 ${RUNTIME_CPP} \
+					 teacher_track/log.cpp \
+					 libteacher_detect/test/test_detect_dummy.cpp
 
 teacher_detect_SOURCES+= libteacher_detect/detect_dummy.cpp
 
@@ -42,22 +42,22 @@ endif
 else
 
 arm_track_SOURCES= teacher_track/teacher_track.cpp \
-						teacher_track/cJSON.c \
-						teacher_track/fsm.cpp \
-						teacher_track/reg.cpp \
-						teacher_track/policy.cpp \
-						teacher_track/policy/p1.cpp \
-						teacher_track/policy/p2.cpp \
-						teacher_track/udpsrv.cpp \
-						teacher_track/detector.cpp \
-						teacher_track/log.cpp \
-						${RUNTIME_CPP} \
-						teacher_track/switch.cpp \
-						libptz/ptz.cpp \
-						libptz/tcp_util.cpp \
-						libptz/polyfit.cpp \
-						libkvconfig/kvconfig.cpp \
-						libteacher_detect/detect_dummy.cpp 
+				   teacher_track/cJSON.c \
+				   teacher_track/fsm.cpp \
+				   teacher_track/reg.cpp \
+				   teacher_track/policy.cpp \
+				   teacher_track/policy/p1.cpp \
+				   teacher_track/policy/p2.cpp \
+				   teacher_track/udpsrv.cpp \
+				   teacher_track/detector.cpp \
+				   teacher_track/log.cpp \
+				   ${RUNTIME_CPP} \
+				   teacher_track/switch.cpp \
+				   libptz/ptz.cpp \
+				   libptz/tcp_util.cpp \
+				   libptz/polyfit.cpp \
+				   libkvconfig/kvconfig.cpp \
+				   libteacher_detect/detect_dummy.cpp 
 
 if OPENCV
 
@@ -75,7 +75,7 @@ bdir=	${top_srcdir}/libopencv_teacher_detect
 	
 libopencv_detect_a_CXXFLAGS=  -I${bdir}/common -I${bdir}/ive_include
 
-noinst_LIBRARIES= libopencv_detect.a libzkvd.a
+noinst_LIBRARIES= libopencv_detect.a libzkvd.a  libzkvt.a
 
 libopencv_detect_a_SOURCES= libopencv_teacher_detect/blackboard_detect.cpp \
 							libopencv_teacher_detect/detect_t.cpp \
@@ -91,7 +91,7 @@ teacher_detect_LDADD= libopencv_detect.a ${CCGNU2_LIBS} ${OPENCV_LIBS} ${HISLIBS
 teacher_detect_SOURCES+= libopencv_teacher_detect/detect_opencv.cpp
 teacher_detect_CXXFLAGS= $(libopencv_detect_a_CXXFLAGS) ${OPENCV_CFLAGS}
 
-bin_PROGRAMS += test_arm_opencv_detect test_visrc test_himat
+bin_PROGRAMS += test_arm_opencv_detect test_visrc test_himat test_vt 
 test_arm_opencv_detect_SOURCES= libopencv_teacher_detect/test/test_arm_opencv_detect.cpp
 test_arm_opencv_detect_LDADD= libopencv_detect.a ${CCGNU2_LIBS} ${OPENCV_LIBS} ${HISLIBS}
 
@@ -101,15 +101,31 @@ test_himat_LDADD= ${OPENCV_LIBS} ${HISLIBS}
 
 test_visrc_SOURCES= libopencv_teacher_detect/test/test_visrc.cpp \
 					libopencv_teacher_detect/vi_src.cpp \
-					libopencv_teacher_detect/hi_mat.cpp \
-					libopencv_teacher_detect/KVConfig.cpp \
-					${top_srcdir}/vd/vd.cpp
-test_visrc_CXXFLAGS= ${OPENCV_CFLAGS} ${libopencv_detect_a_CXXFLAGS}
-test_visrc_LDADD= ${OPENCV_LIBS} ${HISLIBS} ${CCGNU2_LIBS}
+					libopencv_teacher_detect/KVConfig.cpp 
+test_visrc_CXXFLAGS= ${OPENCV_CFLAGS} ${libopencv_detect_a_CXXFLAGS} -DWITHOUT_OCV
+test_visrc_LDADD=  libzkvd.a ${HISLIBS} ${CCGNU2_LIBS}
 
 libzkvd_a_SOURCES=	${top_srcdir}/vd/vd.cpp \
 					${top_srcdir}/libopencv_teacher_detect/hi_mat.cpp
-libzkvd_a_CXXFLAGS= ${OPENCV_CFLAGS} ${libopencv_detect_a_CXXFLAGS}
+libzkvd_a_CXXFLAGS= ${OPENCV_CFLAGS} ${libopencv_detect_a_CXXFLAGS} -DWITHOUT_OCV
+
+libzkvt_a_SOURCES=	${top_srcdir}/vt/vt.cpp \
+					libopencv_teacher_detect/blackboard_detect.cpp \
+					libopencv_teacher_detect/detect_t.cpp \
+					libopencv_teacher_detect/KVConfig.cpp \
+					libopencv_teacher_detect/detect_opencv.cpp \
+					libopencv_teacher_detect/hi_mat.cpp \
+					libopencv_teacher_detect/common/loadbmp.c 
+
+libzkvt_a_CXXFLAGS=	${OPENCV_CFLAGS} ${libopencv_detect_a_CXXFLAGS}
+libzkvt_a_CFLAGS=	${OPENCV_CFLAGS} ${libopencv_detect_a_CXXFLAGS}
+	
+
+
+test_vt_SOURCES=		${top_srcdir}/vt/test/testvt.cpp \
+						libopencv_teacher_detect/vi_src.cpp
+test_vt_CXXFLAGS= ${OPENCV_CFLAGS} ${libopencv_detect_a_CXXFLAGS}
+test_vt_LDADD= 	libzkvt.a ${OPENCV_LIBS} ${HISLIBS} ${CCGNU2_LIBS}
 
 
 else

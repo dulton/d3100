@@ -1,11 +1,10 @@
 #pragma once
-
 #ifdef __cplusplus
 extern "C" {
 #endif // c++
 
 typedef struct detect_t detect_t;
-
+struct hiVIDEO_FRAME_INFO_S;
 detect_t *det_open(const char *kvfname);
 void det_close(detect_t *det);
 
@@ -22,7 +21,7 @@ void det_close(detect_t *det);
 		]
 	}
  */
-const char *det_detect(detect_t *det);	// 返回json格式探测信息.
+const char *det_detect(detect_t *det, const struct hiVIDEO_FRAME_INFO_S *frame);	// 返回json格式探测信息.
 
 #ifdef __cplusplus
 }
