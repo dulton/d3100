@@ -20,7 +20,9 @@ teacher_detect_SOURCES=	teacher_track/teacher_track.cpp \
 						teacher_track/detector.cpp \
 						teacher_track/log.cpp \
 						${RUNTIME_CPP} \
-						teacher_track/switch.cpp \ libptz/ptz.cpp \ libptz/tcp_util.cpp \
+						teacher_track/switch.cpp \
+						libptz/ptz.cpp \
+						libptz/tcp_util.cpp \
 						libptz/polyfit.cpp \
 						libkvconfig/kvconfig.cpp
 
