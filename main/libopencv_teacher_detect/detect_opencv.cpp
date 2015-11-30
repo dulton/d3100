@@ -7,6 +7,7 @@
 #include "blackboard_detect.h"
 #include "utils.h"
 #include "hi_mat.h"
+#include "vi_src.h"
 
 #define max(a,b) (a>b ? a:b)
 #define min(a,b) (a>b ? b:a)
@@ -212,8 +213,14 @@ static const char *empty_result()
 
 const char *det_detect(detect_t * ctx)
 {
-	Mat m = Mat(ctx->masked_);
-	return det_detect(ctx, m);
+	cv::Mat frame;
+	if (vs_next_frame(ctx, frame)) {
+		return det_detect(ctx, frame);	
+	}
+	else {
+		return empty_result();
+	}
+
 }
 
 const char *det_detect_vt(detect_t *det, const struct hiVIDEO_FRAME_INFO_S *frame)
