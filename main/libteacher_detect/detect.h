@@ -22,7 +22,7 @@ void det_close(detect_t *det);
 	}
  */
 
-const char *det_detect(detect_t * det);
+const char *det_detect(detect_t *det);
 const char *det_detect_vt(detect_t *det, const struct hiVIDEO_FRAME_INFO_S *frame);	// 返回json格式探测信息.
 
 #ifdef __cplusplus
