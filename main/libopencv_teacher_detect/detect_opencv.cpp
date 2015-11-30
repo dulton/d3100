@@ -1,11 +1,10 @@
-
 #include "../libteacher_detect/detect.h"
-#include "detect_t.h"
-#include "blackboard_detect.h"
 #include <string>
 #include <sstream>
 #include "sys/timeb.h"
 #include <unistd.h>
+#include "detect_t.h"
+#include "blackboard_detect.h"
 #include "utils.h"
 #include "hi_mat.h"
 
@@ -147,6 +146,7 @@ static void save_mat(const cv::Mat &m, const char *fname)
 
 static const char *det_detect(detect_t * ctx, cv::Mat & img)
 {
+fprintf(stderr, "%s %d\n", __func__, __LINE__);
 	static size_t _cnt = 0;
 	char *str = (char *)alloca(BUFSIZE);
 	bool isrect = false;
@@ -210,7 +210,13 @@ static const char *empty_result()
 	return "{\"stamp\":12345, \"rect\":[]}";
 }
 
-const char *det_detect(detect_t * ctx, const struct hiVIDEO_FRAME_INFO_S *frame)
+const char *det_detect(detect_t * ctx)
+{
+	Mat m = Mat(ctx->masked_);
+	return det_detect(ctx, m);
+}
+
+const char *det_detect_vt(detect_t *det, const struct hiVIDEO_FRAME_INFO_S *frame)
 {
 	hiMat *himat = get_mat(frame);  
 	hiMat rgb;
@@ -218,8 +224,6 @@ const char *det_detect(detect_t * ctx, const struct hiVIDEO_FRAME_INFO_S *frame)
 	delete himat;
 	cv::Mat	mat;
 	rgb.download(mat);
-	const char *rc = det_detect(ctx, mat); 
+	const char *rc = det_detect(det, mat); 
 	return rc;
-
 }
-

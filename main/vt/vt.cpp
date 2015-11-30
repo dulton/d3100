@@ -41,7 +41,7 @@ vt_t *vt_open(const char *fname)
 void vt_trace(vt_t *vt, int who, const hiVIDEO_FRAME_INFO_S *frame_480_270)
 {
 	char buff[200];		
-	const char *s = det_detect(vt->dt, frame_480_270);
+	const char *s = det_detect_vt(vt->dt, frame_480_270);
 	snprintf(buff, sizeof(buff), "%d%s", who, s);
 	fprintf(stderr, "result: %s\n", s);
 	sendto(vt->sock_f, buff, strlen(buff), 0, (struct sockaddr*)&vt->addr, sizeof(struct sockaddr_in));		

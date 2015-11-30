@@ -1,7 +1,4 @@
 #pragma once
-#ifndef _detect_t_h_
-#define _detect_t_h_
-
 #include <opencv2/opencv.hpp>
 #include <time.h>
 #include "KVConfig.h"
@@ -246,4 +243,3 @@ protected:
 	void init_mask( );
 };
 
-#endif
