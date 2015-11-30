@@ -22,7 +22,7 @@
 //           有VGA通知时切换VGA，停止云台转动，VGA超时直接返回searching状态，切教师全景 ...
 
 
-typedef struct Cal_Angle
+typedef struct Cal_Angle_3
 {
 	double angle_left;//转动到标定区左侧所需角度（弧度）.
 	int ptz_left_x;//转动到标定区左侧所需角度（转数）.
@@ -40,7 +40,7 @@ typedef struct Cal_Angle
 	double p_right;//标定区右侧x轴坐标.
 	//double p;//探测点的x轴坐标.
 
-}Cal_Angle;
+}Cal_Angle_3;
 
 
 /// 聚合了所有功能模块 ..
@@ -66,7 +66,7 @@ class p3
 
 	double view_threshold_;
 
-	Cal_Angle cal_angle_;
+	Cal_Angle_3 cal_angle_;
 
 	MovieScene ms_, ms_last_;   // 录播机状态切换 ...
 
@@ -194,7 +194,7 @@ public:
 		ptz_wait_next_state_ = next_state;
 	}
 
-	// 返回目标是否在视野中，如果在，同时返回偏角...
+	// 返回目标是否在设定视野中，如果在，同时返回偏角...
 	// 返回值angle:云台当前位置和目标之间夹角(弧度) ...
 	bool isin_field(const DetectionEvent::Rect pos, double &angle)
 	{
@@ -250,16 +250,16 @@ private:
 	void load_speeds(const char *conf_str, std::vector<int> &speeds);
 
 	// 读取标定区左右边界x坐标...
-	void load_calibration_edge(Cal_Angle &cal_angle);
+	void load_calibration_edge(Cal_Angle_3 &cal_angle);
 
 	// 读取初始化标定参数...
-	void load_cal_angle(Cal_Angle &cal_angle);
+	void load_cal_angle(Cal_Angle_3 &cal_angle);
 
 };
 
 
 // 下面声明一大堆状态，和状态转换函数 ...
-enum state
+enum state_3
 {
 	ST_P3_Staring,	    // 启动后，等待云台归位.
 	ST_P3_PtzWaiting,	// 等待云台执行完成 .
@@ -269,8 +269,8 @@ enum state
 	ST_P3_Turnto_Target,// 当找到目标后，转到云台指向目标.
 
 	//ST_P3_Tracking,		// 正在平滑跟踪 .
-	ST_P3_Close_Tracking,
-	ST_P3_Far_Tracking,
+	ST_P3_Close_Tracking,   // 教师近景状态跟踪.
+	ST_P3_Far_Tracking,     // 教师走动全景状态跟踪.
 
 	ST_P3_No_Target,// 教师丢失目标一定时间转换到学生全景.
 

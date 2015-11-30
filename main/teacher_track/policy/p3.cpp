@@ -81,7 +81,7 @@ void p3::load_speeds(const char *s, std::vector<int> &speeds)
 	}
 }
 
-void p3::load_calibration_edge(Cal_Angle &cal_angle)
+void p3::load_calibration_edge(Cal_Angle_3 &cal_angle)
 {
 	char key[64];
 	snprintf(key, sizeof(key), "calibration_data");
@@ -106,7 +106,7 @@ void p3::load_calibration_edge(Cal_Angle &cal_angle)
 	}
 }
 
-void p3::load_cal_angle(Cal_Angle &cal_angle)
+void p3::load_cal_angle(Cal_Angle_3 &cal_angle)
 {
 	cal_angle.ptz_init_x = atoi(kvc_get(kvc_, "ptz_init_x", "0"));
 	cal_angle.angle_init = cal_angle.ptz_init_x * min_angle_ratio_ * M_PI / 180.0;
