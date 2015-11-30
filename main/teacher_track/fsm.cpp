@@ -98,7 +98,6 @@ void FSM::run(int state_start, int state_end, bool *quit)
 
 	int next_state = state_start;
 	FSMState *state0 = 0;
-
 	while (!(*quit) && next_state != state_end) {
 		FSMState *state = find_state(next_state);
 		if (!state) {

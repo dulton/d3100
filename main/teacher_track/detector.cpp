@@ -12,9 +12,12 @@ struct detector_t
 	detect_t *detimpl;	// 真正的实现...
 };
 
-static void parse_and_handle(FSM *fsm, const char *str)
+static void parse_and_handle(FSM *fsm, int who, const char *str)
 {
-	FSMEvent *e = new DetectionEvent("teacher", str);
+	FSMEvent *e = 0;
+	if (who == 1) {
+		e = new DetectionEvent("teacher", str);
+	}
 	
 	fsm->push_event(e);
 }
@@ -34,7 +37,7 @@ static void *thread_proc(void *arg)
 	while (!p->quit) {
 		const char *result = det_detect(p->detimpl, 0);
 		if (result) {
-			parse_and_handle(p->fsm, result);
+			parse_and_handle(p->fsm, 1, result);
 		}
 
 		n++;
