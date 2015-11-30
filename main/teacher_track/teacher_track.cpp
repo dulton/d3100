@@ -14,8 +14,8 @@ int main(int argc, char **argv)
 {
 	// TODO: 根据配置文件，启动相应的策略.
 	set_log_level(4);
-	Policy policy;
 
+	Policy policy;
 	policy.find_policy();
 
 	return 0;
