@@ -10,17 +10,19 @@
 
 #ifdef WIN32
 #	define _USE_MATH_DEFINES
-#endif 
+#endif //
 
 #include <math.h>
 
-
 // 策略说明：
-// 机位：一个教师云台 ...
-// 录播界面：开机进入教师近景，有VGA通知时切换VGA并保存上一个状态，VGA超时切回教师近景，并返回上一个状态 ...
+// 机位：一个教师云台 + 教师全景机 ...
+// 录播界面：开机进入教师全景 ---〉...
+//           教师有目标且视野中间时切教师近景，云台停止转动 ---〉 ...
+//           教师走出一定视野范围时切教师全景 ---〉 ...
+//           有VGA通知时切换VGA，停止云台转动，VGA超时直接返回searching状态，切教师全景 ...
 
 
-typedef struct Cal_Angle_2
+typedef struct Cal_Angle
 {
 	double angle_left;//转动到标定区左侧所需角度（弧度）.
 	int ptz_left_x;//转动到标定区左侧所需角度（转数）.
@@ -38,11 +40,11 @@ typedef struct Cal_Angle_2
 	double p_right;//标定区右侧x轴坐标.
 	//double p;//探测点的x轴坐标.
 
-}Cal_Angle_2;
+}Cal_Angle;
 
 
 /// 聚合了所有功能模块 ..
-class p2
+class p3
 {
 	kvconfig_t *kvc_;	// 
 	ptz_t *ptz_;		// 仅仅一个教师云台.
@@ -62,13 +64,15 @@ class p2
 	double min_angle_ratio_;	// 0.075
 	double view_angle_0_;		// 1倍时，镜头水平夹角 .
 
-	Cal_Angle_2 cal_angle_;
+	double view_threshold_;
+
+	Cal_Angle cal_angle_;
 
 	MovieScene ms_, ms_last_;   // 录播机状态切换 ...
 
 public:
-	p2(const char *fname = "teacher_detect_trace.config");
-	~p2();
+	p3(const char *fname = "teacher_detect_trace.config");
+	~p3();
 
 	void run();
 
@@ -211,8 +215,14 @@ public:
 
 		double ta = target_angle(pos);
 		angle = ta - pa;
-	
-		return pa - ha <= ta && ta <= ta + ha;
+	    
+		if((abs(angle) / ha) <= view_threshold_)
+		{
+            return true;
+		}
+		else
+			return false;
+		
 	}
 
 	// 根据目标和云台之间偏角，返回转动速度 ...
@@ -240,37 +250,41 @@ private:
 	void load_speeds(const char *conf_str, std::vector<int> &speeds);
 
 	// 读取标定区左右边界x坐标...
-	void load_calibration_edge(Cal_Angle_2 &cal_angle);
+	void load_calibration_edge(Cal_Angle &cal_angle);
 
 	// 读取初始化标定参数...
-	void load_cal_angle(Cal_Angle_2 &cal_angle);
+	void load_cal_angle(Cal_Angle &cal_angle);
 
 };
 
 
 // 下面声明一大堆状态，和状态转换函数 ...
-enum state_2
+enum state
 {
-	ST_P2_Staring,	    // 启动后，等待云台归位.
-	ST_P2_PtzWaiting,	// 等待云台执行完成 .
-	ST_P2_Waiting,	    // 云台已经归位，开始等待udp启动通知.
+	ST_P3_Staring,	    // 启动后，等待云台归位.
+	ST_P3_PtzWaiting,	// 等待云台执行完成 .
+	ST_P3_Waiting,	    // 云台已经归位，开始等待udp启动通知.
 
-	ST_P2_Searching,	// 开始等待目标.
-    ST_P2_No_Target,    // 教师区无目标.
-	ST_P2_Turnto_Target,// 当找到目标后，转到云台指向目标.
-	ST_P2_Tracking,		// 正在平滑跟踪 .
+	ST_P3_Searching,	// 开始等待目标.
+	ST_P3_Turnto_Target,// 当找到目标后，转到云台指向目标.
 
-	ST_P2_Vga,		    // vga，等待10秒后，返回上一个状态.
+	//ST_P3_Tracking,		// 正在平滑跟踪 .
+	ST_P3_Close_Tracking,
+	ST_P3_Far_Tracking,
 
-	ST_P2_End,		    // 结束 .
+	ST_P3_No_Target,// 教师丢失目标一定时间转换到学生全景.
+
+	ST_P3_Vga,		    // vga，等待10秒后，返回上一个状态.
+
+	ST_P3_End,		    // 结束 .
 };
 
 
 /** 一般情况下，udp 的处理是一样的 */
-class p2_common_state: public FSMState
+class p3_common_state: public FSMState
 {
 public:
-	p2_common_state(p2 *p, int id, const char *name)
+	p3_common_state(p3 *p, int id, const char *name)
 		: FSMState(id, name)
 	{
 		p_ = p;
@@ -280,26 +294,26 @@ protected:
 	virtual int when_udp(UdpEvent *e)
 	{
 		if (e->code() == UdpEvent::UDP_Quit) {
-			warning("p1", "UDPQuit\n");
-			return ST_P2_End;
+			warning("p3", "UDPQuit\n");
+			return ST_P3_End;
 		}
 
 		if (e->code() == UdpEvent::UDP_Start) {
-			info("p1", "to search ....\n");
+			info("p3", "to search ....\n");
 			// 启动跟踪.
-			return ST_P2_Searching;
+			return ST_P3_Searching;
 		}
 
 		if (e->code() == UdpEvent::UDP_Stop) {
 			// 结束跟踪.
 			ptz_stop(p_->ptz()); // 让云台停止转动 ...
-			return ST_P2_Staring;
+			return ST_P3_Staring;
 		}
 
 		if (e->code() == UdpEvent::UDP_VGA) {
 			// 无条件到 VGA
 			int last_state = id();
-			if (last_state == ST_P2_Vga) last_state = p_->vga_last_state();
+			if (last_state == ST_P3_Vga) last_state = p_->vga_last_state();
 
 			p_->set_vga(last_state); // 保存上个非 VGA 状态 ...
 
@@ -309,25 +323,25 @@ protected:
 			p_->set_ms(MS_VGA);
 			p_->switch_ms();
 
-			return ST_P2_Vga;
+			return ST_P3_Vga;
 		}
 
 		return FSMState::when_udp(e);
 	}
 
 protected:
-	p2 *p_;
+	p3 *p_;
 };
 
 
 /** 启动，等待云台归位...*/
-class p2_starting: public FSMState
+class p3_starting: public FSMState
 {
-	p2 *p_;
+	p3 *p_;
 
 public:
-	p2_starting(p2 *p1)
-		: FSMState(ST_P2_Staring, "starting")
+	p3_starting(p3 *p1)
+		: FSMState(ST_P3_Staring, "starting")
 	{
 		p_ = p1;
 	}
@@ -341,22 +355,22 @@ public:
 		ptz_setpos(p_->ptz(), x0, y0, 36, 36);	// 快速归位.
 		ptz_setzoom(p_->ptz(), z0);	// 初始倍率.
 
-		p_->set_ptz_wait(ST_P2_Waiting, 2.0);
+		p_->set_ptz_wait(ST_P3_Waiting, 2.0);
 
-		return ST_P2_PtzWaiting;
+		return ST_P3_PtzWaiting;
 	}
 };
 
 
 /** 等待云台执行完成状态，保存上个状态，等待结束后，返回上个状态 ..
   	此段时间内，不处理其他 ...*/
-class p2_ptz_wait: public FSMState
+class p3_ptz_wait: public FSMState
 {
-	p2 *p_;
+	p3 *p_;
 
 public:
-	p2_ptz_wait(p2 *p1)
-		: FSMState(ST_P2_PtzWaiting, "ptz wait")
+	p3_ptz_wait(p3 *p1)
+		: FSMState(ST_P3_PtzWaiting, "ptz wait")
 	{
 		p_ = p1;
 	}
@@ -371,32 +385,34 @@ public:
 
 
 /** 云台已经归位，等待udp通知启动 ...*/
-class p2_waiting: public FSMState
+class p3_waiting: public FSMState
 {
-	p2 *p_;
+	p3 *p_;
 
 public:
-	p2_waiting(p2 *p1)
-		: FSMState(ST_P2_Waiting, "waiting udp start")
+	p3_waiting(p3 *p1)
+		: FSMState(ST_P3_Waiting, "waiting udp start")
 	{
 		p_ = p1;
 	}
 
-	virtual int when_timeout(double curr) // ????? ....
+	virtual int when_timeout(double curr)
 	{
-		return ST_P2_Searching;//为了便于测试，改动过;
+		p_->set_ms(MS_TF);
+		p_->switch_ms();
+		return ST_P3_Searching;//为了便于测试，改动过;
 	}
 
 	// 仅仅关心启动和退出事件.
 	virtual int when_udp(UdpEvent *e)
 	{
 		if (e->code() == UdpEvent::UDP_Start) {
-			p_->set_ms(MS_TC); // 设置开机录播机显示画面为教师近景...
+			p_->set_ms(MS_TF); // 设置开机录播机显示画面为教师全景 ...
 		    p_->switch_ms();
-			return ST_P2_Searching; 
+			return ST_P3_Searching; 
 		}
 		else if (e->code() == UdpEvent::UDP_Quit) {
-			return ST_P2_End; // 将结束主程序.
+			return ST_P3_End; // 将结束主程序.
 		}
 		else {
 			return id();
@@ -406,11 +422,11 @@ public:
 
 
 /** 尚未找到目标，等待探测结果 ... */
-class p2_searching: public p2_common_state
+class p3_searching: public p3_common_state
 {
 public:
-	p2_searching(p2 *p1)
-		: p2_common_state(p1, ST_P2_Searching, "searching target")
+	p3_searching(p3 *p1)
+		: p3_common_state(p1, ST_P3_Searching, "searching target")
 	{
 	}
 
@@ -430,26 +446,51 @@ public:
 			ptz_setpos(p_->ptz(), x, y, 20, 20);
 
 			p_->fsm()->push_event(new PtzCompleteEvent("teacher", "set_pos"));
-			return ST_P2_Turnto_Target;
-			
+			return ST_P3_Turnto_Target;
+			//===========================
+			//该状态也要考虑目标远近采用不同的速度...
+			//如果都采用大速度的话会出现转过的现象...
+			//int x, y;
+			//p_->calc_target_pos(targets[0], &x, &y);
+
+			//double angle;
+			//p_->isin_field(targets[0], angle); 	
+
+			//int speed;
+			//if(!p_->ptz_speed(fabs(angle), speed))//不在视野内的话speed用最大值;
+			//{
+			//	return id();
+			//}
+			//if (speed == 0)
+			//{
+			//	ptz_stop(p_->ptz());
+			//}				
+			//else 
+			//{
+			//	ptz_setpos(p_->ptz(), x, y, speed, speed);
+			//}
+
+			//p_->fsm()->push_event(new PtzCompleteEvent("teacher", "set_pos"));
+
+			//return ST_P1_Turnto_Target;
 		}
-		else 
+		else // 此处可复位可不复位吧??? ....
 		{
 			//无目标云台复位计时开始...
 			p_->is_reset_ = false;
 			p_->set_cam_reset(p_->reset_wait_);
-			return ST_P2_No_Target;
+			return ST_P3_No_Target;
 		}
 	}
 };
 
 
 /** 教师无目标一定时间云台复位 ...*/
-class p2_no_target:public p2_common_state
+class p3_no_target:public p3_common_state
 {
 public:
-	p2_no_target(p2 *p1)
-		: p2_common_state(p1, ST_P2_No_Target, "teacher no target")
+	p3_no_target(p3 *p1)
+		: p3_common_state(p1, ST_P3_No_Target, "teacher no target")
 	{
 
 	}
@@ -459,7 +500,7 @@ public:
 
 		if(targets.size()  == 1)
 		{
-			return ST_P2_Searching;
+			return ST_P3_Searching;
 		}
 		else
 		{
@@ -484,15 +525,15 @@ public:
 };
 
 
-/** 找到目标，转向目标 */
-class p2_turnto_target: public p2_common_state
+//** 找到目标，转向目标 */
+class p3_turnto_target: public p3_common_state
 {
 	bool target_valid_;// 目标是否有效.
 	DetectionEvent::Rect rc_;// 如果有效，则为目标位置.
 
 public:
-	p2_turnto_target(p2 *p1)
-		: p2_common_state(p1, ST_P2_Turnto_Target, "turnto target")
+	p3_turnto_target(p3 *p1)
+		: p3_common_state(p1, ST_P3_Turnto_Target, "turnto target")
 	{
 		target_valid_ = 0;
 	}
@@ -517,42 +558,57 @@ public:
 	{
 		// 云台转到位置, 检查此时目标是否在视野范围内，如果不在，则重新搜索 ...
 		double angle;
+		int speed;
 		if (!target_valid_) 
 		{
-			// 目标丢失 ...
-			ptz_stop(p_->ptz());//应该是可加可不加...
-			return ST_P2_Searching;
-		}
-		else if (p_->isin_field(rc_, angle)) 
-		{
-			printf("turn_to_targ(isin_field) **************\n");
-			// 目标在视野中，进入稳定跟踪状态 ...
-			// 此时切换到教师近景...
-			//p_->set_ms(MS_TC); //此处无需切换，这种模式一直是教师近景 ????...
-			//p_->switch_ms();
-			return ST_P2_Tracking;
+			printf("p3_turnto_target( target lost! ) **************\n");
+
+			ptz_stop(p_->ptz());
+			return ST_P3_Searching;
 		}
 		else 
 		{
-			printf("turn_to_targ(notin_field) **************\n");
-			// 目标已经离开视野，则 set_pos ...
-			int x, y;	
-			// 如果无法计算目标位置，继续返回搜索状态???....
-			p_->calc_target_pos(rc_, &x, &y);
-			ptz_setpos(p_->ptz(), x, y, 20, 20);
-			p_->fsm()->push_event(new PtzCompleteEvent("teacher", "set_pos"));
-			return ST_P2_Turnto_Target;
+			bool is_in_field = p_->isin_field(rc_, angle);
+
+			if(!p_->ptz_speed(fabs(angle), speed))
+			{
+				printf("p3_turnto_target(cam get speed error !) **************\n");
+
+				return ST_P3_Searching;
+			}
+				
+			// 目标在镜头中间，切教师近景 ...
+			if(is_in_field && speed == 0)
+			{
+				printf("p3_turnto_target(in_field && speed==0) **************\n");
+
+				p_->set_ms(MS_TC);
+				p_->switch_ms();
+
+				ptz_stop(p_->ptz());
+
+				return ST_P3_Close_Tracking;
+			}
+			else// 目标远离中心，保持教师全景状态 ...
+			{
+				printf("p3_turnto_target(notin_field || speed !=0) **************\n");
+				
+				p_->set_ms(MS_TF);
+				p_->switch_ms();
+
+			    return ST_P3_Far_Tracking;
+			}		
 		}
 	}
 };
 
 
-/** 稳定跟踪状态 */
-class p2_tracking: public p2_common_state
+/** 教师近景跟踪状态 */
+class p3_close_tracking: public p3_common_state
 {
 public:
-	p2_tracking(p2 *p1)
-		: p2_common_state(p1, ST_P2_Tracking, "tracking")
+	p3_close_tracking(p3 *p1)
+		: p3_common_state(p1, ST_P3_Close_Tracking, "teacher close tracking")
 	{
 	}
 
@@ -563,85 +619,117 @@ public:
 		std::vector<DetectionEvent::Rect> rcs = e->targets();
 		if (rcs.size() != 1) 
 		{
-			printf("p1_tracking(no rcs) **************\n");
+			printf("p3_close_tracking(target lost!) **************\n");
+
 			ptz_stop(p_->ptz());
-			return ST_P2_Searching;			
+			return ST_P3_Searching;			
 		}
 		else 
 		{
-			// 若在视野中，根据 angle 决定如何左右转 ..
-			int speed;
 			if (p_->isin_field(rcs[0], angle)) 
-			{
-				//若云台返回失败无法获取转动速度该返回哪个状态呢???...
-				if(!p_->ptz_speed(fabs(angle), speed))
-				{
-					return id();
-				}
-				if (speed == 0)
-				{
-					printf("p1_tracking(isin_field) speed=0 **************\n");
-					ptz_stop(p_->ptz());
-				}				
-				else 
-				{
-					printf("p1_tracking(isin_field) angle=%f,speed=%d **************\n", angle, speed);
-					if (angle < 0) ptz_left(p_->ptz(), speed);
-					else ptz_right(p_->ptz(), speed);
-				}
-				return id();
+			{			
+				return id(); // 若在视野内镜头保持不动 ...
 			}
-			else//目标不在视野中... 
+			else// 目标不在视野中 ... 
 			{
-				int x, y;				
-				p_->calc_target_pos(rcs[0], &x, &y);
-				ptz_setpos(p_->ptz(), x, y, 20, 20);
+				printf("p3_close_tracking(target not in field!) **************\n");
 
-				p_->fsm()->push_event(new PtzCompleteEvent("teacher", "set_pos"));
-				return ST_P2_Turnto_Target;
+				p_->set_ms(MS_TF);
+			    p_->switch_ms();
+
+				return ST_P3_Far_Tracking;
 			}
 		}
 	}
+
+};
+
+/** 教师全景跟踪状态 */
+class p3_far_tracking: public p3_common_state
+{
+public:
+
+	p3_far_tracking(p3 *p1)
+		: p3_common_state(p1, ST_P3_Far_Tracking, "teacher far tracking")
+	{
+
+	}
+
+	virtual int when_detection(DetectionEvent *e)
+	{
+		// 根据探测结果，当前云台位置，判断是否目标丢失 ...
+		double angle;
+		int speed;
+		std::vector<DetectionEvent::Rect> rcs = e->targets();
+		if (rcs.size() != 1) 
+		{
+			printf("p3_far_tracking(target lost!) **************\n");
+
+			ptz_stop(p_->ptz());
+			return ST_P3_Searching;			
+		}
+		else 
+		{
+			bool is_in_field = p_->isin_field(rcs[0], angle);
+			if(!p_->ptz_speed(fabs(angle), speed))
+			{
+				printf("p3_far_tracking(cam get speed error !) **************\n");
+
+				return id();
+			}
+
+			if(is_in_field && speed == 0)
+			{
+				printf("p3_far_tracking(in_field && speed==0) **************\n");
+
+				p_->set_ms(MS_TC);
+				p_->switch_ms();
+
+				ptz_stop(p_->ptz());
+
+				return ST_P3_Close_Tracking;
+			}
+			else
+			{
+				//p_->set_ms(MS_TF);
+				//p_->switch_ms();
+				//printf("p3_far_tracking(isin_field) angle=%f,speed=%d **************\n", angle, speed);
+
+				if (angle < 0) ptz_left(p_->ptz(), speed);
+				else ptz_right(p_->ptz(), speed);
+
+			    return id();
+			}
+			
+		}
+
+	}
+
 };
 
 
 /** 处理 VGA ...*/
-class p2_vga: public p2_common_state
+class p3_vga: public p3_common_state
 {
 public:
-	p2_vga(p2 *p1)
-		: p2_common_state(p1, ST_P2_Vga, "vga")
+	p3_vga(p3 *p1)
+		: p3_common_state(p1, ST_P3_Vga, "vga")
 	{
 	}
-
-	//virtual int when_detection(DetectionEvent *e)
-	//{
-	//	// 根据探测结果，当前云台位置，判断是否目标丢失 ...
-	//	double angle;
-	//	std::vector<DetectionEvent::Rect> rcs = e->targets();
-
-	//	// 如果有目标且在视野内 ms = MS_TC ; state = tracking状态 ...
-	//	if (rcs.size() == 1 && p_->isin_field(rcs[0], angle)) 
-	//	{
-	//		 p_->set_vga_last_state(ST_P2_Tracking);
-	//	     
-	//	}
-	//	else // 如果没有目标或不在视野范围内 ms = MS_SF  ;state = searching状态 ...
-	//	{
- //           p_->set_vga_last_state(ST_P2_Searching);
-	//	
-	//	}
-	//	return id();
-	//}
 
 	virtual int when_timeout(double curr)
 	{
 		if (curr > p_->vga_back()) 
 		{    
-			// vga超时返回 切回教师近景...	
-			p_->set_ms(MS_TC);
+			// vga超时返回 ...	
+			//p_->switch_ms();
+			//return p_->get_vga_last_state();
+
+			// vga超时直接切回教师全景，并进入searching状态，无需多余判断 ...
+			p_->set_ms(MS_TF);
 			p_->switch_ms();
-			return p_->get_vga_last_state();
+
+			return ST_P3_Searching;
 		}
 	}
 };
