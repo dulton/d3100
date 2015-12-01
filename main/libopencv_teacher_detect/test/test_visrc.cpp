@@ -7,7 +7,7 @@
 int main()
 {
 	vd_t *vd = vd_open();
-	visrc_t *src = vs_open("teacher_detect_trace.config");
+	visrc_t *src = vs_open("123");
 	size_t cnt = 0;
 	
 	while (1) {

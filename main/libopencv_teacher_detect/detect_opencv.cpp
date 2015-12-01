@@ -1,13 +1,13 @@
-
 #include "../libteacher_detect/detect.h"
-#include "detect_t.h"
-#include "blackboard_detect.h"
 #include <string>
 #include <sstream>
 #include "sys/timeb.h"
 #include <unistd.h>
+#include "detect_t.h"
+#include "blackboard_detect.h"
 #include "utils.h"
 #include "hi_mat.h"
+#include "vi_src.h"
 
 #define max(a,b) (a>b ? a:b)
 #define min(a,b) (a>b ? b:a)
@@ -20,6 +20,8 @@ struct detect_t {
 	bool t_m;
 	bool b_m;
 	std::string result_str;
+
+	visrc_t *src;
 };
 
 static hiMat *get_mat(const struct hiVIDEO_FRAME_INFO_S *curr_vga_frame)
@@ -52,6 +54,7 @@ detect_t *det_open(const char *cfg_name)
 		ctx->bd_detect_ = new BlackboardDetecting(ctx->cfg_);	//+++++++;
 	}
 	//++++++++++
+	ctx->src = vs_open(cfg_name);
 	return ctx;
 }
 
@@ -65,6 +68,7 @@ void det_close(detect_t * ctx)
 		delete ctx->bd_detect_;
 	}
 	//+++++++;
+	vs_close(ctx->src);
 	delete ctx;
 }
 
@@ -210,16 +214,35 @@ static const char *empty_result()
 	return "{\"stamp\":12345, \"rect\":[]}";
 }
 
-const char *det_detect(detect_t * ctx, const struct hiVIDEO_FRAME_INFO_S *frame)
+static bool next_frame(detect_t *ctx, cv::Mat &frame)
 {
+	return vs_next_frame(ctx->src, frame);
+}
+
+const char *det_detect(detect_t * ctx)
+{
+	cv::Mat frame;
+	if (next_frame(ctx, frame)) {
+		return det_detect(ctx, frame);	
+	}
+	else {
+		return empty_result();
+	}
+}
+
+const char *det_detect_vt(detect_t *det, const struct hiVIDEO_FRAME_INFO_S *frame)
+{
+	fprintf(stderr, "%s %d\n", __func__, __LINE__);
 	hiMat *himat = get_mat(frame);  
 	hiMat rgb;
 	hi::yuv2rgb(*himat, rgb);
+	fprintf(stderr, "%s %d\n", __func__, __LINE__);
 	delete himat;
 	cv::Mat	mat;
+	fprintf(stderr, "%s %d\n", __func__, __LINE__);
+	rgb.dump_data("./liuwenwen");
+	fprintf(stderr , "%s %d\n", __func__, __LINE__);
 	rgb.download(mat);
-	const char *rc = det_detect(ctx, mat); 
+	const char *rc = det_detect(det, mat); 
 	return rc;
-
 }
-

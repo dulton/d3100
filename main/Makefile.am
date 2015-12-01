@@ -20,7 +20,9 @@ teacher_detect_SOURCES=	teacher_track/teacher_track.cpp \
 						teacher_track/detector.cpp \
 						teacher_track/log.cpp \
 						${RUNTIME_CPP} \
-						teacher_track/switch.cpp \ libptz/ptz.cpp \ libptz/tcp_util.cpp \
+						teacher_track/switch.cpp \
+						libptz/ptz.cpp \
+						libptz/tcp_util.cpp \
 						libptz/polyfit.cpp \
 						libkvconfig/kvconfig.cpp
 
@@ -113,18 +115,18 @@ libzkvt_a_SOURCES=	${top_srcdir}/vt/vt.cpp \
 					libopencv_teacher_detect/blackboard_detect.cpp \
 					libopencv_teacher_detect/detect_t.cpp \
 					libopencv_teacher_detect/KVConfig.cpp \
-					libopencv_teacher_detect/detect_opencv.cpp \
+					libopencv_teacher_detect/detect_opencv_vt.cpp \
 					libopencv_teacher_detect/hi_mat.cpp \
 					libopencv_teacher_detect/common/loadbmp.c 
 
-libzkvt_a_CXXFLAGS=	${OPENCV_CFLAGS} ${libopencv_detect_a_CXXFLAGS}
-libzkvt_a_CFLAGS=	${OPENCV_CFLAGS} ${libopencv_detect_a_CXXFLAGS}
+libzkvt_a_CXXFLAGS=	${OPENCV_CFLAGS} ${libopencv_detect_a_CXXFLAGS} 
+libzkvt_a_CFLAGS=	${OPENCV_CFLAGS} ${libopencv_detect_a_CXXFLAGS} 
 	
 
 
 test_vt_SOURCES=		${top_srcdir}/vt/test/testvt.cpp \
 						libopencv_teacher_detect/vi_src.cpp
-test_vt_CXXFLAGS= ${OPENCV_CFLAGS} ${libopencv_detect_a_CXXFLAGS}
+test_vt_CXXFLAGS= ${OPENCV_CFLAGS} ${libopencv_detect_a_CXXFLAGS} 
 test_vt_LDADD= 	libzkvt.a ${OPENCV_LIBS} ${HISLIBS} ${CCGNU2_LIBS}
 
 

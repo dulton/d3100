@@ -1,18 +1,29 @@
 #pragma once
 
+#ifndef WIN32
 #include <sys/time.h>
+#else
 
+#endif
 inline double uty_now()
 {
+#ifndef WIN32
 	struct timeval tv;
 	gettimeofday(&tv, 0);
 	return tv.tv_sec + tv.tv_usec * 0.000001;
+#else
+	return 0;
+#endif
 }
 
 inline double uty_uptime()
 {
+#ifndef WIN32
 	static double begin_ = uty_now();
 	return uty_now() - begin_;
+#else
+	return 0;
+#endif
 }
 
 class UtyTimeUsed

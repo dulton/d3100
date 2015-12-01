@@ -4,6 +4,7 @@
 #include "detector.h"
 #include "../libteacher_detect/detect.h"
 #include "../libopencv_teacher_detect/utils.h"
+
 struct detector_t
 {
 	int quit;
@@ -12,9 +13,12 @@ struct detector_t
 	detect_t *detimpl;	// 真正的实现...
 };
 
-static void parse_and_handle(FSM *fsm, const char *str)
+static void parse_and_handle(FSM *fsm, int who, const char *str)
 {
-	FSMEvent *e = new DetectionEvent("teacher", str);
+	FSMEvent *e = 0;
+	if (who == 1) {
+		e = new DetectionEvent("teacher", str);
+	}
 	
 	fsm->push_event(e);
 }
@@ -32,9 +36,9 @@ static void *thread_proc(void *arg)
 	double fr = .0;
 
 	while (!p->quit) {
-		const char *result = det_detect(p->detimpl, 0);
+		const char *result = det_detect(p->detimpl);
 		if (result) {
-			parse_and_handle(p->fsm, result);
+			parse_and_handle(p->fsm, 1, result);
 		}
 
 		n++;
