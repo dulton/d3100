@@ -10,6 +10,7 @@ AM_INIT_AUTOMAKE
 # Checks for programs.
 AC_PROG_CC
 AC_PROG_CXX
+AM_PROG_AR
 AC_PROG_RANLIB
 
 # Checks for libraries.
@@ -73,7 +74,7 @@ AM_CONDITIONAL([OPENCV], [test x$ac_opencv = xtrue])
 
 case "$host" in
 arm*)
-	CXXFLAGS="$CXXFLAGS -march=armv7-a -mcpu=cortex-a9 -mfloat-abi=softfp -mfpu=vfpv3-d16"
+	CXXFLAGS="$CXXFLAGS -march=armv7-a -mcpu=cortex-a9 -mfloat-abi=softfp -mfpu=vfpv3-d16 -I/opt/arm/include"
 	CFLAGS="$CFLAGS -march=armv7-a -mcpu=cortex-a9 -mfloat-abi=softfp -mfpu=vfpv3-d16"
 	;;
 esac

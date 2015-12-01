@@ -19,7 +19,6 @@ static void parse_and_handle(FSM *fsm, int who, const char *str)
 	if (who == 1) {
 		e = new DetectionEvent("teacher", str);
 	}
-	printf( "%s\n", str);
 	fsm->push_event(e);
 }
 
