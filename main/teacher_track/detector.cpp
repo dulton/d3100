@@ -35,7 +35,7 @@ static void *thread_proc(void *arg)
 	double fr = .0;
 
 	while (!p->quit) {
-		const char *result = det_detect(p->detimpl, 0);
+		const char *result = det_detect(p->detimpl);
 		if (result) {
 			parse_and_handle(p->fsm, 1, result);
 		}
