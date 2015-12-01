@@ -1,5 +1,6 @@
 #pragma once
 
+#include <stdio.h>
 #include "runtime.h"
 #include "log.h"
 

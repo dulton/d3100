@@ -10,6 +10,10 @@ Policy::Policy(const char* filename)
 
 }
 
+Policy::~Policy()
+{
+}
+
 void Policy::find_policy()
 {
 	if(current_policy_ == "sp1")
@@ -24,7 +28,7 @@ void Policy::find_policy()
 	}
 	else if(current_policy_ == "sp3")
 	{
-		p3 p;
-		p.run();
+//		p3 p;
+//		p.run();
 	}
 }
