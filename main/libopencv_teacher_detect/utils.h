@@ -3,7 +3,7 @@
 #ifndef WIN32
 #include <sys/time.h>
 #else
-
+#include <sys/timeb.h>
 #endif
 inline double uty_now()
 {
@@ -12,7 +12,10 @@ inline double uty_now()
 	gettimeofday(&tv, 0);
 	return tv.tv_sec + tv.tv_usec * 0.000001;
 #else
-	return 0;
+	timeb pre;
+	ftime(&pre);
+	double time = pre.time + pre.millitm * 0.001;
+	return time;
 #endif
 }
 
