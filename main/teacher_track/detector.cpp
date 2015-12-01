@@ -4,6 +4,7 @@
 #include "detector.h"
 #include "../libteacher_detect/detect.h"
 #include "../libopencv_teacher_detect/utils.h"
+
 struct detector_t
 {
 	int quit;
@@ -35,7 +36,7 @@ static void *thread_proc(void *arg)
 	double fr = .0;
 
 	while (!p->quit) {
-		const char *result = det_detect(p->detimpl, 0);
+		const char *result = det_detect(p->detimpl);
 		if (result) {
 			parse_and_handle(p->fsm, 1, result);
 		}

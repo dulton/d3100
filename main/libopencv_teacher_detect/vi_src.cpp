@@ -404,7 +404,6 @@ struct visrc_t {
 
 visrc_t *vs_open(const char *fname)
 {
-	//fprintf(stderr, "%s:%d\n", __func__, __LINE__);
 	static bool _inited = false;
 	if (!_inited) {
 		if (zk_mpi_init() < 0) {

@@ -69,7 +69,7 @@ void det_close(detect_t *det)
 	delete det;
 }
 
-const char *det_detect(detect_t *det, const hiVIDEO_FRAME_INFO_S *notused)
+const char *det_detect(detect_t *det)
 {
 	/** 接收 udp，500ms 超时，返回 det->result */
 	fd_set rs;
