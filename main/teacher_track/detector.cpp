@@ -4,6 +4,7 @@
 #include "detector.h"
 #include "../libteacher_detect/detect.h"
 #include "../libopencv_teacher_detect/utils.h"
+
 struct detector_t
 {
 	int quit;

@@ -33,6 +33,7 @@ vt_t *vt_open(const char *fname)
 	vt->addr.sin_family = AF_INET;
 	vt->addr.sin_port = htons(PORT);
 	vt->addr.sin_addr.s_addr = inet_addr(IP);
+
 	vt->dt = det_open(fname);
 
 	return vt;
