@@ -179,7 +179,12 @@ static const char *det_detect(detect_t * ctx, cv::Mat & img)
 
 		//save_mat(img, "saved/origin.rgb");
 		//save_mat(masked_img, "saved/curr.rgb");
-		
+		for (int i = 0; i < r.size(); i++) 
+		{
+			cv::Rect box = ctx->detect_->masked_rect;
+			r[i].x = r[i].x + box.x;
+			r[i].y = r[i].y + box.y;
+		}
 		vector_to_json_t(r, cv::Rect(), false, isrect, str);      
 		
 		//***********************************
