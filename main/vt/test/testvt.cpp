@@ -8,12 +8,11 @@
 int main()
 {
 	vt_t *vt = vt_open("teacher_detect_trace.config");
+
 	visrc_t *vs = vs_open("./teacher_detect_trace.config");
 	while (1) {
 		hiVIDEO_FRAME_INFO_S *frame;
-	
 		if (vs_next_raw(vs, &frame)) {
-			fprintf(stderr, "%s %d\n", __func__, __LINE__);
 			vt_trace(vt, 1, frame);
 			vs_free_raw(vs, frame);
 		}

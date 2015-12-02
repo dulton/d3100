@@ -16,6 +16,7 @@ teacher_detect_SOURCES=	teacher_track/teacher_track.cpp \
 						teacher_track/policy.cpp \
 						teacher_track/policy/p1.cpp \
 						teacher_track/policy/p2.cpp \
+						teacher_track/policy/p3.cpp \
 						teacher_track/udpsrv.cpp \
 						teacher_track/detector.cpp \
 						teacher_track/log.cpp \
@@ -50,6 +51,7 @@ arm_track_SOURCES= teacher_track/teacher_track.cpp \
 				   teacher_track/policy.cpp \
 				   teacher_track/policy/p1.cpp \
 				   teacher_track/policy/p2.cpp \
+				   teacher_track/policy/p3.cpp \
 				   teacher_track/udpsrv.cpp \
 				   teacher_track/detector.cpp \
 				   teacher_track/log.cpp \
@@ -63,14 +65,14 @@ arm_track_SOURCES= teacher_track/teacher_track.cpp \
 
 if OPENCV
 
-HISLIBS=${top_srcdir}/../hi353x/lib/libmpi.a \
+HISLIBS= -L${top_srcdir}/../hi353x/lib -lmpi \
 		${top_srcdir}/../hi353x/lib/libaec.a \
 		${top_srcdir}/../hi353x/lib/libanr.a \
 		${top_srcdir}/../hi353x/lib/libhdmi.a \
-		${top_srcdir}/../hi353x/lib/libjpeg.a  \
+		-L${top_srcdir}/../hi353x/lib -ljpeg  \
 		${top_srcdir}/../hi353x/lib/libpciv.a \
 		${top_srcdir}/../hi353x/lib/libresampler.a \
-		${top_srcdir}/../hi353x/lib/libtde.a \
+		-L${top_srcdir}/../hi353x/lib -ltde \
 		${top_srcdir}/../hi353x/lib/libVoiceEngine.a
 
 bdir=	${top_srcdir}/libopencv_teacher_detect

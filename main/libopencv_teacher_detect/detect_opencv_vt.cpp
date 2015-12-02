@@ -216,16 +216,12 @@ const char *det_detect(detect_t * ctx)
 
 const char *det_detect_vt(detect_t *det, const struct hiVIDEO_FRAME_INFO_S *frame)
 {
-	fprintf(stderr, "%s %d\n", __func__, __LINE__);
 	hiMat *himat = get_mat(frame);  
 	hiMat rgb;
 	hi::yuv2rgb(*himat, rgb);
-	fprintf(stderr, "%s %d\n", __func__, __LINE__);
 	delete himat;
 	cv::Mat	mat;
-	fprintf(stderr, "%s %d\n", __func__, __LINE__);
 	rgb.dump_data("./liuwenwen");
-	fprintf(stderr , "%s %d\n", __func__, __LINE__);
 	rgb.download(mat);
 	const char *rc = det_detect(det, mat); 
 	return rc;
