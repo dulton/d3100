@@ -113,7 +113,7 @@ libzkvd_a_SOURCES=	${top_srcdir}/vd/vd.cpp \
 					${top_srcdir}/libopencv_teacher_detect/hi_mat.cpp
 libzkvd_a_CXXFLAGS= ${OPENCV_CFLAGS} ${libopencv_detect_a_CXXFLAGS} -DWITHOUT_OCV
 
-libzkvt_a_SOURCES=	${top_srcdir}/vt/vt.cpp \
+libzkvt_a_SOURCES=	${top_srcdir}/vt/vt_multi.cpp \
 					libopencv_teacher_detect/blackboard_detect.cpp \
 					libopencv_teacher_detect/detect_t.cpp \
 					libopencv_teacher_detect/KVConfig.cpp \
