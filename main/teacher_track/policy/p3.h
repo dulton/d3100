@@ -120,7 +120,7 @@ public:
 		double m_l_angle = atan((left_len - ((pos.x + pos.width / 2.0) - cal_angle_.p_left)) / mid_len);
 		double angle = ang_left - m_l_angle;
 
-		double mid_x = pos.x + pos.width / 2;
+		//double mid_x = pos.x + pos.width / 2;
 
 		return angle;
 	}
