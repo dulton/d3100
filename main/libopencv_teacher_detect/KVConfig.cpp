@@ -15,15 +15,11 @@ KVConfig::~KVConfig(void)
 
 bool KVConfig::has_key(const char *key)
 {
-	ost::MutexLock al(cs_);
-
 	return get_value(key) != 0;
 }
 
 bool KVConfig::del_key(const char *key)
 {
-	ost::MutexLock al(cs_);
-
 	KVS::iterator itf = kvs_.find(key);
 	if (itf != kvs_.end()) {
 		kvs_.erase(itf);
@@ -35,8 +31,6 @@ bool KVConfig::del_key(const char *key)
 
 const char *KVConfig::get_value(const char *key, const char *def)
 {
-	ost::MutexLock al(cs_);
-
 	KVS::const_iterator itf = kvs_.find(key);
 	if (itf != kvs_.end())
 		return itf->second.c_str();
@@ -45,8 +39,6 @@ const char *KVConfig::get_value(const char *key, const char *def)
 
 std::vector<std::string> KVConfig::keys()
 {
-	ost::MutexLock al(cs_);
-
 	std::vector<std::string> ks;
 	KVS::const_iterator it;
 	for (it = kvs_.begin(); it != kvs_.end(); ++it)
@@ -57,8 +49,6 @@ std::vector<std::string> KVConfig::keys()
 
 int KVConfig::set_value(const char *key, const char *value)
 {
-	ost::MutexLock al(cs_);
-
 	KVS::iterator itf = kvs_.find(key);
 	if (itf == kvs_.end()) {
 		if (value) {
@@ -86,7 +76,6 @@ int KVConfig::set_value(const char *key, int v)
 
 int KVConfig::save_as(const char *filename)
 {
-	ost::MutexLock al(cs_);
 	std::string tmp;
 
 	if (!filename) {
@@ -119,14 +108,11 @@ int KVConfig::reload()
 
 void KVConfig::clear()
 {
-	ost::MutexLock al(cs_);
 	kvs_.clear();
 }
 
 void KVConfig::load_from_file(const char *filename)
 {
-	ost::MutexLock al(cs_);
-
 	FILE *fp = fopen(filename, "r");
 	if (!fp) {
 		//fprintf(stderr, "ERR: %s: can't open file '%s'\n", __FUNCTION__, filename);

@@ -57,7 +57,7 @@ TeacherDetecting::TeacherDetecting(KVConfig * cfg)
  : cfg_(cfg)
 {
 	//bg_model.set("var_Threshold",80);
-	bg_model.set("fTau", 0.2);	//阴影消除参数，0-1之间，默认为0.5，越小，阴影消除越厉害
+	//bg_model.set("fTau", 0.2);	//阴影消除参数，0-1之间，默认为0.5，越小，阴影消除越厉害
 	mog_learn_rate = atof(cfg_->get_value("t_mog_learn_rate", "0.05"));
 	up_update.region_interval =
 	    atof(cfg_->get_value("t_upbody_region_interval", "40"));

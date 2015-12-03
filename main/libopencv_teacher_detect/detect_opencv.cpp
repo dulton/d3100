@@ -4,7 +4,7 @@
 #include "sys/timeb.h"
 #include <unistd.h>
 #include "detect_t.h"
-#include "blackboard_detect.h"
+//#include "blackboard_detect.h"
 #include "utils.h"
 #include "hi_mat.h"
 #include "vi_src.h"
@@ -15,7 +15,7 @@
 struct detect_t {
 	KVConfig *cfg_;
 	TeacherDetecting *detect_;
-	BlackboardDetecting *bd_detect_;
+//	BlackboardDetecting *bd_detect_;
 	IplImage *masked_;
 	bool t_m;
 	bool b_m;
@@ -51,7 +51,7 @@ detect_t *det_open(const char *cfg_name)
 		ctx->detect_ = new TeacherDetecting(ctx->cfg_);
 	} else if (strcmp(method, "blackboard") == 0) {
 		ctx->b_m = true;
-		ctx->bd_detect_ = new BlackboardDetecting(ctx->cfg_);	//+++++++;
+//		ctx->bd_detect_ = new BlackboardDetecting(ctx->cfg_);	//+++++++;
 	}
 	//++++++++++
 	ctx->src = vs_open(cfg_name);
@@ -65,7 +65,7 @@ void det_close(detect_t * ctx)
 	if (ctx->t_m) {
 		delete ctx->detect_;
 	} else if (ctx->b_m) {
-		delete ctx->bd_detect_;
+//		delete ctx->bd_detect_;
 	}
 	//+++++++;
 	vs_close(ctx->src);
