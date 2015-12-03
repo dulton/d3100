@@ -10,23 +10,11 @@
 #include <vector>
 #include <string>
 #include <map>
-#include <cc++/thread.h>
 
-#ifdef WIN32
-#	ifdef LIBKVCONFIG_EXPORTS
-#		define KVCAPI __declspec(dllexport)
-#	else
-#		define KVCAPI __declspec(dllimport)
-#	endif
-#else
-#	define KVCAPI
-#endif //
-
-class KVCAPI KVConfig
+class KVConfig
 {
 	typedef std::map<std::string, std::string> KVS;
 	KVS kvs_;
-	ost::Mutex cs_;
 	std::string filename_;
 
 public:

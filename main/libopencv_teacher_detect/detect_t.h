@@ -144,7 +144,7 @@ struct Upbody_Update
 
 class TeacherDetecting
 {
-	BackgroundSubtractorMOG2 bg_model;//可更改一些内部参数;
+//	BackgroundSubtractorMOG2 bg_model;//可更改一些内部参数;
 	float mog_learn_rate;
 
 	int video_width_;
