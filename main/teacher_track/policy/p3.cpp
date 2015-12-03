@@ -74,10 +74,11 @@ void p3::load_speeds(const char *s, std::vector<int> &speeds)
 
 	if (speeds.empty()) {
 		speeds.push_back(0);
-		speeds.push_back(1);
 		speeds.push_back(3);
-		speeds.push_back(7);
-		speeds.push_back(10);
+		speeds.push_back(6);
+		speeds.push_back(9);
+		speeds.push_back(11);
+		speeds.push_back(15);
 	}
 }
 
@@ -87,8 +88,8 @@ void p3::load_calibration_edge(Cal_Angle_3 &cal_angle)
 	snprintf(key, sizeof(key), "calibration_data");
 	const char *pts = kvc_get(kvc_, key, 0);
 
-	cal_angle.p_left = cal_angle.p_right = atoi(kvc_get(kvc_,"video_width", "480")) / 2;
-
+	cal_angle.p_left = atoi(kvc_get(kvc_,"video_width", "480"));
+	cal_angle.p_right = 0;
 	if (pts) {
 		char *data = strdup(pts);
 		char *p = strtok(data, ";");
@@ -111,8 +112,8 @@ void p3::load_cal_angle(Cal_Angle_3 &cal_angle)
 	cal_angle.ptz_init_x = atoi(kvc_get(kvc_, "ptz_init_x", "0"));
 	cal_angle.angle_init = cal_angle.ptz_init_x * min_angle_ratio_ * M_PI / 180.0;
 
-	cal_angle.ptz_init_y = atoi(kvc_get(kvc_, "ptz_init_y", "0"));
-	cal_angle.angle_init = cal_angle.ptz_init_y * min_angle_ratio_ * M_PI / 180.0;
+	//cal_angle.ptz_init_y = atoi(kvc_get(kvc_, "ptz_init_y", "0"));
+	//cal_angle.angle_init = cal_angle.ptz_init_y * min_angle_ratio_ * M_PI / 180.0;
 
 	cal_angle.ptz_left_x = atoi(kvc_get(kvc_, "ptz_init_left", "0"));
 	cal_angle.angle_left = cal_angle.ptz_left_x * min_angle_ratio_ * M_PI / 180.0;

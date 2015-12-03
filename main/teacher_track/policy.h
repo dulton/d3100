@@ -24,7 +24,7 @@ class Policy
     kvconfig_t *kvc_;
 	const char* current_policy_;
 public:
-	Policy(const char*filename = "global_trace.config");
+	Policy(const char*filename = "global.trace.policy.config");
 	~Policy();
 
 	void find_policy();

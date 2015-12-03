@@ -38,7 +38,7 @@ detect_t *det_open(const char *fname)
 
 	sockaddr_in sin;
 	sin.sin_family = AF_INET;
-	sin.sin_port = htons(port ? atoi(port) : 11000);
+	sin.sin_port = htons(port ? atoi(port) : 12000);
 	sin.sin_addr.s_addr = INADDR_ANY;
 	if (bind(fd, (sockaddr*)&sin, sizeof(sin)) < 0) {
 		fatal("det dummy", "bind %d error!\n", PORT);
@@ -95,7 +95,7 @@ const char *det_detect(detect_t *det)
 			if (buf[0] == '1' || buf[0] == '2' || buf[0] == '3') {
 				/** 1: 教师，2: 学生，3: 板书 ..
 				 */
-				debug("det dummy", "\"%s\"\n", buf);
+				//debug("det dummy", "\"%s\"\n", buf);
 				det->result = std::string(buf+1, len-1);
 			}
 			else {
