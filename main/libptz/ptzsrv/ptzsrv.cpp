@@ -320,6 +320,12 @@ static void srv(int fd)
 	}
 
 	buf[rc] = 0;
+	char *p = strchr(buf, '\r');
+	if (p) *p = 0;
+
+	p = strchr(buf, '\n');
+	if (p) *p = 0;
+
 	std::vector<std::string> ss;
 	split(buf, '&', ss);
 
@@ -383,6 +389,10 @@ static void srv(int fd)
 		std::stringstream os;
 		snprintf(url, sizeof(url), "http://%s:10003/ptz/%s/get_pos", IP, who);
 		wj_req_with_res(s, url, os);
+
+		fprintf(stderr, "%s:%d\n", __func__, __LINE__);
+		std::string r = os.str();
+		fprintf(stderr, "r='%s'\n", r.c_str());
 
 		cJSON *json = cJSON_Parse(os.str().c_str());
 
