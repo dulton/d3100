@@ -126,7 +126,7 @@ void ptz_close(ptz_t *ptz)
 static int ptz_turn(ptz_t *ptz, const char *dir, int speed)
 {
 	char buf[128];
-	snprintf(buf, sizeof(buf), "PtzCmd=Turn&Who=%s&Direction=%s&Speed=%d",
+	snprintf(buf, sizeof(buf), "PtzCmd=Turn&Who=%s&Direction=%s&Speed=%d\r\n",
 			ptz->who.c_str(), dir, speed);
 
 	return send_without_res(ptz, buf, __func__);
@@ -155,7 +155,7 @@ int ptz_down(ptz_t *p, int speed)
 int ptz_stop(ptz_t *p)
 {
 	char buf[128];
-	snprintf(buf, sizeof(buf), "PtzCmd=StopTurn&Who=%s", 
+	snprintf(buf, sizeof(buf), "PtzCmd=StopTurn&Who=%s\r\n", 
 			p->who.c_str());
 
 	return send_without_res(p, buf, __func__);
@@ -164,7 +164,7 @@ int ptz_stop(ptz_t *p)
 int ptz_setpos(ptz_t *p, int x, int y, int sx, int sy)
 {
 	char buf[128];
-	snprintf(buf, sizeof(buf), "PtzCmd=TurnToPos&Who=%s&X=%d&Y=%d&SX=%d&SY=%d",
+	snprintf(buf, sizeof(buf), "PtzCmd=TurnToPos&Who=%s&X=%d&Y=%d&SX=%d&SY=%d\r\n",
 			p->who.c_str(), x, y, sx, sy);
 
 	return send_without_res(p, buf, __func__);
@@ -173,7 +173,7 @@ int ptz_setpos(ptz_t *p, int x, int y, int sx, int sy)
 int ptz_getpos(ptz_t *p, int *x, int *y)
 {
 	char buf[128];
-	snprintf(buf, sizeof(buf), "PtzCmd=GetPos&Who=%s",
+	snprintf(buf, sizeof(buf), "PtzCmd=GetPos&Who=%s\r\n",
 			p->who.c_str());
 
 	std::string result;
@@ -193,7 +193,7 @@ int ptz_getpos(ptz_t *p, int *x, int *y)
 int ptz_zoom_stop(ptz_t *p)
 {
 	char buf[128];
-	snprintf(buf, sizeof(buf), "PtzCmd=ZoomStop&Who=%s", p->who.c_str());
+	snprintf(buf, sizeof(buf), "PtzCmd=ZoomStop&Who=%s\r\n", p->who.c_str());
 
 	return send_without_res(p, buf, __func__);
 }
@@ -201,7 +201,7 @@ int ptz_zoom_stop(ptz_t *p)
 int ptz_zoom_wide(ptz_t *p, int speed)
 {
 	char buf[128];
-	snprintf(buf, sizeof(buf), "PtzCmd=ZoomWide&Who=%s&speed=%d",
+	snprintf(buf, sizeof(buf), "PtzCmd=ZoomWide&Who=%s&speed=%d\r\n",
 			p->who.c_str(), speed);
 
 	return send_without_res(p, buf, __func__);
@@ -210,7 +210,7 @@ int ptz_zoom_wide(ptz_t *p, int speed)
 int ptz_zoom_tele(ptz_t *p, int speed)
 {
 	char buf[128];
-	snprintf(buf, sizeof(buf), "PtzCmd=ZoomTele&Who=%s&speed=%d",
+	snprintf(buf, sizeof(buf), "PtzCmd=ZoomTele&Who=%s&speed=%d\r\n",
 			p->who.c_str(), speed);
 
 	return send_without_res(p, buf, __func__);
@@ -219,7 +219,7 @@ int ptz_zoom_tele(ptz_t *p, int speed)
 int ptz_setzoom(ptz_t *p, int z)
 {
 	char buf[128];
-	snprintf(buf, sizeof(buf), "PtzCmd=SetZoom&Who=%s&Zoom=%d",
+	snprintf(buf, sizeof(buf), "PtzCmd=SetZoom&Who=%s&Zoom=%d\r\n",
 			p->who.c_str(), z);
 
 	p->zoom_changed = true;
@@ -234,7 +234,7 @@ int ptz_getzoom(ptz_t *p, int *z)
 	}
 
 	char buf[128];
-	snprintf(buf, sizeof(buf), "PtzCmd=GetZoom&Who=%s", p->who.c_str());
+	snprintf(buf, sizeof(buf), "PtzCmd=GetZoom&Who=%s\r\n", p->who.c_str());
 
 	std::string result;
 	if (send_with_res(p, buf, result, __func__) < 0) {
@@ -256,7 +256,7 @@ int ptz_getzoom(ptz_t *p, int *z)
 static int preset_func(ptz_t *p, int id, const char *cmd)
 {
 	char buf[128];
-	snprintf(buf, sizeof(buf), "PtzCmd=%s&Who=%s&ID=%d",
+	snprintf(buf, sizeof(buf), "PtzCmd=%s&Who=%s&ID=%d\r\n",
 			cmd, p->who.c_str(), id);
 
 	return send_without_res(p, buf, __func__);
@@ -281,7 +281,7 @@ int ptz_preset_save(ptz_t *p, int id)
 int ptz_ext_mouse_track(ptz_t *p, float x, float y)
 {
 	char buf[128];
-	snprintf(buf, sizeof(buf), "PtzCmd=MouseTrace&Who=%s&X=%f&Y=%f",
+	snprintf(buf, sizeof(buf), "PtzCmd=MouseTrace&Who=%s&X=%f&Y=%f\r\n",
 			p->who.c_str(), x, y);
 
 	return send_without_res(p, buf, __func__);

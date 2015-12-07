@@ -36,6 +36,27 @@ test_detect_SOURCES= libteacher_detect/detect_dummy.cpp \
 
 teacher_detect_SOURCES+= libteacher_detect/detect_dummy.cpp
 
+arm_track_SOURCES= teacher_track/teacher_track.cpp \
+				   teacher_track/cJSON.c \
+				   teacher_track/fsm.cpp \
+				   teacher_track/reg.cpp \
+				   teacher_track/policy.cpp \
+				   teacher_track/policy/p1.cpp \
+				   teacher_track/policy/p2.cpp \
+				   teacher_track/policy/p3.cpp \
+				   teacher_track/udpsrv.cpp \
+				   teacher_track/detector.cpp \
+				   teacher_track/log.cpp \
+				   ${RUNTIME_CPP} \
+				   teacher_track/switch.cpp \
+				   libptz/ptz.cpp \
+				   libptz/tcp_util.cpp \
+				   libptz/polyfit.cpp \
+				   libkvconfig/kvconfig.cpp \
+				   libteacher_detect/detect_dummy.cpp 
+
+
+
 if OPENCV
 test_himat_SOURCES=	libopencv_teacher_detect/test/test_himat.cpp libopencv_teacher_detect/hi_mat.cpp
 test_himat_CXXFLAGS= ${OPENCV_CFLAGS}
