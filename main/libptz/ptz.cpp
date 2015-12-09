@@ -182,7 +182,7 @@ int ptz_getpos(ptz_t *p, int *x, int *y)
 	}
 
 	// 返回格式为：X=-880&Y=-300
-	if (sscanf(result.c_str(), "X=%d&Y=%d", x, y) != 2) {
+	if (sscanf(result.c_str(), "###X=%d&Y=%d", x, y) != 2) {
 		error("libptz", "get_pos res err, '%s'\n", result.c_str());
 		return -1;
 	}
@@ -194,6 +194,7 @@ int ptz_zoom_stop(ptz_t *p)
 {
 	char buf[128];
 	snprintf(buf, sizeof(buf), "PtzCmd=ZoomStop&Who=%s\r\n", p->who.c_str());
+	p->zoom_changed = true;
 
 	return send_without_res(p, buf, __func__);
 }
@@ -203,6 +204,7 @@ int ptz_zoom_wide(ptz_t *p, int speed)
 	char buf[128];
 	snprintf(buf, sizeof(buf), "PtzCmd=ZoomWide&Who=%s&speed=%d\r\n",
 			p->who.c_str(), speed);
+	p->zoom_changed = true;
 
 	return send_without_res(p, buf, __func__);
 }
@@ -212,6 +214,7 @@ int ptz_zoom_tele(ptz_t *p, int speed)
 	char buf[128];
 	snprintf(buf, sizeof(buf), "PtzCmd=ZoomTele&Who=%s&speed=%d\r\n",
 			p->who.c_str(), speed);
+	p->zoom_changed = true;
 
 	return send_without_res(p, buf, __func__);
 }
@@ -242,7 +245,7 @@ int ptz_getzoom(ptz_t *p, int *z)
 	}
 
 	// result 格式应该是 Zoom=2133
-	if (sscanf(result.c_str(), "Zoom=%d", z) != 1) {
+	if (sscanf(result.c_str(), "###Zoom=%d", z) != 1) {
 		error("ptz", "libptz] get_zoom ret err, result='%s'\n",
 				result.c_str());
 		return -1;
